@@ -1,0 +1,11 @@
+Accessible OBS Studio 1.0
+Copyright (C) 2026 Tiflo.Info
+https://tiflo.info
+
+Licensed under GNU GPL version 2 or later.
+
+OBS Studio is a separate project of the OBS Project. Microsoft Edge WebView2
+Runtime and Microsoft Visual C++ Redistributable are Microsoft components
+distributed unmodified under their respective Microsoft license terms.
+OpenAI is a separate service. Users provide and pay for use of their own API
+key. Accessible OBS Studio is not affiliated with or endorsed by OpenAI.

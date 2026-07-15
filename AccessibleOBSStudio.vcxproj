@@ -1,0 +1,35 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F6BC25F8-B578-4CC2-9634-64310968A495}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword><RootNamespace>AccessibleOBSStudio</RootNamespace><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType><UseDebugLibraries>false</UseDebugLibraries><PlatformToolset>v143</PlatformToolset><CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>accessible-obs-studio</TargetName><OutDir>$(ProjectDir)build\Release\</OutDir><IntDir>$(ProjectDir)build\obj\</IntDir>
+    <QtRoot Condition="'$(QtRoot)'==''">$(ProjectDir)dependencies\qt6</QtRoot>
+    <WebView2Root Condition="'$(WebView2Root)'==''">$(ProjectDir)dependencies\webview2</WebView2Root>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard><WarningLevel>Level4</WarningLevel><TreatWarningAsError>true</TreatWarningAsError><PreprocessorDefinitions>UNICODE;_UNICODE;WIN32_LEAN_AND_MEAN;NOMINMAX;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(QtRoot)\include;$(QtRoot)\include\QtCore;$(QtRoot)\include\QtGui;$(QtRoot)\include\QtWidgets;$(WebView2Root)\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><Optimization>MaxSpeed</Optimization><ConformanceMode>true</ConformanceMode><AdditionalOptions>/utf-8 /Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem><AdditionalLibraryDirectories>$(QtRoot)\lib;$(WebView2Root)\build\native\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Qt6Widgets.lib;Qt6Gui.lib;Qt6Core.lib;WebView2LoaderStatic.lib;Comctl32.lib;User32.lib;Gdi32.lib;Advapi32.lib;Ole32.lib;Shlwapi.lib;Version.lib;Winhttp.lib;Winmm.lib;Shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>exports.def</ModuleDefinitionFile><GenerateMapFile>true</GenerateMapFile><MapFileName>$(OutDir)accessible-obs-studio.map</MapFileName>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup><ClCompile Include="plugin.cpp" /></ItemGroup>
+  <ItemGroup><ResourceCompile Include="version.rc" /></ItemGroup>
+  <ItemGroup><None Include="exports.def" /></ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

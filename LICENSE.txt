@@ -1,0 +1,21 @@
+Accessible OBS Studio
+Copyright (C) 2026 Tiflo.Info
+https://tiflo.info
+
+SPDX-License-Identifier: GPL-2.0-or-later
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 2 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See LICENSE-GPL-2.0.txt for the complete GNU GPL
+version 2 license text.
+
+The names “Accessible OBS Studio” and “Tiflo.Info”, their logos, and other
+project branding are not licensed as trademarks by the GNU GPL. The GPL
+permits commercial use and redistribution of the covered software; it does
+not grant permission to imply endorsement by Tiflo.Info or to use protected
+branding in a misleading manner.
