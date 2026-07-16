@@ -18,9 +18,10 @@ Schließen Sie OBS und starten Sie `AccessibleOBSStudio-1.0-Setup.exe`. Das Inst
 - F6 / Umschalt+F6: nächster / vorheriger Hauptbereich.
 - F7: Aufnahme starten oder beenden.
 - F8: virtuelle Kamera ein- oder ausschalten.
+- Strg+Gravis: die barrierefreie Lautstärkekonsole öffnen. Gemeint ist die physische Taste direkt unter Escape; ihr Zeichen hängt vom Tastaturlayout ab.
+- Strg+0 bis Strg+5: Videovorschau, Szenen, Quellen, Audiomixer, Szenenübergänge oder Steuerung fokussieren.
 
 Der Befehl **Accessible OBS Studio: Open Accessible OBS Studio** öffnet den Tastenkürzel-Editor. Er kann zugewiesen werden, hat aber standardmäßig kein Tastenkürzel.
-- Strg+0 bis Strg+5: Videovorschau, Szenen, Quellen, Audiomixer, Szenenübergänge oder Steuerung fokussieren.
 
 Beim ersten Start deaktiviert das Plugin OBS-Hotkeys außerhalb des fokussierten OBS-Hauptfensters, jedoch nur, wenn Sie diese OBS-Einstellung noch nie selbst festgelegt haben. Spätere Änderungen werden respektiert.
 
@@ -33,6 +34,8 @@ Beim ersten Start deaktiviert das Plugin OBS-Hotkeys außerhalb des fokussierten
 ## Audiomixer und Mediensteuerung
 
 Strg+3 fokussiert den Audiomixer. Die sichtbaren Lautstärkeregler werden in Anzeigereihenfolge nummeriert. 1 bis 9 wählen die ersten neun Quellen, 0 die zehnte. Die Pfeiltasten und weitere Bedienung bleiben native OBS-Funktionen. F4 fokussiert die Mediensteuerung, sofern OBS sie anzeigt; das Plugin ersetzt keine OBS-Medientasten.
+
+Strg+Gravis öffnet die modale **barrierefreie Lautstärkekonsole**. Der zuvor fokussierte OBS-Bedienpunkt wird gespeichert und nach Escape wiederhergestellt. Die Konsole zeigt alle derzeit im OBS-Mixer aktiven Audioquellen, einschließlich geeigneter Quellen in Gruppen oder verschachtelten Szenen sowie globaler Geräte. Links und Rechts wechseln die Quelle, Hoch und Runter ändern die Lautstärke um 1 dB, Pos1 setzt sie auf 0 dB und die Leertaste schaltet stumm oder hebt die Stummschaltung auf. 1 bis 9 wählen die ersten neun Quellen, 0 die zehnte. Änderungen wirken sofort und werden von JAWS und NVDA angesagt. Der Befehl und sein Tastenkürzel können im Editor geändert werden.
 
 ## Canvas, OpenAI und Aktionen
 

@@ -25,6 +25,7 @@
 #include <QAbstractSlider>
 #include <QAbstractItemView>
 #include <QAction>
+#include <QAccessible>
 #include <QBuffer>
 #include <QByteArray>
 #include <QDockWidget>
@@ -45,6 +46,10 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QSlider>
+#include <QTimer>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -75,6 +80,14 @@ struct Api {
     void (*load_bindings)(hotkey_id,key_combo*,size_t){};
     const char *(*key_name)(int){};
     const char *(*source_name)(const void*){};
+    void (*enum_sources)(bool(*)(void*,void*),void*){};
+    void *(*source_get_ref)(void*){};
+    uint32_t (*source_output_flags)(const void*){};
+    bool (*source_audio_active)(const void*){};
+    float (*source_get_volume)(const void*){};
+    void (*source_set_volume)(void*,float){};
+    bool (*source_muted)(const void*){};
+    void (*source_set_muted)(void*,bool){};
     void *(*weak_source_get)(void*){};
     void (*source_release)(void*){};
     void *(*weak_output_get)(void*){};
@@ -92,6 +105,7 @@ struct Api {
     void (*unregister_hotkey)(hotkey_id){};
     void (*hotkey_load)(hotkey_id,obs_data_array*){};
     int (*key_from_name)(const char*){};
+    int (*key_from_virtual_key)(int){};
     const char *(*get_locale)(){};
     uint32_t (*get_version)(){};
     gs_texture *(*main_texture)(){};
@@ -135,7 +149,7 @@ static std::vector<key_combo> staged;
 static HINSTANCE instance{};
 static QMainWindow *obsMainWindow{};
 struct CanvasCapture;
-static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),describeCanvasHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1);
+static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),describeCanvasHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1);
 static std::array<hotkey_id,6> directAreaHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::thread openAIThread;
 static std::atomic_bool requestRunning{false},shuttingDown{false};
@@ -157,6 +171,7 @@ static constexpr const char *PREVIOUS_AREA_NAME="accessible_obs_studio.previous_
 static constexpr const char *DESCRIBE_CANVAS_NAME="accessible_obs_studio.describe_canvas";
 static constexpr const char *FOCUS_MEDIA_NAME="accessible_obs_studio.focus_media_controls";
 static constexpr const char *OPEN_ACCESSIBLE_OBS_NAME="accessible_obs_studio.open_accessible_obs_studio";
+static constexpr const char *VOLUME_CONSOLE_NAME="accessible_obs_studio.open_volume_console";
 static constexpr std::array<const char*,6> DIRECT_AREA_NAMES={"accessible_obs_studio.focus_video_preview","accessible_obs_studio.focus_scenes","accessible_obs_studio.focus_sources","accessible_obs_studio.focus_audio_mixer","accessible_obs_studio.focus_scene_transitions","accessible_obs_studio.focus_controls"};
 static constexpr const wchar_t *CREDENTIAL_NAME=L"AccessibleOBSStudio/OpenAI";
 
@@ -301,7 +316,7 @@ static ApiKeyValidation ValidateApiKeyOnline(const std::string &key){
 static void UpdateSettingsStatus(){std::string key;bool stored=ReadApiKey(key);if(!key.empty())SecureZeroMemory(key.data(),key.size());SetWindowText(settingsStatus,Tr(stored?UiText::KeyStored:UiText::NoKeyStored));}
 
 static ApiKeyValidation ValidateApiKeyWithProgress(HWND window,const std::string &key){
-    settingsValidationRunning=true;SetWindowText(settingsStatus,Tr(UiText::ValidatingApiKey));NotifyWinEvent(EVENT_OBJECT_NAMECHANGE,settingsStatus,OBJID_CLIENT,CHILDID_SELF);for(int id:{ID_API_KEY,ID_SAVE_KEY,ID_REMOVE_KEY,ID_NO_API_KEY,ID_SETTINGS_CLOSE})EnableWindow(GetDlgItem(window,id),FALSE);SetCursor(LoadCursor(nullptr,IDC_WAIT));HANDLE completed=CreateEvent(nullptr,TRUE,FALSE,nullptr);ApiKeyValidation result=ApiKeyValidation::ConnectionFailed;std::thread worker([&]{result=ValidateApiKeyOnline(key);SetEvent(completed);});for(;;){DWORD wait=MsgWaitForMultipleObjects(1,&completed,FALSE,250,QS_ALLINPUT);if(wait==WAIT_OBJECT_0)break;MSG message{};while(PeekMessage(&message,nullptr,0,0,PM_REMOVE)){TranslateMessage(&message);DispatchMessage(&message);}}worker.join();CloseHandle(completed);SetCursor(LoadCursor(nullptr,IDC_ARROW));for(int id:{ID_API_KEY,ID_SAVE_KEY,ID_REMOVE_KEY,ID_NO_API_KEY,ID_SETTINGS_CLOSE})EnableWindow(GetDlgItem(window,id),TRUE);settingsValidationRunning=false;UpdateSettingsStatus();SetFocus(apiKeyEdit);return result;
+    settingsValidationRunning=true;SetWindowText(settingsStatus,Tr(UiText::ValidatingApiKey));for(int id:{ID_API_KEY,ID_SAVE_KEY,ID_REMOVE_KEY,ID_NO_API_KEY,ID_SETTINGS_CLOSE})EnableWindow(GetDlgItem(window,id),FALSE);SetCursor(LoadCursor(nullptr,IDC_WAIT));HANDLE completed=CreateEvent(nullptr,TRUE,FALSE,nullptr);ApiKeyValidation result=ApiKeyValidation::ConnectionFailed;std::thread worker([&]{result=ValidateApiKeyOnline(key);SetEvent(completed);});for(;;){DWORD wait=MsgWaitForMultipleObjects(1,&completed,FALSE,250,QS_ALLINPUT);if(wait==WAIT_OBJECT_0)break;MSG message{};while(PeekMessage(&message,nullptr,0,0,PM_REMOVE)){TranslateMessage(&message);DispatchMessage(&message);}}worker.join();CloseHandle(completed);SetCursor(LoadCursor(nullptr,IDC_ARROW));for(int id:{ID_API_KEY,ID_SAVE_KEY,ID_REMOVE_KEY,ID_NO_API_KEY,ID_SETTINGS_CLOSE})EnableWindow(GetDlgItem(window,id),TRUE);settingsValidationRunning=false;UpdateSettingsStatus();SetFocus(apiKeyEdit);return result;
 }
 
 static LRESULT CALLBACK SettingsProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
@@ -437,6 +452,8 @@ static int ShowChoiceDialog(HWND owner,const wchar_t *title,const wchar_t *instr
 
 #include "src/focus_navigation.cpp"
 
+#include "src/volume_console.cpp"
+
 #include "src/canvas_openai.cpp"
 
 #include "src/compatibility.cpp"
@@ -447,16 +464,16 @@ static bool LoadApi(){api.obs=GetModuleHandle(L"obs.dll");api.frontend=GetModule
     O(enum_hotkeys,decltype(api.enum_hotkeys),"obs_enum_hotkeys");O(enum_bindings,decltype(api.enum_bindings),"obs_enum_hotkey_bindings");
     O(hk_name,decltype(api.hk_name),"obs_hotkey_get_name");O(hk_desc,decltype(api.hk_desc),"obs_hotkey_get_description");O(hk_type,decltype(api.hk_type),"obs_hotkey_get_registerer_type");O(hk_registerer,decltype(api.hk_registerer),"obs_hotkey_get_registerer");
     O(binding_combo,decltype(api.binding_combo),"obs_hotkey_binding_get_key_combination");O(binding_id,decltype(api.binding_id),"obs_hotkey_binding_get_hotkey_id");O(load_bindings,decltype(api.load_bindings),"obs_hotkey_load_bindings");O(hotkey_load,decltype(api.hotkey_load),"obs_hotkey_load");
-    O(register_frontend,decltype(api.register_frontend),"obs_hotkey_register_frontend");O(unregister_hotkey,decltype(api.unregister_hotkey),"obs_hotkey_unregister");O(key_name,decltype(api.key_name),"obs_key_to_name");O(key_from_name,decltype(api.key_from_name),"obs_key_from_name");O(get_locale,decltype(api.get_locale),"obs_get_locale");O(get_version,decltype(api.get_version),"obs_get_version");O(hotkey_enable_background_press,decltype(api.hotkey_enable_background_press),"obs_hotkey_enable_background_press");
+    O(register_frontend,decltype(api.register_frontend),"obs_hotkey_register_frontend");O(unregister_hotkey,decltype(api.unregister_hotkey),"obs_hotkey_unregister");O(key_name,decltype(api.key_name),"obs_key_to_name");O(key_from_name,decltype(api.key_from_name),"obs_key_from_name");O(key_from_virtual_key,decltype(api.key_from_virtual_key),"obs_key_from_virtual_key");O(get_locale,decltype(api.get_locale),"obs_get_locale");O(get_version,decltype(api.get_version),"obs_get_version");O(hotkey_enable_background_press,decltype(api.hotkey_enable_background_press),"obs_hotkey_enable_background_press");
     O(main_texture,decltype(api.main_texture),"obs_get_main_texture");O(add_tick,decltype(api.add_tick),"obs_add_tick_callback");O(remove_tick,decltype(api.remove_tick),"obs_remove_tick_callback");O(enter_graphics,decltype(api.enter_graphics),"obs_enter_graphics");O(leave_graphics,decltype(api.leave_graphics),"obs_leave_graphics");
     O(texture_width,decltype(api.texture_width),"gs_texture_get_width");O(texture_height,decltype(api.texture_height),"gs_texture_get_height");O(texture_format,decltype(api.texture_format),"gs_texture_get_color_format");O(stage_create,decltype(api.stage_create),"gs_stagesurface_create");O(stage_destroy,decltype(api.stage_destroy),"gs_stagesurface_destroy");O(stage_texture,decltype(api.stage_texture),"gs_stage_texture");O(stage_map,decltype(api.stage_map),"gs_stagesurface_map");O(stage_unmap,decltype(api.stage_unmap),"gs_stagesurface_unmap");
-    O(source_name,decltype(api.source_name),"obs_source_get_name");O(weak_source_get,decltype(api.weak_source_get),"obs_weak_source_get_source");O(source_release,decltype(api.source_release),"obs_source_release");O(weak_output_get,decltype(api.weak_output_get),"obs_weak_output_get_output");O(output_release,decltype(api.output_release),"obs_output_release");
+    O(source_name,decltype(api.source_name),"obs_source_get_name");O(enum_sources,decltype(api.enum_sources),"obs_enum_sources");O(source_get_ref,decltype(api.source_get_ref),"obs_source_get_ref");O(source_output_flags,decltype(api.source_output_flags),"obs_source_get_output_flags");O(source_audio_active,decltype(api.source_audio_active),"obs_source_audio_active");O(source_get_volume,decltype(api.source_get_volume),"obs_source_get_volume");O(source_set_volume,decltype(api.source_set_volume),"obs_source_set_volume");O(source_muted,decltype(api.source_muted),"obs_source_muted");O(source_set_muted,decltype(api.source_set_muted),"obs_source_set_muted");O(weak_source_get,decltype(api.weak_source_get),"obs_weak_source_get_source");O(source_release,decltype(api.source_release),"obs_source_release");O(weak_output_get,decltype(api.weak_output_get),"obs_weak_output_get_output");O(output_release,decltype(api.output_release),"obs_output_release");
     O(hotkey_save,decltype(api.hotkey_save),"obs_hotkey_save");O(data_create,decltype(api.data_create),"obs_data_create");O(data_create_json,decltype(api.data_create_json),"obs_data_create_from_json");O(data_get_array,decltype(api.data_get_array),"obs_data_get_array");O(data_set_array,decltype(api.data_set_array),"obs_data_set_array");O(data_json,decltype(api.data_json),"obs_data_get_json");O(data_release,decltype(api.data_release),"obs_data_release");O(array_release,decltype(api.array_release),"obs_data_array_release");O(save_output,decltype(api.save_output),"obs_hotkeys_save_output");
     O(config_set_string,decltype(api.config_set_string),"config_set_string");O(config_get_string,decltype(api.config_get_string),"config_get_string");O(config_has_user_value,decltype(api.config_has_user_value),"config_has_user_value");O(config_save_safe,decltype(api.config_save_safe),"config_save_safe");
     F(add_tools,decltype(api.add_tools),"obs_frontend_add_tools_menu_item");F(main_window,decltype(api.main_window),"obs_frontend_get_main_window");F(main_hwnd,decltype(api.main_hwnd),"obs_frontend_get_main_window_handle");F(profile_config,decltype(api.profile_config),"obs_frontend_get_profile_config");F(global_config,decltype(api.global_config),"obs_frontend_get_global_config");F(studio_mode_active,decltype(api.studio_mode_active),"obs_frontend_preview_program_mode_active");F(add_event_callback,decltype(api.add_event_callback),"obs_frontend_add_event_callback");F(remove_event_callback,decltype(api.remove_event_callback),"obs_frontend_remove_event_callback");F(frontend_save,decltype(api.frontend_save),"obs_frontend_save");
 #undef O
 #undef F
-    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.add_tools&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback;
+    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.key_from_virtual_key&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.enum_sources&&api.source_get_ref&&api.source_output_flags&&api.source_audio_active&&api.source_get_volume&&api.source_set_volume&&api.source_muted&&api.source_set_muted&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.add_tools&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback;
 }
 
 extern "C" __declspec(dllexport) void obs_module_set_pointer(void*){}
@@ -474,6 +491,7 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     describeCanvasHotkey=api.register_frontend(DESCRIBE_CANVAS_NAME,describe.c_str(),DescribeCanvasHotkey,nullptr);
     focusMediaHotkey=api.register_frontend(FOCUS_MEDIA_NAME,"Accessible OBS Studio: Focus Media Controls",FocusMediaControlsHotkey,nullptr);
     openAccessibleObsHotkey=api.register_frontend(OPEN_ACCESSIBLE_OBS_NAME,"Accessible OBS Studio: Open Accessible OBS Studio",OpenAccessibleObsHotkey,nullptr);
+    std::string volumeConsoleLabel=VolumeConsoleCommandLabel();volumeConsoleHotkey=api.register_frontend(VOLUME_CONSOLE_NAME,volumeConsoleLabel.c_str(),VolumeConsoleHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
     LoadNavigationBindings();EnsureSafeHotkeyFocusDefault();accessibilityEventFilter=new AccessibilityFilter;QApplication::instance()->installEventFilter(accessibilityEventFilter);api.add_event_callback(FrontendEvent,nullptr);api.add_tools("Accessible OBS Studio",ShowSimpleEditor,nullptr);return true;
@@ -486,6 +504,7 @@ extern "C" __declspec(dllexport) void obs_module_unload(){
     if(api.unregister_hotkey&&describeCanvasHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(describeCanvasHotkey);
     if(api.unregister_hotkey&&focusMediaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(focusMediaHotkey);
     if(api.unregister_hotkey&&openAccessibleObsHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(openAccessibleObsHotkey);
+    if(api.unregister_hotkey&&volumeConsoleHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(volumeConsoleHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);
     if(accessibilityEventFilter&&QApplication::instance()){QApplication::instance()->removeEventFilter(accessibilityEventFilter);delete accessibilityEventFilter;accessibilityEventFilter=nullptr;}
     if(comInitialized){CoUninitialize();comInitialized=false;}

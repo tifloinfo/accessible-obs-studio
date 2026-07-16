@@ -18,9 +18,10 @@ Fermez OBS, puis exécutez `AccessibleOBSStudio-1.0-Setup.exe`. Le programme d�
 - F6 / Maj+F6 : zone principale suivante / précédente.
 - F7 : démarrer ou arrêter l’enregistrement.
 - F8 : activer ou désactiver la caméra virtuelle.
+- Ctrl+accent grave : ouvrir la console de volume accessible. Il s’agit de la touche physique juste sous Échap ; son caractère dépend de la disposition du clavier.
+- Ctrl+0 à Ctrl+5 : aperçu vidéo, scènes, sources, mélangeur audio, transitions ou commandes.
 
 La commande **Accessible OBS Studio: Open Accessible OBS Studio** ouvre l’éditeur de raccourcis. Elle peut recevoir un raccourci, mais aucun n’est attribué par défaut.
-- Ctrl+0 à Ctrl+5 : aperçu vidéo, scènes, sources, mélangeur audio, transitions ou commandes.
 
 Au premier démarrage, le module désactive les raccourcis OBS lorsque la fenêtre principale d’OBS n’a pas le focus, uniquement si vous n’avez jamais défini ce réglage vous-même. Toute modification ultérieure est respectée.
 
@@ -33,6 +34,8 @@ Les changements ne sont inscrits dans OBS qu’après activation de OK dans la f
 ## Audio et médias
 
 Ctrl+3 place le focus sur le mélangeur audio. Les réglages de volume visibles sont numérotés dans l’ordre d’affichage. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les flèches et les autres commandes restent celles d’OBS. F4 place le focus sur les commandes multimédias lorsque celles-ci sont affichées ; le module ne remplace aucune touche multimédia d’OBS.
+
+Ctrl+accent grave ouvre la **console de volume accessible** modale. Le module mémorise le contrôle OBS précédemment ciblé et le restaure après Échap. La console présente toutes les sources audio actuellement actives dans le mélangeur OBS, y compris les sources pertinentes dans les groupes ou scènes imbriquées et les périphériques globaux. Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine rétablit 0 dB et Espace active ou coupe le son. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les changements sont immédiats et annoncés par JAWS et NVDA. La commande et son raccourci peuvent être modifiés dans l’éditeur.
 
 ## Analyse du canevas et actions
 

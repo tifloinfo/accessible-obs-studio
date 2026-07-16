@@ -18,9 +18,10 @@ Cierre OBS y ejecute `AccessibleOBSStudio-1.0-Setup.exe`. El instalador coloca e
 - F6 / Mayús+F6: área principal siguiente / anterior.
 - F7: iniciar o detener la grabación.
 - F8: activar o desactivar la cámara virtual.
+- Ctrl+acento grave: abrir la Consola de volumen accesible. Se refiere a la tecla física situada justo debajo de Escape; su carácter depende de la distribución del teclado.
+- Ctrl+0 a Ctrl+5: enfocar Vista previa, Escenas, Fuentes, Mezclador de audio, Transiciones o Controles.
 
 El comando **Accessible OBS Studio: Open Accessible OBS Studio** abre el editor de atajos. Se le puede asignar un atajo, pero no tiene ninguno de forma predeterminada.
-- Ctrl+0 a Ctrl+5: enfocar Vista previa, Escenas, Fuentes, Mezclador de audio, Transiciones o Controles.
 
 En el primer inicio, el complemento desactiva los atajos de OBS cuando la ventana principal de OBS no tiene el foco, pero únicamente si el usuario nunca eligió esa opción. Los cambios posteriores siempre se respetan.
 
@@ -33,6 +34,8 @@ Los cambios se guardan en OBS solo al activar Aceptar en la ventana principal. S
 ## Audio y medios
 
 Ctrl+3 enfoca el Mezclador de audio. Los controles de volumen visibles se numeran en el orden mostrado. 1 a 9 seleccionan las primeras nueve fuentes y 0 la décima. Las flechas y los demás controles siguen siendo funciones nativas de OBS. F4 enfoca los Controles multimedia cuando OBS los muestra; el complemento no sustituye las teclas multimedia de OBS.
+
+Ctrl+acento grave abre la **Consola de volumen accesible** modal. El complemento recuerda el control de OBS que tenía el foco y lo restaura al pulsar Escape. La consola incluye todas las fuentes de audio actualmente activas en el Mezclador de OBS, incluidas las fuentes aplicables de grupos o escenas anidadas y los dispositivos globales. Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen en 1 dB, Inicio restablece 0 dB y Espacio alterna el silencio. Las teclas 1 a 9 seleccionan las nueve primeras fuentes y 0 la décima. Los cambios son inmediatos y JAWS y NVDA los anuncian. El comando y su atajo pueden modificarse en el editor.
 
 ## Análisis del lienzo y acciones
 

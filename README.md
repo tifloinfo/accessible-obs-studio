@@ -35,6 +35,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - F7: start or stop recording.
 - F8: start or stop the Virtual Camera.
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
+- Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
 
 The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Shortcut Editor. It is available for assignment but has no default shortcut.
 
@@ -51,6 +52,10 @@ Changes are staged until you activate OK in the main editor. Delete or Remove cl
 ## Audio Mixer and Media Controls
 
 Ctrl+3 focuses the Audio Mixer. Its visible volume controls are numbered in display order. Press 1 through 9 for sources one through nine, or 0 for source ten. Native OBS arrow keys adjust the focused slider. Muting and other controls remain native OBS operations available through Tab navigation.
+
+Ctrl+Grave opens the modal **Accessible Volume Console** without changing the control remembered in the main OBS window. It contains every audio source currently active in the OBS Mixer, including applicable sources in groups or nested scenes and global devices such as Desktop Audio and Mic/Aux. The first vertical slider receives focus. Left and Right move between sources; Up and Down change the selected source by 1 dB; Home restores 0 dB; and Space toggles mute. Number keys 1 through 9 select the first nine sources and 0 selects the tenth. Changes take effect immediately. Escape closes the console and restores the previous OBS control. JAWS and NVDA receive the source name, volume in dB, and mute state as values change.
+
+The console updates if OBS or an external controller changes a volume, mute state, scene, or available Mixer sources. All sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default shortcut can be changed in the Shortcut Editor.
 
 F4 focuses the Media Controls only when they are visible. Accessible OBS Studio does not replace or intercept OBS media commands; use the keys supplied by OBS.
 
