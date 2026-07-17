@@ -28,7 +28,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 ## Default keyboard commands
 
 - F3: capture the current OBS canvas and ask OpenAI to analyze it.
-- F4: focus the visible native Media Controls.
+- Ctrl+M: focus the visible native Media Controls.
 - F5: start or stop streaming.
 - F6: move to the next main OBS interface area.
 - Shift+F6: move to the previous interface area.
@@ -37,13 +37,13 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
 
-The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Shortcut Editor. It is available for assignment but has no default shortcut.
+The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Accessible OBS Studio chooser menu. It is available for assignment but has no default shortcut.
 
 The first time the plugin runs, it changes OBS’s Hotkey Focus Behavior to disable hotkeys while the main OBS window is not focused—but only if you have never explicitly chosen that OBS setting. Your later choice is always respected.
 
 ## Shortcut Editor
 
-Choose **Tools > Accessible OBS Studio**. Search the Commands list, select a command, and activate **Add or Edit** or press Enter. OpenAI configuration is available through the **API Settings** button in this window.
+Choose **Tools > Accessible OBS Studio > Shortcut Editor**. Search the Commands list and select a command. Press Enter or activate **Add or Edit** to open the Hot Key dialog; press Delete to remove the selected command's assignments. The list uses arrow-key navigation, while Tab moves between the search field, the currently selected command, and the editor buttons. OpenAI configuration is also available directly from the Accessible OBS Studio submenu.
 
 The Hot Key dialog supports every shortcut assigned to the command. Type one shortcut into the Shortcut field, use **Add Another Shortcut** for an additional assignment, or remove a selected assignment. Enter accepts the dialog. Escape cancels it. Tab, Shift+Tab, Enter, Escape, Alt+F4, Windows-key combinations, and other reserved system commands are not captured.
 
@@ -57,11 +57,11 @@ Ctrl+Grave opens the modal **Accessible Volume Console** without changing the co
 
 The console updates if OBS or an external controller changes a volume, mute state, scene, or available Mixer sources. All sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default shortcut can be changed in the Shortcut Editor.
 
-F4 focuses the Media Controls only when they are visible. Accessible OBS Studio does not replace or intercept OBS media commands; use the keys supplied by OBS.
+Ctrl+M focuses the Media Controls only when they are visible. Accessible OBS Studio does not replace or intercept OBS media commands; use the keys supplied by OBS.
 
 ## Canvas analysis and approved actions
 
-An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio**, then activate **API Settings** when you want to save a key. The dialog supports Tab and Shift+Tab; Enter in the key field activates **Save Key**. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account. If an OpenAI feature requests a key and you do not have one, activate **I Have No Key Yet**; OpenAI features remain blocked, while all other plugin functions continue to work.
+An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio > OpenAI API Settings** when you want to save a key. The Qt dialog supports standard keyboard navigation. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account. If an OpenAI feature requests a key and you do not have one, activate **I Have No Key Yet**; OpenAI features remain blocked, while all other plugin functions continue to work.
 
 F3 captures the rendered canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The analysis window then receives focus; closing it restores the previous OBS control when it still exists and does not steal focus from another application.
 

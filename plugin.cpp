@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cwctype>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -22,6 +23,7 @@
 #include <utility>
 #include <vector>
 #include <QApplication>
+#include <QAbstractButton>
 #include <QAbstractSlider>
 #include <QAbstractItemView>
 #include <QAction>
@@ -41,13 +43,21 @@
 #include <QCheckBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QCloseEvent>
+#include <QEventLoop>
+#include <QFormLayout>
 #include <QInputDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMessageBox>
+#include <QProgressBar>
 #include <QPushButton>
+#include <QPainter>
 #include <QScrollArea>
 #include <QSlider>
+#include <QStyledItemDelegate>
 #include <QTimer>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -122,6 +132,7 @@ struct Api {
     bool (*stage_map)(gs_stagesurf*,uint8_t**,uint32_t*){};
     void (*stage_unmap)(gs_stagesurf*){};
     void *(*add_tools)(const char*,void(*)(void*),void*){};
+    void *(*add_tools_qaction)(const char*){};
     void *(*main_window)(){};
     HWND (*main_hwnd)(){};
     config *(*profile_config)(){};
@@ -139,15 +150,14 @@ struct Api {
 
 struct Hotkey { hotkey_id id{}; std::string name, description, context; int type{}; void *registerer{}; std::vector<key_combo> bindings,originalBindings; };
 static std::vector<Hotkey> hotkeys;
-static HWND mainWindow{}, searchEdit{}, commandList{}, bindingList{}, keyCombo{}, statusText{};
 static HWND settingsWindow{},apiKeyEdit{},settingsStatus{},descriptionWindow{};
 static bool apiKeyPromptDeclined{};
 static bool settingsValidationRunning{};
-static HWND shiftBox{}, controlBox{}, altBox{}, windowsBox{};
-static int selectedHotkey=-1;
-static std::vector<key_combo> staged;
 static HINSTANCE instance{};
 static QMainWindow *obsMainWindow{};
+static QPointer<QDialog> qtHotkeyEditor;
+static QPointer<QAction> accessibleToolsAction;
+static QPointer<QMenu> accessibleToolsMenu;
 struct CanvasCapture;
 static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),describeCanvasHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1);
 static std::array<hotkey_id,6> directAreaHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
@@ -160,6 +170,7 @@ static std::string currentResponseId;
 static bool compatibilityReportMode{};
 static std::wstring compatibilityReportText;
 static bool activateDescriptionAfterNavigation{};
+static bool canvasDocumentReady{},canvasNavigationPending{},pendingDescriptionActivate{},pendingDescriptionAnnouncement{};
 static bool comInitialized{};
 static EventRegistrationToken descriptionMessageToken{},descriptionNavigationToken{},descriptionAcceleratorToken{};
 static CanvasCapture *activeCapture{};
@@ -260,29 +271,6 @@ static void LoadData() {
     hotkeys.clear(); api.enum_hotkeys(EnumHotkey,nullptr); api.enum_bindings(EnumBinding,nullptr);
     std::sort(hotkeys.begin(),hotkeys.end(),[](const Hotkey&a,const Hotkey&b){return _stricmp(a.description.c_str(),b.description.c_str())<0;});for(auto &hotkey:hotkeys)hotkey.originalBindings=hotkey.bindings;
 }
-static void SetStatus(const std::wstring&s){SetWindowText(statusText,s.c_str());}
-static void RefreshCommands() {
-    wchar_t q[256]{}; GetWindowText(searchEdit,q,256); std::wstring needle=q; auto lower=[](wchar_t c){return static_cast<wchar_t>(towlower(c));}; std::transform(needle.begin(),needle.end(),needle.begin(),lower);
-    ListView_DeleteAllItems(commandList); selectedHotkey=-1; staged.clear(); SendMessage(bindingList,LB_RESETCONTENT,0,0);
-    for(size_t i=0;i<hotkeys.size();++i){std::wstring d=Wide(hotkeys[i].description.c_str()), context=Wide(hotkeys[i].context.c_str()), low=d+L" "+context; std::transform(low.begin(),low.end(),low.begin(),lower); if(!needle.empty()&&low.find(needle)==std::wstring::npos)continue;
-        LVITEM item{}; item.mask=LVIF_TEXT|LVIF_PARAM; item.iItem=ListView_GetItemCount(commandList); item.pszText=d.data(); item.lParam=(LPARAM)i; int row=ListView_InsertItem(commandList,&item);
-        ListView_SetItemText(commandList,row,1,context.data());
-        std::wstring binds; for(auto c:hotkeys[i].bindings){if(!binds.empty())binds+=L", ";binds+=ComboText(c);} if(binds.empty())binds=Tr(UiText::Unassigned);
-        ListView_SetItemText(commandList,row,2,binds.data());
-    }
-    SetStatus(TrFormat(UiText::CommandsShown,std::to_wstring(ListView_GetItemCount(commandList))));
-}
-static void RefreshBindings(){int selected=(int)SendMessage(bindingList,LB_GETCURSEL,0,0);SendMessage(bindingList,LB_RESETCONTENT,0,0);for(auto c:staged){auto s=ComboText(c);SendMessage(bindingList,LB_ADDSTRING,0,(LPARAM)s.c_str());}if(!staged.empty()){if(selected<0)selected=0;if(selected>=(int)staged.size())selected=(int)staged.size()-1;SendMessage(bindingList,LB_SETCURSEL,selected,0);}}
-static void SelectCommand(int row){LVITEM x{};x.mask=LVIF_PARAM;x.iItem=row;if(!ListView_GetItem(commandList,&x))return;selectedHotkey=(int)x.lParam;staged=hotkeys[selectedHotkey].bindings;RefreshBindings();SetStatus(TrFormat(UiText::Selected,Wide(hotkeys[selectedHotkey].description.c_str())));}
-static bool IsChecked(HWND w){return SendMessage(w,BM_GETCHECK,0,0)==BST_CHECKED;}
-static void SetChecked(HWND w,bool checked){SendMessage(w,BM_SETCHECK,checked?BST_CHECKED:BST_UNCHECKED,0);}
-static key_combo ControlsCombo(){key_combo c{};int idx=(int)SendMessage(keyCombo,CB_GETCURSEL,0,0);if(idx>=0)c.key=(int)SendMessage(keyCombo,CB_GETITEMDATA,idx,0);if(IsChecked(shiftBox))c.modifiers|=OBS_MOD_SHIFT;if(IsChecked(controlBox))c.modifiers|=OBS_MOD_CONTROL;if(IsChecked(altBox))c.modifiers|=OBS_MOD_ALT;if(IsChecked(windowsBox))c.modifiers|=OBS_MOD_COMMAND;return c;}
-static void PutCombo(key_combo c){SetChecked(shiftBox,(c.modifiers&OBS_MOD_SHIFT)!=0);SetChecked(controlBox,(c.modifiers&OBS_MOD_CONTROL)!=0);SetChecked(altBox,(c.modifiers&OBS_MOD_ALT)!=0);SetChecked(windowsBox,(c.modifiers&OBS_MOD_COMMAND)!=0);int n=(int)SendMessage(keyCombo,CB_GETCOUNT,0,0);for(int i=0;i<n;i++)if((int)SendMessage(keyCombo,CB_GETITEMDATA,i,0)==c.key){SendMessage(keyCombo,CB_SETCURSEL,i,0);break;}}
-static bool Same(key_combo a,key_combo b){return a.key==b.key&&a.modifiers==b.modifiers;}
-static void AddBinding(bool replace){if(selectedHotkey<0){MessageBeep(MB_ICONWARNING);return;}key_combo c=ControlsCombo();if(c.key<=0){MessageBox(mainWindow,Tr(UiText::ChooseKey),L"Accessible OBS Studio",MB_OK|MB_ICONWARNING);return;}int sel=(int)SendMessage(bindingList,LB_GETCURSEL,0,0);if(replace&&sel>=0)staged[sel]=c;else if(std::none_of(staged.begin(),staged.end(),[&](auto x){return Same(x,c);}))staged.push_back(c);RefreshBindings();}
-static void RemoveSelectedBinding(){if(selectedHotkey<0){MessageBox(mainWindow,Tr(UiText::SelectCommand),L"Accessible OBS Studio",MB_OK|MB_ICONWARNING);return;}int i=(int)SendMessage(bindingList,LB_GETCURSEL,0,0);if(i<0||i>=(int)staged.size()){MessageBox(mainWindow,Tr(UiText::SelectAssignment),L"Accessible OBS Studio",MB_OK|MB_ICONWARNING);return;}std::wstring removed=ComboText(staged[i]);staged.erase(staged.begin()+i);RefreshBindings();SetStatus(TrFormat(UiText::RemovedApply,removed));}
-static LRESULT CALLBACK ControlProc(HWND,UINT,WPARAM,LPARAM,UINT_PTR,DWORD_PTR);
-
 static void ShowWindowPreservingState(HWND window){if(!window)return;if(IsIconic(window))ShowWindow(window,SW_RESTORE);else if(!IsWindowVisible(window))ShowWindow(window,IsZoomed(window)?SW_SHOWMAXIMIZED:SW_SHOW);}
 static bool ActivateKeyboardWindow(HWND window,HWND initialFocus=nullptr){
     if(!window)return false;ShowWindowPreservingState(window);BringWindowToTop(window);BOOL foreground=SetForegroundWindow(window);SetActiveWindow(window);
@@ -302,6 +290,8 @@ static bool SaveApiKey(const std::string &key){
     CREDENTIALW credential{};credential.Type=CRED_TYPE_GENERIC;credential.TargetName=const_cast<wchar_t*>(CREDENTIAL_NAME);credential.CredentialBlobSize=static_cast<DWORD>(key.size());credential.CredentialBlob=reinterpret_cast<LPBYTE>(const_cast<char*>(key.data()));credential.Persist=CRED_PERSIST_LOCAL_MACHINE;credential.UserName=const_cast<wchar_t*>(L"OpenAI API key");
     return CredWriteW(&credential,0)!=FALSE;
 }
+
+static LRESULT CALLBACK ControlProc(HWND,UINT,WPARAM,LPARAM,UINT_PTR,DWORD_PTR);
 
 static bool ValidApiKeyFormat(const std::string &key){
     if(key.size()<20||key.rfind("sk-",0)!=0)return false;return std::all_of(key.begin(),key.end(),[](unsigned char c){return c>=33&&c<=126;});
@@ -330,15 +320,40 @@ static LRESULT CALLBACK SettingsProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
     if(m==WM_COMMAND&&(LOWORD(wp)==ID_SETTINGS_CLOSE||LOWORD(wp)==IDCANCEL)){if(settingsValidationRunning)MessageBeep(MB_ICONWARNING);else CloseOwnedWindow(w);return 0;}if(m==WM_KEYDOWN&&wp==VK_ESCAPE){if(settingsValidationRunning)MessageBeep(MB_ICONWARNING);else CloseOwnedWindow(w);return 0;}if(m==WM_CLOSE){if(settingsValidationRunning){MessageBeep(MB_ICONWARNING);return 0;}CloseOwnedWindow(w);return 0;}if(m==WM_DESTROY){settingsWindow=nullptr;apiKeyEdit=nullptr;settingsStatus=nullptr;return 0;}return DefWindowProc(w,m,wp,lp);
 }
 
-static void ShowSettings(const wchar_t *status=nullptr){
+static void ShowClassicSettings(const wchar_t *status=nullptr){
     if(settingsWindow){if(status)SetWindowText(settingsStatus,status);ActivateKeyboardWindow(settingsWindow,apiKeyEdit);return;}
     WNDCLASSEX wc{sizeof(wc)};wc.lpfnWndProc=SettingsProc;wc.hInstance=instance;wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);wc.lpszClassName=L"AccessibleOBSStudioSettings";RegisterClassEx(&wc);
-    HWND owner=mainWindow&&IsWindow(mainWindow)?mainWindow:(api.main_hwnd?api.main_hwnd():nullptr),returnFocus=FocusedControlWithin(owner);std::wstring title=L"Accessible OBS Studio - "+std::wstring(Tr(UiText::SettingsTitle));settingsWindow=CreateWindowEx(WS_EX_DLGMODALFRAME|WS_EX_CONTROLPARENT,wc.lpszClassName,title.c_str(),WS_POPUP|WS_CAPTION|WS_SYSMENU,CW_USEDEFAULT,CW_USEDEFAULT,700,190,owner,nullptr,instance,nullptr);if(!settingsWindow)return;if(status)SetWindowText(settingsStatus,status);if(owner)EnableWindow(owner,FALSE);HWND dialog=settingsWindow;ActivateKeyboardWindow(dialog,apiKeyEdit);MSG message{};bool quit=false;while(IsWindow(dialog)){BOOL result=GetMessage(&message,nullptr,0,0);if(result<=0){quit=result==0;break;}if(!IsDialogMessage(dialog,&message)){TranslateMessage(&message);DispatchMessage(&message);}}RestoreOwnerFocus(owner,returnFocus);if(quit)PostQuitMessage(static_cast<int>(message.wParam));
+    HWND owner=api.main_hwnd?api.main_hwnd():nullptr,returnFocus=FocusedControlWithin(owner);std::wstring title=L"Accessible OBS Studio - "+std::wstring(Tr(UiText::SettingsTitle));settingsWindow=CreateWindowEx(WS_EX_DLGMODALFRAME|WS_EX_CONTROLPARENT,wc.lpszClassName,title.c_str(),WS_POPUP|WS_CAPTION|WS_SYSMENU,CW_USEDEFAULT,CW_USEDEFAULT,700,190,owner,nullptr,instance,nullptr);if(!settingsWindow)return;if(status)SetWindowText(settingsStatus,status);if(owner)EnableWindow(owner,FALSE);HWND dialog=settingsWindow;ActivateKeyboardWindow(dialog,apiKeyEdit);MSG message{};bool quit=false;while(IsWindow(dialog)){BOOL result=GetMessage(&message,nullptr,0,0);if(result<=0){quit=result==0;break;}if(!IsDialogMessage(dialog,&message)){TranslateMessage(&message);DispatchMessage(&message);}}RestoreOwnerFocus(owner,returnFocus);if(quit)PostQuitMessage(static_cast<int>(message.wParam));
+}
+
+static void ShowSettings(const wchar_t *initialStatus=nullptr){
+    if(!QApplication::instance()||!obsMainWindow){ShowClassicSettings(initialStatus);return;}
+    QWidget *parent=QApplication::activeWindow();if(!parent)parent=obsMainWindow;
+    QDialog dialog(parent);dialog.setWindowTitle(QStringLiteral("Accessible OBS Studio - ")+QString::fromWCharArray(Tr(UiText::SettingsTitle)));dialog.setWindowModality(Qt::WindowModal);
+    auto *layout=new QVBoxLayout(&dialog);auto *form=new QFormLayout;auto *keyEdit=new QLineEdit(&dialog);keyEdit->setEchoMode(QLineEdit::Password);keyEdit->setMaxLength(511);keyEdit->setAccessibleName(QString::fromWCharArray(Tr(UiText::ApiKeyLabel)).remove(u'&'));
+    auto *keyLabel=new QLabel(QString::fromWCharArray(Tr(UiText::ApiKeyLabel)),&dialog);keyLabel->setBuddy(keyEdit);form->addRow(keyLabel,keyEdit);layout->addLayout(form);
+    auto *statusLabel=new QLabel(&dialog);statusLabel->setWordWrap(true);statusLabel->setAccessibleName(QStringLiteral("API key status"));layout->addWidget(statusLabel);auto *progress=new QProgressBar(&dialog);progress->setRange(0,0);progress->setAccessibleName(QString::fromWCharArray(Tr(UiText::ValidatingApiKey)));progress->hide();layout->addWidget(progress);
+    auto *buttons=new QDialogButtonBox(&dialog);auto *save=buttons->addButton(QString::fromWCharArray(Tr(UiText::SaveKey)),QDialogButtonBox::AcceptRole);auto *remove=buttons->addButton(QString::fromWCharArray(Tr(UiText::RemoveKey)),QDialogButtonBox::DestructiveRole);auto *noKey=buttons->addButton(QStringLiteral("I Have No Key Yet"),QDialogButtonBox::ActionRole);auto *close=buttons->addButton(QString::fromWCharArray(Tr(UiText::Close)),QDialogButtonBox::RejectRole);layout->addWidget(buttons);const std::array<QWidget*,5> settingsControls={keyEdit,save,remove,noKey,close};
+    auto updateStatus=[&]{std::string key;bool stored=ReadApiKey(key);if(!key.empty())SecureZeroMemory(key.data(),key.size());statusLabel->setText(QString::fromWCharArray(stored?Tr(UiText::KeyStored):Tr(UiText::NoKeyStored)));};updateStatus();if(initialStatus)statusLabel->setText(QString::fromWCharArray(initialStatus));
+    QObject::connect(close,&QPushButton::clicked,&dialog,&QDialog::reject);
+    QObject::connect(remove,&QPushButton::clicked,[&]{CredDeleteW(CREDENTIAL_NAME,CRED_TYPE_GENERIC,0);apiKeyPromptDeclined=false;keyEdit->clear();updateStatus();keyEdit->setFocus(Qt::OtherFocusReason);});
+    QObject::connect(noKey,&QPushButton::clicked,[&]{apiKeyPromptDeclined=true;dialog.accept();QMessageBox::information(parent,QStringLiteral("Accessible OBS Studio"),QStringLiteral("OpenAI functions will remain unavailable until you save an API key. You can add one later from Tools, Accessible OBS Studio, OpenAI API Settings."));});
+    QObject::connect(save,&QPushButton::clicked,[&]{
+        QString entered=keyEdit->text().trimmed();QByteArray utf8=entered.toUtf8();std::string key(utf8.constData(),static_cast<size_t>(utf8.size()));
+        auto clearSecrets=[&]{if(!key.empty())SecureZeroMemory(key.data(),key.size());if(!utf8.isEmpty())SecureZeroMemory(utf8.data(),static_cast<size_t>(utf8.size()));entered.fill(u'\0');};
+        if(key.empty()){clearSecrets();QMessageBox::critical(&dialog,QStringLiteral("Accessible OBS Studio"),QString::fromWCharArray(Tr(UiText::EnterApiKey)));keyEdit->setFocus(Qt::OtherFocusReason);return;}
+        if(!ValidApiKeyFormat(key)){clearSecrets();QMessageBox::critical(&dialog,QStringLiteral("Accessible OBS Studio"),QString::fromWCharArray(Tr(UiText::InvalidApiKeyFormat)));keyEdit->setFocus(Qt::OtherFocusReason);keyEdit->selectAll();return;}
+        settingsValidationRunning=true;for(QWidget *control:settingsControls)control->setEnabled(false);statusLabel->setText(QString::fromWCharArray(Tr(UiText::ValidatingApiKey)));progress->show();QApplication::setOverrideCursor(Qt::WaitCursor);
+        std::atomic_bool completed{false};ApiKeyValidation validation=ApiKeyValidation::ConnectionFailed;std::thread worker([&]{validation=ValidateApiKeyOnline(key);completed.store(true,std::memory_order_release);});QEventLoop waitLoop;QTimer poll;QObject::connect(&poll,&QTimer::timeout,[&]{if(completed.load(std::memory_order_acquire))waitLoop.quit();});poll.start(50);waitLoop.exec();worker.join();poll.stop();QApplication::restoreOverrideCursor();progress->hide();for(QWidget *control:settingsControls)control->setEnabled(true);settingsValidationRunning=false;
+        if(validation!=ApiKeyValidation::Valid){clearSecrets();updateStatus();QMessageBox::critical(&dialog,QStringLiteral("Accessible OBS Studio"),QString::fromWCharArray(Tr(validation==ApiKeyValidation::Invalid?UiText::InvalidApiKey:UiText::ApiKeyValidationFailed)));keyEdit->setFocus(Qt::OtherFocusReason);keyEdit->selectAll();return;}
+        bool ok=SaveApiKey(key);if(ok)apiKeyPromptDeclined=false;clearSecrets();if(ok)keyEdit->clear();updateStatus();QMessageBox::information(&dialog,QStringLiteral("Accessible OBS Studio"),QString::fromWCharArray(Tr(ok?UiText::KeySaved:UiText::KeySaveFailed)));if(!ok){keyEdit->setFocus(Qt::OtherFocusReason);keyEdit->selectAll();}
+    });
+    dialog.resize(660,230);QTimer::singleShot(0,keyEdit,[keyEdit]{keyEdit->setFocus(Qt::OtherFocusReason);});dialog.exec();
 }
 
 static bool RequireApiKey(std::string &key){
     if(ReadApiKey(key))return true;
-    if(apiKeyPromptDeclined){MessageBox(api.main_hwnd?api.main_hwnd():nullptr,L"This function requires an OpenAI API key. Open Accessible OBS Studio from the Tools menu and activate API Settings to add one.",L"Accessible OBS Studio",MB_OK|MB_ICONINFORMATION);return false;}
+    if(apiKeyPromptDeclined){QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),QStringLiteral("This function requires an OpenAI API key. Open Tools, Accessible OBS Studio, OpenAI API Settings to add one."));return false;}
     ShowSettings(Tr(UiText::NeedSavedKey));return false;
 }
 
@@ -353,13 +368,18 @@ static std::wstring HtmlEscape(const std::wstring &text){
 static std::wstring DescriptionHtml(){
     std::wstring locale=HtmlEscape(Wide(api.get_locale?api.get_locale():"en-US"));
     if(compatibilityReportMode){std::wstring html=L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - Compatibility Analysis</title><style>body{font-family:Segoe UI,sans-serif;font-size:1rem;line-height:1.55;margin:1.25rem;max-width:75rem}.report{white-space:pre-wrap}h1{font-size:1.6rem}</style></head><body><main><h1 id=\"page-title\" tabindex=\"-1\">Compatibility Analysis</h1><div class=\"report\">"+HtmlEscape(compatibilityReportText)+L"</div></main></body></html>";return html;}
-    std::wstring html=L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(Tr(UiText::CanvasTitle))+L"</title><style>body{font-family:Segoe UI,sans-serif;font-size:1rem;line-height:1.5;margin:1.25rem;max-width:70rem}main{display:block}section{border-bottom:1px solid #bbb;padding-bottom:.75rem;margin-bottom:1rem}.text{white-space:pre-wrap}form{position:sticky;bottom:0;background:Canvas;padding:1rem 0;border-top:2px solid CanvasText}label{display:block;font-weight:600;margin-bottom:.35rem}input{box-sizing:border-box;font:inherit;width:calc(100% - 7rem);padding:.45rem}button{font:inherit;margin-left:.5rem;padding:.45rem 1rem}.hint{font-size:.9rem}</style></head><body><main><h1 id=\"page-title\" tabindex=\"-1\">"+HtmlEscape(Tr(UiText::CanvasHeading))+L"</h1><div id=\"conversation\" aria-live=\"polite\">";
-    for(size_t i=0;i<descriptionTurns.size();++i){const auto &turn=descriptionTurns[i];html+=L"<section>";if(!turn.first.empty()){html+=L"<h2";if(i+1==descriptionTurns.size())html+=L" id=\"latest-response\" tabindex=\"-1\"";html+=L">"+HtmlEscape(turn.first)+L"</h2><div class=\"text\">"+HtmlEscape(turn.second)+L"</div>";}else{html+=L"<div class=\"text\"";if(i+1==descriptionTurns.size())html+=L" id=\"latest-response\" tabindex=\"-1\"";html+=L">"+HtmlEscape(turn.second)+L"</div>";}html+=L"</section>";}
-    bool disabled=requestRunning||currentResponseId.empty();html+=L"</div><button id=\"suggested-actions\" type=\"button\">Suggested Actions</button><form id=\"follow-up-form\"><label for=\"follow-up\">"+HtmlEscape(Tr(UiText::AskFollowup))+L"</label><input id=\"follow-up\" name=\"follow-up\" type=\"text\" maxlength=\"500\" autocomplete=\"off\"";if(disabled)html+=L" disabled";html+=L"><button type=\"submit\"";if(disabled)html+=L" disabled";html+=L">"+HtmlEscape(Tr(UiText::Send))+L"</button><p class=\"hint\">"+HtmlEscape(Tr(UiText::FollowupHint))+L"</p></form></main><script>document.getElementById('suggested-actions').addEventListener('click',function(){window.chrome.webview.postMessage('actions');});document.getElementById('follow-up-form').addEventListener('submit',function(e){e.preventDefault();const q=document.getElementById('follow-up').value.trim();if(q)window.chrome.webview.postMessage('followup:'+q);});addEventListener('load',function(){const latest=document.getElementById('latest-response');if(latest)latest.scrollIntoView({block:'start'});});</script></body></html>";return html;
+    return L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(Tr(UiText::CanvasTitle))+L"</title><style>body{font-family:Segoe UI,sans-serif;font-size:1rem;line-height:1.5;margin:1.25rem;max-width:70rem}main{display:block}section{border-bottom:1px solid #bbb;padding-bottom:.75rem;margin-bottom:1rem}.text{white-space:pre-wrap}form{position:sticky;bottom:0;background:Canvas;padding:1rem 0;border-top:2px solid CanvasText}label{display:block;font-weight:600;margin-bottom:.35rem}input{box-sizing:border-box;font:inherit;width:calc(100% - 7rem);padding:.45rem}button{font:inherit;margin-left:.5rem;padding:.45rem 1rem}.hint{font-size:.9rem}</style></head><body><main id=\"canvas-results\" tabindex=\"-1\"><h1 id=\"page-title\">"+HtmlEscape(Tr(UiText::CanvasHeading))+L"</h1><div id=\"conversation\"></div><button id=\"suggested-actions\" type=\"button\">Suggested Actions</button><form id=\"follow-up-form\"><label for=\"follow-up\">"+HtmlEscape(Tr(UiText::AskFollowup))+L"</label><input id=\"follow-up\" name=\"follow-up\" type=\"text\" maxlength=\"500\" autocomplete=\"off\" disabled><button id=\"send-follow-up\" type=\"submit\" disabled>"+HtmlEscape(Tr(UiText::Send))+L"</button><p class=\"hint\">"+HtmlEscape(Tr(UiText::FollowupHint))+L"</p></form></main><script>const conversation=document.getElementById('conversation'),input=document.getElementById('follow-up'),send=document.getElementById('send-follow-up');document.getElementById('suggested-actions').addEventListener('click',function(){window.chrome.webview.postMessage('actions');});document.getElementById('follow-up-form').addEventListener('submit',function(e){e.preventDefault();const q=input.value.trim();if(q){input.value='';window.chrome.webview.postMessage('followup:'+q);}});window.chrome.webview.addEventListener('message',function(e){const data=e.data;if(!data||data.type!=='render')return;conversation.replaceChildren();data.turns.forEach(function(turn,index){const section=document.createElement('section');if(turn.label){const heading=document.createElement('h2');heading.textContent=turn.label;section.appendChild(heading);}const body=document.createElement('div');body.className='text';body.textContent=turn.text;if(index===data.announceIndex&&turn.kind==='assistant'){body.setAttribute('role','alert');body.setAttribute('aria-atomic','true');}section.appendChild(body);if(index===data.turns.length-1)section.id='latest-response';conversation.appendChild(section);});input.disabled=!!data.disabled;send.disabled=!!data.disabled;const latest=document.getElementById('latest-response');if(latest)latest.scrollIntoView({block:'start'});});</script></body></html>";
 }
 
-static void RenderDescription(bool activate){
-    if(!descriptionWebView)return;activateDescriptionAfterNavigation=activate;std::wstring html=DescriptionHtml();descriptionWebView->NavigateToString(html.c_str());
+static void PushDescriptionState(bool announceLatest){
+    if(!descriptionWebView||!canvasDocumentReady)return;QJsonArray turns;int announceIndex=-1;
+    for(size_t i=0;i<descriptionTurns.size();++i){const auto &turn=descriptionTurns[i];QString kind=turn.first==Tr(UiText::YourQuestion)?QStringLiteral("user"):turn.first==Tr(UiText::Status)?QStringLiteral("status"):QStringLiteral("assistant");turns.append(QJsonObject{{QStringLiteral("kind"),kind},{QStringLiteral("label"),QString::fromStdWString(turn.first)},{QStringLiteral("text"),QString::fromStdWString(turn.second)}});if(announceLatest&&i+1==descriptionTurns.size()&&kind==QStringLiteral("assistant"))announceIndex=static_cast<int>(i);}
+    QJsonObject payload{{QStringLiteral("type"),QStringLiteral("render")},{QStringLiteral("turns"),turns},{QStringLiteral("announceIndex"),announceIndex},{QStringLiteral("disabled"),requestRunning||currentResponseId.empty()}};std::wstring json=QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact)).toStdWString();descriptionWebView->PostWebMessageAsJson(json.c_str());
+}
+
+static void RenderDescription(bool activate,bool announceLatest=false){
+    if(!descriptionWebView)return;if(compatibilityReportMode){canvasDocumentReady=false;canvasNavigationPending=false;activateDescriptionAfterNavigation=activate;std::wstring html=DescriptionHtml();descriptionWebView->NavigateToString(html.c_str());return;}
+    pendingDescriptionActivate|=activate;pendingDescriptionAnnouncement|=announceLatest;if(canvasDocumentReady){bool shouldActivate=pendingDescriptionActivate,shouldAnnounce=pendingDescriptionAnnouncement;pendingDescriptionActivate=pendingDescriptionAnnouncement=false;if(shouldActivate&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);PushDescriptionState(shouldAnnounce);return;}if(!canvasNavigationPending){canvasNavigationPending=true;std::wstring html=DescriptionHtml();descriptionWebView->NavigateToString(html.c_str());}
 }
 
 static void ResizeDescriptionWebView(){if(descriptionController&&descriptionWindow){RECT bounds{};GetClientRect(descriptionWindow,&bounds);descriptionController->put_Bounds(bounds);}}
@@ -373,22 +393,22 @@ static void InitializeDescriptionWebView(HWND parent){
             if(FAILED(controllerResult)||!controller)return controllerResult;descriptionController=controller;controller->get_CoreWebView2(&descriptionWebView);ResizeDescriptionWebView();
             Microsoft::WRL::ComPtr<ICoreWebView2Settings> settings;if(SUCCEEDED(descriptionWebView->get_Settings(&settings))){settings->put_AreDefaultContextMenusEnabled(FALSE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->put_IsWebMessageEnabled(TRUE);}
             descriptionWebView->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>([](ICoreWebView2*,ICoreWebView2WebMessageReceivedEventArgs *args)->HRESULT{LPWSTR message=nullptr;if(SUCCEEDED(args->TryGetWebMessageAsString(&message))&&message){std::wstring value=message;CoTaskMemFree(message);constexpr wchar_t prefix[]=L"followup:";if(value.rfind(prefix,0)==0)SendFollowup(value.substr(std::size(prefix)-1));else if(value==L"actions")ShowSuggestedActions();}return S_OK;}).Get(),&descriptionMessageToken);
-            descriptionWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>([](ICoreWebView2*,ICoreWebView2NavigationCompletedEventArgs*)->HRESULT{if(activateDescriptionAfterNavigation&&descriptionController){activateDescriptionAfterNavigation=false;if(ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);}return S_OK;}).Get(),&descriptionNavigationToken);
+            descriptionWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>([](ICoreWebView2*,ICoreWebView2NavigationCompletedEventArgs*)->HRESULT{if(compatibilityReportMode){if(activateDescriptionAfterNavigation&&descriptionController){activateDescriptionAfterNavigation=false;if(ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);}return S_OK;}canvasDocumentReady=true;canvasNavigationPending=false;bool shouldActivate=pendingDescriptionActivate,shouldAnnounce=pendingDescriptionAnnouncement;pendingDescriptionActivate=pendingDescriptionAnnouncement=false;if(shouldActivate&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);PushDescriptionState(shouldAnnounce);return S_OK;}).Get(),&descriptionNavigationToken);
             descriptionController->add_AcceleratorKeyPressed(Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>([](ICoreWebView2Controller*,ICoreWebView2AcceleratorKeyPressedEventArgs *args)->HRESULT{UINT key=0;COREWEBVIEW2_KEY_EVENT_KIND kind{};if(SUCCEEDED(args->get_VirtualKey(&key))&&SUCCEEDED(args->get_KeyEventKind(&kind))&&key==VK_ESCAPE&&(kind==COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN||kind==COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)){args->put_Handled(TRUE);if(descriptionWindow)PostMessage(descriptionWindow,WM_CLOSE,0,0);}return S_OK;}).Get(),&descriptionAcceleratorToken);
-            RenderDescription(true);return S_OK;
+            RenderDescription(true,!compatibilityReportMode&&!descriptionTurns.empty());return S_OK;
         }).Get());
     }).Get());
 }
 
 static LRESULT CALLBACK DescriptionProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
     if(m==WM_CREATE){InitializeDescriptionWebView(w);return 0;}if(m==WM_SIZE){ResizeDescriptionWebView();return 0;}if(m==WM_KEYDOWN&&wp==VK_ESCAPE){PostMessage(w,WM_CLOSE,0,0);return 0;}
-    if(m==WM_CLOSE){HWND foreground=GetForegroundWindow(),owner=api.main_hwnd?api.main_hwnd():nullptr;bool restore=foreground&&(GetAncestor(foreground,GA_ROOT)==w);if(compatibilityReportMode&&owner)EnableWindow(owner,TRUE);ShowWindow(w,SW_HIDE);currentResponseId.clear();descriptionTurns.clear();if(restore&&obsMainWindow&&!compatibilityReportMode){ActivateKeyboardWindow(owner);if(canvasReturnFocus)canvasReturnFocus->setFocus(Qt::OtherFocusReason);}if(!compatibilityReportMode)canvasReturnFocus.clear();return 0;}if(m==WM_DESTROY){if(descriptionWebView){descriptionWebView->remove_WebMessageReceived(descriptionMessageToken);descriptionWebView->remove_NavigationCompleted(descriptionNavigationToken);}descriptionWebView.Reset();if(descriptionController){descriptionController->remove_AcceleratorKeyPressed(descriptionAcceleratorToken);descriptionController->Close();descriptionController.Reset();}descriptionWindow=nullptr;return 0;}return DefWindowProc(w,m,wp,lp);
+    if(m==WM_CLOSE){HWND foreground=GetForegroundWindow(),owner=api.main_hwnd?api.main_hwnd():nullptr;bool restore=foreground&&(GetAncestor(foreground,GA_ROOT)==w);if(compatibilityReportMode&&owner)EnableWindow(owner,TRUE);ShowWindow(w,SW_HIDE);currentResponseId.clear();descriptionTurns.clear();if(restore&&obsMainWindow&&!compatibilityReportMode){ActivateKeyboardWindow(owner);if(canvasReturnFocus)canvasReturnFocus->setFocus(Qt::OtherFocusReason);}if(!compatibilityReportMode)canvasReturnFocus.clear();return 0;}if(m==WM_DESTROY){if(descriptionWebView){descriptionWebView->remove_WebMessageReceived(descriptionMessageToken);descriptionWebView->remove_NavigationCompleted(descriptionNavigationToken);}descriptionWebView.Reset();if(descriptionController){descriptionController->remove_AcceleratorKeyPressed(descriptionAcceleratorToken);descriptionController->Close();descriptionController.Reset();}descriptionWindow=nullptr;canvasDocumentReady=canvasNavigationPending=pendingDescriptionActivate=pendingDescriptionAnnouncement=false;return 0;}return DefWindowProc(w,m,wp,lp);
 }
 
 static void ShowDescription(const std::wstring &text,bool activate){
     compatibilityReportMode=false;
     if(!descriptionWindow){WNDCLASSEX wc{sizeof(wc)};wc.lpfnWndProc=DescriptionProc;wc.hInstance=instance;wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);wc.lpszClassName=L"AccessibleOBSStudioDescription";RegisterClassEx(&wc);std::wstring title=L"Accessible OBS Studio - "+std::wstring(Tr(UiText::CanvasTitle));descriptionWindow=CreateWindowEx(WS_EX_APPWINDOW|WS_EX_CONTROLPARENT,wc.lpszClassName,title.c_str(),WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,750,480,nullptr,nullptr,instance,nullptr);}
-    descriptionTurns.clear();descriptionTurns.emplace_back(L"",text);ShowWindowPreservingState(descriptionWindow);RenderDescription(activate);if(activate)ActivateKeyboardWindow(descriptionWindow);
+    descriptionTurns.clear();descriptionTurns.emplace_back(L"",text);ShowWindowPreservingState(descriptionWindow);if(activate)ActivateKeyboardWindow(descriptionWindow);RenderDescription(activate,true);
 }
 
 static bool CopyTextToClipboard(const std::wstring &text){if(!OpenClipboard(descriptionWindow))return false;EmptyClipboard();SIZE_T bytes=(text.size()+1)*sizeof(wchar_t);HGLOBAL memory=GlobalAlloc(GMEM_MOVEABLE,bytes);if(!memory){CloseClipboard();return false;}void *target=GlobalLock(memory);memcpy(target,text.c_str(),bytes);GlobalUnlock(memory);if(!SetClipboardData(CF_UNICODETEXT,memory)){GlobalFree(memory);CloseClipboard();return false;}CloseClipboard();return true;}
@@ -406,33 +426,13 @@ static void Persist(Hotkey &h){
     }
     if(api.frontend_save)api.frontend_save();
 }
-static bool HasConflict(const Hotkey&h,key_combo c,std::wstring&name){for(auto&o:hotkeys)if(o.id!=h.id)for(auto x:o.bindings)if(Same(x,c)){name=Wide(o.description.c_str());return true;}return false;}
-static void Apply(){if(selectedHotkey<0)return;Hotkey&h=hotkeys[selectedHotkey];for(auto c:staged){std::wstring n;if(HasConflict(h,c,n)){std::wstring m=TrFormat(UiText::ConflictMessage,ComboText(c),n);if(MessageBox(mainWindow,m.c_str(),Tr(UiText::ConflictTitle),MB_YESNOCANCEL|MB_ICONWARNING)!=IDYES)return;}}h.bindings=staged;Persist(h);RefreshCommands();SetStatus(Tr(UiText::AppliedSaved));}
-
-static void Layout(HWND w){RECT r{};GetClientRect(w,&r);int W=r.right,H=r.bottom;MoveWindow(searchEdit,115,12,W-130,25,TRUE);MoveWindow(commandList,12,48,W-24,(H*45)/100,TRUE);int y=58+(H*45)/100;MoveWindow(bindingList,12,y,W-24,90,TRUE);y+=100;MoveWindow(shiftBox,12,y,80,24,TRUE);MoveWindow(controlBox,100,y,90,24,TRUE);MoveWindow(altBox,198,y,65,24,TRUE);MoveWindow(windowsBox,270,y,100,24,TRUE);MoveWindow(keyCombo,380,y,W-392,300,TRUE);y+=34;int bw=105;MoveWindow(GetDlgItem(w,ID_ADD),12,y,bw,29,TRUE);MoveWindow(GetDlgItem(w,ID_REPLACE),122,y,bw,29,TRUE);MoveWindow(GetDlgItem(w,ID_REMOVE),232,y,bw,29,TRUE);MoveWindow(GetDlgItem(w,ID_APPLY),342,y,bw,29,TRUE);MoveWindow(GetDlgItem(w,ID_RELOAD),452,y,bw,29,TRUE);MoveWindow(GetDlgItem(w,ID_OPENAI_SETTINGS),562,y,135,29,TRUE);MoveWindow(GetDlgItem(w,ID_CLOSE),W-117,y,bw,29,TRUE);MoveWindow(statusText,12,H-26,W-24,20,TRUE);}
 static LRESULT CALLBACK ControlProc(HWND w,UINT m,WPARAM wp,LPARAM lp,UINT_PTR,DWORD_PTR){
     if((m==WM_KEYDOWN||m==WM_SYSKEYDOWN)&&wp==VK_ESCAPE){HWND root=GetAncestor(w,GA_ROOT);if(root)SendMessage(root,WM_CLOSE,0,0);return 0;}
     if((m==WM_CHAR&&(wp==VK_ESCAPE||wp==VK_RETURN))||(m==WM_SYSCHAR&&wp==VK_ESCAPE))return 0;
     if(m==WM_KEYDOWN&&wp==VK_RETURN){HWND root=GetAncestor(w,GA_ROOT);if(root==settingsWindow&&w==apiKeyEdit){SendMessage(root,WM_COMMAND,ID_SAVE_KEY,0);return 0;}wchar_t className[16]{};GetClassName(w,className,static_cast<int>(std::size(className)));if(_wcsicmp(className,L"Button")==0){SendMessage(w,BM_CLICK,0,0);return 0;}}
     if(m==WM_KEYDOWN&&wp==VK_TAB){BOOL previous=(GetKeyState(VK_SHIFT)&0x8000)!=0;HWND root=GetAncestor(w,GA_ROOT);HWND next=GetNextDlgTabItem(root,w,previous);if(next){SetFocus(next);return 0;}}
-    if(m==WM_KEYDOWN&&wp==VK_DELETE&&w==bindingList){RemoveSelectedBinding();return 0;}
     return DefSubclassProc(w,m,wp,lp);
 }
-static HWND Ctl(const wchar_t*cls,const wchar_t*text,DWORD style,int id){HWND w=CreateWindowEx(WS_EX_CLIENTEDGE,cls,text,WS_CHILD|WS_VISIBLE|style,0,0,1,1,mainWindow,(HMENU)(INT_PTR)id,instance,nullptr);if(w&&(style&WS_TABSTOP))SetWindowSubclass(w,ControlProc,1,0);return w;}
-static LRESULT CALLBACK WindowProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
-    if(m==WM_CREATE){mainWindow=w;HFONT font=(HFONT)GetStockObject(DEFAULT_GUI_FONT);auto add=[&](HWND c){SendMessage(c,WM_SETFONT,(WPARAM)font,TRUE);};
-        add(CreateWindow(L"STATIC",Tr(UiText::FindCommands),WS_CHILD|WS_VISIBLE,12,16,100,20,w,nullptr,instance,nullptr));searchEdit=Ctl(L"EDIT",L"",ES_AUTOHSCROLL|WS_TABSTOP,ID_SEARCH);commandList=Ctl(WC_LISTVIEW,Tr(UiText::Commands),LVS_REPORT|LVS_SINGLESEL|LVS_SHOWSELALWAYS|WS_TABSTOP,ID_COMMANDS);ListView_SetExtendedListViewStyle(commandList,LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES|LVS_EX_LABELTIP);LVCOLUMN col{LVCF_TEXT|LVCF_WIDTH};col.pszText=const_cast<wchar_t*>(Tr(UiText::Command));col.cx=330;ListView_InsertColumn(commandList,0,&col);col.pszText=const_cast<wchar_t*>(Tr(UiText::Context));col.cx=180;ListView_InsertColumn(commandList,1,&col);col.pszText=const_cast<wchar_t*>(Tr(UiText::Assignments));col.cx=300;ListView_InsertColumn(commandList,2,&col);
-        bindingList=Ctl(L"LISTBOX",Tr(UiText::CurrentAssignments),LBS_NOTIFY|WS_VSCROLL|WS_TABSTOP,ID_BINDINGS);shiftBox=Ctl(L"BUTTON",Tr(UiText::Shift),BS_AUTOCHECKBOX|WS_TABSTOP,ID_SHIFT);controlBox=Ctl(L"BUTTON",Tr(UiText::Control),BS_AUTOCHECKBOX|WS_TABSTOP,ID_CONTROL);altBox=Ctl(L"BUTTON",Tr(UiText::Alt),BS_AUTOCHECKBOX|WS_TABSTOP,ID_ALT);windowsBox=Ctl(L"BUTTON",Tr(UiText::Windows),BS_AUTOCHECKBOX|WS_TABSTOP,ID_WINDOWS);keyCombo=Ctl(WC_COMBOBOX,Tr(UiText::Key),CBS_DROPDOWNLIST|WS_VSCROLL|WS_TABSTOP,ID_KEY);
-        for(int key=1;key<608;key++){const char*n=api.key_name(key);if(!n||!*n)continue;std::wstring f=FriendlyKey(n);int i=(int)SendMessage(keyCombo,CB_ADDSTRING,0,(LPARAM)f.c_str());SendMessage(keyCombo,CB_SETITEMDATA,i,key);}SendMessage(keyCombo,CB_SETCURSEL,0,0);
-        const struct{int id;UiText t;}buttons[]={{ID_ADD,UiText::Add},{ID_REPLACE,UiText::Replace},{ID_REMOVE,UiText::Remove},{ID_APPLY,UiText::Apply},{ID_RELOAD,UiText::Reload},{ID_OPENAI_SETTINGS,UiText::OpenAISettings},{ID_CLOSE,UiText::Close}};for(auto b:buttons)add(Ctl(L"BUTTON",Tr(b.t),BS_PUSHBUTTON|WS_TABSTOP,b.id));statusText=Ctl(L"STATIC",Tr(UiText::Ready),0,999);for(HWND c:{searchEdit,commandList,bindingList,shiftBox,controlBox,altBox,windowsBox,keyCombo,statusText})add(c);LoadData();RefreshCommands();return 0;}
-    if(m==WM_SIZE){Layout(w);return 0;}if(m==WM_SETFOCUS){SetFocus(searchEdit);return 0;}
-    if(m==WM_NOTIFY&&((NMHDR*)lp)->idFrom==ID_COMMANDS&&((NMHDR*)lp)->code==LVN_ITEMCHANGED){auto*n=(NMLISTVIEW*)lp;if((n->uNewState&LVIS_SELECTED)&&n->iItem>=0)SelectCommand(n->iItem);return 0;}
-    if(m==WM_COMMAND){int id=LOWORD(wp),code=HIWORD(wp);if(id==ID_SEARCH&&code==EN_CHANGE)RefreshCommands();else if(id==ID_BINDINGS&&code==LBN_SELCHANGE){int i=(int)SendMessage(bindingList,LB_GETCURSEL,0,0);if(i>=0&&i<(int)staged.size())PutCombo(staged[i]);}else if(id==ID_ADD)AddBinding(false);else if(id==ID_REPLACE)AddBinding(true);else if(id==ID_REMOVE)RemoveSelectedBinding();else if(id==ID_APPLY)Apply();else if(id==ID_RELOAD){LoadData();RefreshCommands();}else if(id==ID_OPENAI_SETTINGS)ShowSettings();else if(id==ID_CLOSE)DestroyWindow(w);return 0;}
-    if(m==WM_KEYDOWN&&wp==VK_ESCAPE){DestroyWindow(w);return 0;}if(m==WM_CLOSE){DestroyWindow(w);return 0;}if(m==WM_DESTROY){mainWindow=nullptr;return 0;}return DefWindowProc(w,m,wp,lp);
-}
-static void FocusEditor(){ActivateKeyboardWindow(mainWindow,searchEdit);}
-static void ShowEditor(void*){if(mainWindow){FocusEditor();return;}WNDCLASSEX wc{sizeof(wc)};wc.lpfnWndProc=WindowProc;wc.hInstance=instance;wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hIcon=LoadIcon(nullptr,IDI_APPLICATION);wc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);wc.lpszClassName=L"AccessibleOBSStudioWindow";RegisterClassEx(&wc);mainWindow=CreateWindowEx(WS_EX_APPWINDOW|WS_EX_CONTROLPARENT,wc.lpszClassName,L"Accessible OBS Studio",WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,900,650,nullptr,nullptr,instance,nullptr);FocusEditor();}
-
 struct ChoiceDialogState{const wchar_t *instruction{};const wchar_t *content{};std::array<const wchar_t*,3> labels{};int defaultChoice{3};int result{3};};
 static LRESULT CALLBACK ChoiceDialogProc(HWND window,UINT message,WPARAM wParam,LPARAM lParam){
     ChoiceDialogState *state=reinterpret_cast<ChoiceDialogState*>(GetWindowLongPtr(window,GWLP_USERDATA));
@@ -443,12 +443,23 @@ static LRESULT CALLBACK ChoiceDialogProc(HWND window,UINT message,WPARAM wParam,
     if(message==WM_CLOSE){if(state)state->result=3;CloseOwnedWindow(window);return 0;}
     return DefWindowProc(window,message,wParam,lParam);
 }
-static int ShowChoiceDialog(HWND owner,const wchar_t *title,const wchar_t *instruction,const wchar_t *content,const std::array<const wchar_t*,3> &labels,int defaultChoice){
+static int ShowClassicChoiceDialog(HWND owner,const wchar_t *title,const wchar_t *instruction,const wchar_t *content,const std::array<const wchar_t*,3> &labels,int defaultChoice){
     static bool registered=false;if(!registered){WNDCLASSEX wc{sizeof(wc)};wc.lpfnWndProc=ChoiceDialogProc;wc.hInstance=instance;wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hbrBackground=reinterpret_cast<HBRUSH>(COLOR_WINDOW+1);wc.lpszClassName=L"AccessibleOBSStudioChoiceDialog";registered=RegisterClassEx(&wc)!=0||GetLastError()==ERROR_CLASS_ALREADY_EXISTS;}
     ChoiceDialogState state{instruction,content,labels,defaultChoice,3};HWND returnFocus=FocusedControlWithin(owner);RECT area{};if(owner)GetWindowRect(owner,&area);else SystemParametersInfo(SPI_GETWORKAREA,0,&area,0);int width=580,height=245,x=area.left+((area.right-area.left)-width)/2,y=area.top+((area.bottom-area.top)-height)/2;if(owner)EnableWindow(owner,FALSE);HWND window=CreateWindowEx(WS_EX_DLGMODALFRAME|WS_EX_CONTROLPARENT,wcscmp(title,L"")==0?L"AccessibleOBSStudioChoiceDialog":L"AccessibleOBSStudioChoiceDialog",title,WS_POPUP|WS_CAPTION|WS_SYSMENU,x,y,width,height,owner,nullptr,instance,&state);if(window){ShowWindow(window,SW_SHOW);SetForegroundWindow(window);MSG msg{};while(IsWindow(window)&&GetMessage(&msg,nullptr,0,0)>0){if(!IsDialogMessage(window,&msg)){TranslateMessage(&msg);DispatchMessage(&msg);}}}RestoreOwnerFocus(owner,returnFocus);return state.result;
 }
 
+static int ShowChoiceDialog(HWND owner,const wchar_t *title,const wchar_t *instruction,const wchar_t *content,const std::array<const wchar_t*,3> &labels,int defaultChoice){
+    if(!QApplication::instance()||!obsMainWindow)return ShowClassicChoiceDialog(owner,title,instruction,content,labels,defaultChoice);
+    QWidget *parent=QApplication::activeWindow();if(!parent)parent=obsMainWindow;QMessageBox box(QMessageBox::Warning,QString::fromWCharArray(title),QString::fromWCharArray(instruction),QMessageBox::NoButton,parent);box.setInformativeText(QString::fromWCharArray(content));std::array<QAbstractButton*,3> buttons{};for(size_t i=0;i<buttons.size();++i)buttons[i]=box.addButton(QString::fromWCharArray(labels[i]),i==2?QMessageBox::RejectRole:QMessageBox::ActionRole);if(defaultChoice>=1&&defaultChoice<=3)box.setDefaultButton(qobject_cast<QPushButton*>(buttons[static_cast<size_t>(defaultChoice-1)]));box.exec();for(size_t i=0;i<buttons.size();++i)if(box.clickedButton()==buttons[i])return static_cast<int>(i+1);return 3;
+}
+
+static void ShowAccessibleObsMenu();
+static void ShowQtHotkeyEditor();
+static bool InitializeAccessibleToolsMenu();
+
 #include "src/shortcut_editor.cpp"
+
+#include "src/qt_interface.cpp"
 
 #include "src/focus_navigation.cpp"
 
@@ -470,10 +481,10 @@ static bool LoadApi(){api.obs=GetModuleHandle(L"obs.dll");api.frontend=GetModule
     O(source_name,decltype(api.source_name),"obs_source_get_name");O(enum_sources,decltype(api.enum_sources),"obs_enum_sources");O(source_get_ref,decltype(api.source_get_ref),"obs_source_get_ref");O(source_output_flags,decltype(api.source_output_flags),"obs_source_get_output_flags");O(source_audio_active,decltype(api.source_audio_active),"obs_source_audio_active");O(source_get_volume,decltype(api.source_get_volume),"obs_source_get_volume");O(source_set_volume,decltype(api.source_set_volume),"obs_source_set_volume");O(source_muted,decltype(api.source_muted),"obs_source_muted");O(source_set_muted,decltype(api.source_set_muted),"obs_source_set_muted");O(weak_source_get,decltype(api.weak_source_get),"obs_weak_source_get_source");O(source_release,decltype(api.source_release),"obs_source_release");O(weak_output_get,decltype(api.weak_output_get),"obs_weak_output_get_output");O(output_release,decltype(api.output_release),"obs_output_release");
     O(hotkey_save,decltype(api.hotkey_save),"obs_hotkey_save");O(data_create,decltype(api.data_create),"obs_data_create");O(data_create_json,decltype(api.data_create_json),"obs_data_create_from_json");O(data_get_array,decltype(api.data_get_array),"obs_data_get_array");O(data_set_array,decltype(api.data_set_array),"obs_data_set_array");O(data_json,decltype(api.data_json),"obs_data_get_json");O(data_release,decltype(api.data_release),"obs_data_release");O(array_release,decltype(api.array_release),"obs_data_array_release");O(save_output,decltype(api.save_output),"obs_hotkeys_save_output");
     O(config_set_string,decltype(api.config_set_string),"config_set_string");O(config_get_string,decltype(api.config_get_string),"config_get_string");O(config_has_user_value,decltype(api.config_has_user_value),"config_has_user_value");O(config_save_safe,decltype(api.config_save_safe),"config_save_safe");
-    F(add_tools,decltype(api.add_tools),"obs_frontend_add_tools_menu_item");F(main_window,decltype(api.main_window),"obs_frontend_get_main_window");F(main_hwnd,decltype(api.main_hwnd),"obs_frontend_get_main_window_handle");F(profile_config,decltype(api.profile_config),"obs_frontend_get_profile_config");F(global_config,decltype(api.global_config),"obs_frontend_get_global_config");F(studio_mode_active,decltype(api.studio_mode_active),"obs_frontend_preview_program_mode_active");F(add_event_callback,decltype(api.add_event_callback),"obs_frontend_add_event_callback");F(remove_event_callback,decltype(api.remove_event_callback),"obs_frontend_remove_event_callback");F(frontend_save,decltype(api.frontend_save),"obs_frontend_save");
+    F(add_tools,decltype(api.add_tools),"obs_frontend_add_tools_menu_item");F(add_tools_qaction,decltype(api.add_tools_qaction),"obs_frontend_add_tools_menu_qaction");F(main_window,decltype(api.main_window),"obs_frontend_get_main_window");F(main_hwnd,decltype(api.main_hwnd),"obs_frontend_get_main_window_handle");F(profile_config,decltype(api.profile_config),"obs_frontend_get_profile_config");F(global_config,decltype(api.global_config),"obs_frontend_get_global_config");F(studio_mode_active,decltype(api.studio_mode_active),"obs_frontend_preview_program_mode_active");F(add_event_callback,decltype(api.add_event_callback),"obs_frontend_add_event_callback");F(remove_event_callback,decltype(api.remove_event_callback),"obs_frontend_remove_event_callback");F(frontend_save,decltype(api.frontend_save),"obs_frontend_save");
 #undef O
 #undef F
-    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.key_from_virtual_key&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.enum_sources&&api.source_get_ref&&api.source_output_flags&&api.source_audio_active&&api.source_get_volume&&api.source_set_volume&&api.source_muted&&api.source_set_muted&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.add_tools&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback;
+    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.key_from_virtual_key&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.enum_sources&&api.source_get_ref&&api.source_output_flags&&api.source_audio_active&&api.source_get_volume&&api.source_set_volume&&api.source_muted&&api.source_set_muted&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.add_tools_qaction&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback;
 }
 
 extern "C" __declspec(dllexport) void obs_module_set_pointer(void*){}
@@ -494,11 +505,11 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     std::string volumeConsoleLabel=VolumeConsoleCommandLabel();volumeConsoleHotkey=api.register_frontend(VOLUME_CONSOLE_NAME,volumeConsoleLabel.c_str(),VolumeConsoleHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
-    LoadNavigationBindings();EnsureSafeHotkeyFocusDefault();accessibilityEventFilter=new AccessibilityFilter;QApplication::instance()->installEventFilter(accessibilityEventFilter);api.add_event_callback(FrontendEvent,nullptr);api.add_tools("Accessible OBS Studio",ShowSimpleEditor,nullptr);return true;
+    LoadNavigationBindings();EnsureSafeHotkeyFocusDefault();accessibilityEventFilter=new AccessibilityFilter;QApplication::instance()->installEventFilter(accessibilityEventFilter);api.add_event_callback(FrontendEvent,nullptr);if(!InitializeAccessibleToolsMenu())return false;return true;
 }
 extern "C" __declspec(dllexport) void obs_module_unload(){
     shuttingDown=true;CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
-    if(openAIThread.joinable())openAIThread.join();if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(mainWindow)DestroyWindow(mainWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
+    if(openAIThread.joinable())openAIThread.join();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsMenu){delete accessibleToolsMenu.data();accessibleToolsMenu=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
     if(api.unregister_hotkey&&nextAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(nextAreaHotkey);
     if(api.unregister_hotkey&&previousAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(previousAreaHotkey);
     if(api.unregister_hotkey&&describeCanvasHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(describeCanvasHotkey);

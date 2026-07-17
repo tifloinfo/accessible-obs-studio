@@ -13,7 +13,7 @@ Fermez OBS, puis exécutez `AccessibleOBSStudio-1.0-Setup.exe`. Le programme d�
 ## Raccourcis par défaut
 
 - F3 : capturer et analyser le canevas avec OpenAI.
-- F4 : placer le focus sur les commandes multimédias natives visibles.
+- Ctrl+M : placer le focus sur les commandes multimédias natives visibles.
 - F5 : démarrer ou arrêter la diffusion.
 - F6 / Maj+F6 : zone principale suivante / précédente.
 - F7 : démarrer ou arrêter l’enregistrement.
@@ -33,7 +33,7 @@ Les changements ne sont inscrits dans OBS qu’après activation de OK dans la f
 
 ## Audio et médias
 
-Ctrl+3 place le focus sur le mélangeur audio. Les réglages de volume visibles sont numérotés dans l’ordre d’affichage. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les flèches et les autres commandes restent celles d’OBS. F4 place le focus sur les commandes multimédias lorsque celles-ci sont affichées ; le module ne remplace aucune touche multimédia d’OBS.
+Ctrl+3 place le focus sur le mélangeur audio. Les réglages de volume visibles sont numérotés dans l’ordre d’affichage. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les flèches et les autres commandes restent celles d’OBS. Ctrl+M place le focus sur les commandes multimédias lorsque celles-ci sont affichées ; le module ne remplace aucune touche multimédia d’OBS.
 
 Ctrl+accent grave ouvre la **console de volume accessible** modale. Le module mémorise le contrôle OBS précédemment ciblé et le restaure après Échap. La console présente toutes les sources audio actuellement actives dans le mélangeur OBS, y compris les sources pertinentes dans les groupes ou scènes imbriquées et les périphériques globaux. Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine rétablit 0 dB et Espace active ou coupe le son. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les changements sont immédiats et annoncés par JAWS et NVDA. La commande et son raccourci peuvent être modifiés dans l’éditeur.
 

@@ -107,7 +107,7 @@ static bool LoadNavigationBinding(hotkey_id id,const char *name,const char *defa
 }
 
 static void LoadNavigationBindings(bool persistMissing=false){
-    bool changed=false;changed|=LoadNavigationBinding(nextAreaHotkey,NEXT_AREA_NAME,"OBS_KEY_F6",0,persistMissing);changed|=LoadNavigationBinding(previousAreaHotkey,PREVIOUS_AREA_NAME,"OBS_KEY_F6",OBS_MOD_SHIFT,persistMissing);changed|=LoadNavigationBinding(describeCanvasHotkey,DESCRIBE_CANVAS_NAME,"OBS_KEY_F3",0,persistMissing);changed|=LoadNavigationBinding(focusMediaHotkey,FOCUS_MEDIA_NAME,"OBS_KEY_F4",0,persistMissing);changed|=LoadNavigationBinding(volumeConsoleHotkey,VOLUME_CONSOLE_NAME,"OBS_KEY_QUOTELEFT",OBS_MOD_CONTROL,persistMissing,VK_OEM_3);
+    bool changed=false;changed|=LoadNavigationBinding(nextAreaHotkey,NEXT_AREA_NAME,"OBS_KEY_F6",0,persistMissing);changed|=LoadNavigationBinding(previousAreaHotkey,PREVIOUS_AREA_NAME,"OBS_KEY_F6",OBS_MOD_SHIFT,persistMissing);changed|=LoadNavigationBinding(describeCanvasHotkey,DESCRIBE_CANVAS_NAME,"OBS_KEY_F3",0,persistMissing);changed|=LoadNavigationBinding(focusMediaHotkey,FOCUS_MEDIA_NAME,"OBS_KEY_M",OBS_MOD_CONTROL,persistMissing);changed|=LoadNavigationBinding(volumeConsoleHotkey,VOLUME_CONSOLE_NAME,"OBS_KEY_QUOTELEFT",OBS_MOD_CONTROL,persistMissing,VK_OEM_3);
     static constexpr std::array<const char*,6> keys={"OBS_KEY_0","OBS_KEY_1","OBS_KEY_2","OBS_KEY_3","OBS_KEY_4","OBS_KEY_5"};
     for(size_t i=0;i<directAreaHotkeys.size();++i)changed|=LoadNavigationBinding(directAreaHotkeys[i],DIRECT_AREA_NAMES[i],keys[i],OBS_MOD_CONTROL,persistMissing);if(changed){config *cfg=api.profile_config?api.profile_config():nullptr;if(cfg)api.config_save_safe(cfg,"tmp",nullptr);}
 }
