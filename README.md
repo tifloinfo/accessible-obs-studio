@@ -52,7 +52,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
 
-The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Accessible OBS Studio chooser menu. It is available for assignment but has no default keyboard shortcut.
+The command **Accessible OBS Studio: Open Keyboard Shortcut Editor** opens the same editor directly. It is available for assignment but has no default keyboard shortcut. Its internal identifier is unchanged, so an existing assignment is preserved.
 
 By default, Accessible OBS Studio forces all OBS keyboard shortcuts to work only while OBS is the active application. It keeps **Settings > Advanced > Hotkey Focus Behavior** set to **Disable hotkeys when main window is not in focus** and restores that value if it changes. To return control to OBS, select **Allow OBS Studio to manage whether keyboard shortcuts work outside OBS** in the Keyboard Shortcut Editor and save. When selected, the plugin stops changing the setting and stops overriding OBS hotkey state.
 
@@ -60,7 +60,7 @@ On first run and after a profile change, the plugin checks planned defaults agai
 
 ## Keyboard Shortcut Editor
 
-Choose **Tools > Accessible OBS Studio > Keyboard Shortcut Editor**. Search the Commands list and select a command. Press Enter or activate **Add or Edit** to open the Keyboard Shortcut dialog; press Delete to remove the selected command's assignments. The list uses arrow-key navigation, while Tab moves between the search field, the currently selected command, the OBS hotkey-control checkbox, and the editor buttons. The checkbox is cleared by default. OpenAI configuration is also available directly from the Accessible OBS Studio submenu.
+Choose **Tools > Accessible OBS Studio** to open the Keyboard Shortcut Editor directly. Search the Commands list and select a command. Press Enter or activate **Add or Edit** to open the Keyboard Shortcut dialog; press Delete to remove the selected command's assignments. The list uses arrow-key navigation, while Tab moves between the search field, the currently selected command, the OBS hotkey-control checkbox, and the editor buttons. The checkbox is cleared by default. Activate **OpenAI API Settings** in this editor to configure OpenAI.
 
 The Keyboard Shortcut dialog supports every keyboard shortcut assigned to the command. Type one combination into the Keyboard Shortcut field, use **Add Another Keyboard Shortcut** for an additional assignment, or remove a selected assignment. Enter or OK checks immediately for duplicates. If another command uses the combination, the dialog identifies it and asks whether to reassign it. No returns to the assignment dialog; Yes removes that conflicting assignment. Escape cancels the dialog. Tab, Shift+Tab, Enter, Escape, Alt+F4, Windows-key combinations, and other reserved system commands are not captured.
 
@@ -78,7 +78,7 @@ Ctrl+M focuses the Media Controls only when they are visible. Accessible OBS Stu
 
 ## Canvas Describer and approved fixes
 
-An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio > OpenAI API Settings** when you want to save, replace, or remove a key. The Qt dialog supports standard keyboard navigation. A stored key is never displayed. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account; an existing key is retained if its replacement cannot be validated or saved. **I Have No Key Yet** appears only when no key is stored, while **Remove key** appears only when a key is stored. Removal requires confirmation and reports whether it succeeded. OpenAI features remain blocked without a key, while all other plugin functions continue to work.
+An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio**, then activate **OpenAI API Settings** in the Keyboard Shortcut Editor when you want to save, replace, or remove a key. The Qt dialog supports standard keyboard navigation. A stored key is never displayed. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account; an existing key is retained if its replacement cannot be validated or saved. **I Have No Key Yet** appears only when no key is stored, while **Remove key** appears only when a key is stored. Removal requires confirmation and reports whether it succeeded. OpenAI features remain blocked without a key, while all other plugin functions continue to work.
 
 All five Canvas Describer keyboard shortcuts capture the rendered OBS canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The WebView2 result window then receives focus; closing it restores the previous OBS control when appropriate and does not steal focus from another application. Only a newly received answer uses the aggressive ARIA alert role. Questions are never echoed into the conversation.
 

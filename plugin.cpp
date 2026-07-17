@@ -50,7 +50,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QMenu>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
@@ -158,7 +157,6 @@ static HINSTANCE instance{};
 static QMainWindow *obsMainWindow{};
 static QPointer<QDialog> qtHotkeyEditor;
 static QPointer<QAction> accessibleToolsAction;
-static QPointer<QMenu> accessibleToolsMenu;
 struct CanvasCapture;
 enum class CanvasMode {Basic,Detailed,ReadText,PeopleBackgrounds,AnalyzeIssues};
 struct CanvasTurn {std::wstring label,text;bool assistant{true};};
@@ -503,9 +501,8 @@ static int ShowChoiceDialog(HWND owner,const wchar_t *title,const wchar_t *instr
     QWidget *parent=QApplication::activeWindow();if(!parent)parent=obsMainWindow;QMessageBox box(QMessageBox::Warning,QString::fromWCharArray(title),QString::fromWCharArray(instruction),QMessageBox::NoButton,parent);box.setInformativeText(QString::fromWCharArray(content));std::array<QAbstractButton*,3> buttons{};for(size_t i=0;i<buttons.size();++i)buttons[i]=box.addButton(QString::fromWCharArray(labels[i]),i==2?QMessageBox::RejectRole:QMessageBox::ActionRole);if(defaultChoice>=1&&defaultChoice<=3)box.setDefaultButton(qobject_cast<QPushButton*>(buttons[static_cast<size_t>(defaultChoice-1)]));box.exec();for(size_t i=0;i<buttons.size();++i)if(box.clickedButton()==buttons[i])return static_cast<int>(i+1);return 3;
 }
 
-static void ShowAccessibleObsMenu();
 static void ShowQtHotkeyEditor();
-static bool InitializeAccessibleToolsMenu();
+static bool InitializeAccessibleToolsAction();
 static bool AllowObsToManageHotkeysOutsideObs();
 static bool SaveObsHotkeyManagementPreference(bool allow);
 
@@ -557,11 +554,11 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     std::string volumeConsoleLabel=VolumeConsoleCommandLabel();volumeConsoleHotkey=api.register_frontend(VOLUME_CONSOLE_NAME,volumeConsoleLabel.c_str(),VolumeConsoleHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
-    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,obsMainWindow,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(obsMainWindow);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,obsMainWindow,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);if(!InitializeAccessibleToolsMenu())return false;return true;
+    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,obsMainWindow,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(obsMainWindow);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,obsMainWindow,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);if(!InitializeAccessibleToolsAction())return false;return true;
 }
 extern "C" __declspec(dllexport) void obs_module_unload(){
     shuttingDown=true;CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
-    if(openAIThread.joinable())openAIThread.join();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsMenu){delete accessibleToolsMenu.data();accessibleToolsMenu=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
+    if(openAIThread.joinable())openAIThread.join();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
     if(api.unregister_hotkey&&nextAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(nextAreaHotkey);
     if(api.unregister_hotkey&&previousAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(previousAreaHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:canvasHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);

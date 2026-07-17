@@ -35,4 +35,4 @@ static EditorSaveResult SaveEditorChanges(QWidget *parent){
     if(configurationChanged&&(!cfg||api.config_save_safe(cfg,"tmp",nullptr)!=0)){rollback();QMessageBox::critical(parent,QStringLiteral("Accessible OBS Studio"),LText(LocalText::SaveFailure));return EditorSaveResult::Failed;}
     if(api.frontend_save)api.frontend_save();for(size_t index:changed)hotkeys[index].originalBindings=hotkeys[index].bindings;return EditorSaveResult::Saved;
 }
-static void OpenAccessibleObsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&obsMainWindow)QMetaObject::invokeMethod(obsMainWindow,[]{ShowAccessibleObsMenu();},Qt::QueuedConnection);}
+static void OpenAccessibleObsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&obsMainWindow)QMetaObject::invokeMethod(obsMainWindow,[]{ShowQtHotkeyEditor();},Qt::QueuedConnection);}

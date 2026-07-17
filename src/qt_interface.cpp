@@ -97,10 +97,6 @@ static void ShowQtHotkeyEditor(){
     if(qtHotkeyEditor){static_cast<QtHotkeyEditorDialog*>(qtHotkeyEditor.data())->focusSearch();return;}auto *editor=new QtHotkeyEditorDialog(obsMainWindow);qtHotkeyEditor=editor;editor->show();editor->raise();editor->activateWindow();
 }
 
-static void ShowAccessibleObsMenu(){
-    if(!accessibleToolsMenu||!obsMainWindow)return;if(accessibleToolsMenu->isVisible())return;QPoint center=obsMainWindow->rect().center();QPoint global=obsMainWindow->mapToGlobal(center);QAction *first=accessibleToolsMenu->actions().empty()?nullptr:accessibleToolsMenu->actions().front();accessibleToolsMenu->popup(global,first);
-}
-
-static bool InitializeAccessibleToolsMenu(){
-    if(!api.add_tools_qaction||!obsMainWindow)return false;auto *root=static_cast<QAction*>(api.add_tools_qaction("Accessible OBS Studio"));if(!root)return false;auto *menu=new QMenu(obsMainWindow);menu->setTitle(QStringLiteral("Accessible OBS Studio"));root->setMenu(menu);accessibleToolsAction=root;accessibleToolsMenu=menu;QAction *editor=menu->addAction(QStringLiteral("&")+LText(LocalText::ShortcutEditor));menu->addSeparator();QAction *settings=menu->addAction(LText(LocalText::OpenAiApiSettings));QObject::connect(editor,&QAction::triggered,[]{ShowQtHotkeyEditor();});QObject::connect(settings,&QAction::triggered,[]{ShowSettings();});return true;
+static bool InitializeAccessibleToolsAction(){
+    if(!api.add_tools_qaction||!obsMainWindow)return false;auto *action=static_cast<QAction*>(api.add_tools_qaction("Accessible OBS Studio"));if(!action)return false;accessibleToolsAction=action;QObject::connect(action,&QAction::triggered,[]{ShowQtHotkeyEditor();});return true;
 }

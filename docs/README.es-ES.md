@@ -19,13 +19,15 @@ Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `Accessi
 - Ctrl+0 a Ctrl+5: lienzo, escenas, fuentes, mezclador de audio, transiciones o controles.
 - Ctrl+` (tecla bajo Escape): abrir la consola de volumen accesible.
 
+La orden **Accessible OBS Studio: Abrir el editor de métodos abreviados de teclado** abre directamente el mismo editor y no tiene una asignación predeterminada. Su identificador interno no cambia, por lo que se conserva cualquier asignación existente.
+
 De forma predeterminada, Accessible OBS Studio obliga a que todos los métodos abreviados de teclado de OBS funcionen solo mientras OBS sea la aplicación activa. Mantiene **Configuración > Avanzado > Comportamiento del foco de los métodos abreviados** en **Deshabilitar métodos abreviados cuando la ventana principal no tenga el foco** y restaura el valor si cambia. Para devolver el control a OBS, marque y guarde **Permitir que OBS Studio gestione si los métodos abreviados de teclado funcionan fuera de OBS** en el editor. A partir de entonces, el complemento deja de intervenir.
 
 En el primer inicio y después de cambiar de perfil, el complemento compara sus asignaciones previstas con las existentes. El diálogo solo aparece si existe un conflicto real. Puede eliminar únicamente las asignaciones en conflicto y aplicar los valores predeterminados de Accessibility, o conservar las asignaciones existentes; en ese caso, los valores predeterminados en conflicto quedarán sin asignar. **No volver a preguntar para esta versión** se aplica a todos los perfiles, pero una nueva versión o compilación vuelve a comprobarlos.
 
 ## Editor de métodos abreviados de teclado
 
-Abra **Herramientas > Accessible OBS Studio > Editor de métodos abreviados de teclado**. Las flechas recorren la lista de órdenes; Tab se mueve entre la orden seleccionada, la casilla de control de métodos abreviados de OBS —desmarcada de forma predeterminada— y los botones. Intro o **Añadir o editar** abre el diálogo de asignación. Intro y Aceptar comprueban inmediatamente los duplicados. Si hay un conflicto, se identifica la otra orden: No vuelve a la entrada y Sí reasigna el método abreviado.
+Abra **Herramientas > Accessible OBS Studio** para abrir directamente el editor de métodos abreviados de teclado. Las flechas recorren la lista de órdenes; Tab se mueve entre la orden seleccionada, la casilla de control de métodos abreviados de OBS —desmarcada de forma predeterminada— y los botones. Intro o **Añadir o editar** abre el diálogo de asignación. Intro y Aceptar comprueban inmediatamente los duplicados. Si hay un conflicto, se identifica la otra orden: No vuelve a la entrada y Sí reasigna el método abreviado. Use **Configuración de API de OpenAI** en este editor para configurar OpenAI.
 
 ## Mezclador y controles multimedia
 

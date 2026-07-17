@@ -19,13 +19,15 @@ Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis 
 - Ctrl+0 à Ctrl+5 : canevas, scènes, sources, mélangeur audio, transitions ou commandes.
 - Ctrl+` (touche sous Échap) : ouvrir la console de volume accessible.
 
+La commande **Accessible OBS Studio : Ouvrir l’éditeur de raccourcis clavier** ouvre directement le même éditeur et n’a pas de raccourci par défaut. Son identifiant interne reste inchangé, ce qui conserve toute attribution existante.
+
 Par défaut, Accessible OBS Studio impose que tous les raccourcis clavier d’OBS ne fonctionnent que lorsque OBS est l’application active. Il maintient **Paramètres > Avancé > Comportement du focus des raccourcis clavier** sur **Désactiver les raccourcis clavier lorsque la fenêtre principale n’a pas le focus** et rétablit cette valeur si elle change. Pour rendre le contrôle à OBS, cochez puis enregistrez **Autoriser OBS Studio à gérer le fonctionnement des raccourcis clavier hors d’OBS** dans l’éditeur. Le module cesse alors d’intervenir.
 
 Au premier démarrage et après un changement de profil, le module compare ses attributions prévues aux attributions existantes. La boîte de dialogue n’apparaît qu’en cas de conflit réel. Vous pouvez supprimer uniquement les attributions en conflit et appliquer les raccourcis Accessibility par défaut, ou conserver les attributions existantes ; les raccourcis par défaut en conflit restent alors non attribués. **Ne plus me demander pour cette version** s’applique à tous les profils, mais une nouvelle version ou compilation déclenche un nouveau contrôle.
 
 ## Éditeur de raccourcis clavier
 
-Ouvrez **Outils > Accessible OBS Studio > Éditeur de raccourcis clavier**. Les flèches parcourent la liste des commandes ; Tab passe entre la commande sélectionnée, la case de contrôle des raccourcis OBS —décochée par défaut— et les boutons. Entrée ou **Ajouter ou modifier** ouvre la boîte d’attribution. Entrée et OK vérifient immédiatement les doublons. En cas de conflit, l’autre commande est nommée : Non revient à la saisie, Oui réattribue le raccourci.
+Ouvrez **Outils > Accessible OBS Studio** pour ouvrir directement l’éditeur de raccourcis clavier. Les flèches parcourent la liste des commandes ; Tab passe entre la commande sélectionnée, la case de contrôle des raccourcis OBS —décochée par défaut— et les boutons. Entrée ou **Ajouter ou modifier** ouvre la boîte d’attribution. Entrée et OK vérifient immédiatement les doublons. En cas de conflit, l’autre commande est nommée : Non revient à la saisie, Oui réattribue le raccourci. Utilisez **Paramètres API OpenAI** dans cet éditeur pour configurer OpenAI.
 
 ## Mélangeur et commandes multimédias
 
