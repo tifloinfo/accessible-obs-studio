@@ -16,18 +16,33 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 
 ## Installation
 
-1. Close OBS Studio. The installer never terminates OBS automatically.
-2. Run `AccessibleOBSStudio-1.0-Setup.exe`.
-3. Confirm the detected OBS installation or choose its folder.
-4. Complete the installation and start OBS.
+1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
+   `AccessibleOBSStudio-1.0-Setup.exe`.
+2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
+   the [official OBS Studio download page](https://obsproject.com/download) and
+   exits without installing files or prerequisites. You can also update an
+   older OBS release from Help > Check for Updates in OBS Studio.
+3. OBS Studio 32.x is supported. With OBS Studio 33 or later, Setup warns that
+   this plugin release may be incompatible and offers the
+   [latest-plugin page](https://tiflo.info/aobs) before allowing an explicit
+   install-anyway choice.
+4. Close OBS Studio before continuing. If it is running, Setup asks you to
+   close it and choose Retry; it never terminates OBS automatically.
+5. Complete the installation and start OBS Studio.
+6. On the final page, the **Open the ReadMe in your web browser** checkbox opens
+   the HTML documentation matching the language selected for Setup.
 
 The plugin is installed under `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. No desktop or Start-menu shortcut is created.
 
 To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS must be closed. Settings are preserved unless you explicitly select the unchecked option to remove them.
 
-## Default keyboard commands
+## Default keyboard shortcuts
 
-- F3: capture the current OBS canvas and ask OpenAI to analyze it.
+- F3: Basic Description of the current canvas, limited to 80 characters.
+- Shift+F3: Detailed Description of the current canvas.
+- Alt+F3: read visible canvas text without translation or commentary.
+- Ctrl+F3: describe visible people and their backgrounds.
+- F4: analyze the canvas for recording, streaming, camera, lighting, framing, focus, grain, appearance, and background issues.
 - Ctrl+M: focus the visible native Media Controls.
 - F5: start or stop streaming.
 - F6: move to the next main OBS interface area.
@@ -37,37 +52,45 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
 
-The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Accessible OBS Studio chooser menu. It is available for assignment but has no default shortcut.
+The command **Accessible OBS Studio: Open Accessible OBS Studio** opens the Accessible OBS Studio chooser menu. It is available for assignment but has no default keyboard shortcut.
 
-The first time the plugin runs, it changes OBS’s Hotkey Focus Behavior to disable hotkeys while the main OBS window is not focused—but only if you have never explicitly chosen that OBS setting. Your later choice is always respected.
+By default, Accessible OBS Studio forces all OBS keyboard shortcuts to work only while OBS is the active application. It keeps **Settings > Advanced > Hotkey Focus Behavior** set to **Disable hotkeys when main window is not in focus** and restores that value if it changes. To return control to OBS, select **Allow OBS Studio to manage whether keyboard shortcuts work outside OBS** in the Keyboard Shortcut Editor and save. When selected, the plugin stops changing the setting and stops overriding OBS hotkey state.
 
-## Shortcut Editor
+On first run and after a profile change, the plugin checks planned defaults against existing assignments. A modal, screen-reader-accessible dialog appears only when real conflicts exist. You can remove only the conflicting combinations and use the Accessibility defaults, or keep the existing assignments and leave the conflicting Accessibility defaults unassigned. “Do not ask again” remembers the chosen policy for this plugin build across profiles; a later build asks again when conflicts exist.
 
-Choose **Tools > Accessible OBS Studio > Shortcut Editor**. Search the Commands list and select a command. Press Enter or activate **Add or Edit** to open the Hot Key dialog; press Delete to remove the selected command's assignments. The list uses arrow-key navigation, while Tab moves between the search field, the currently selected command, and the editor buttons. OpenAI configuration is also available directly from the Accessible OBS Studio submenu.
+## Keyboard Shortcut Editor
 
-The Hot Key dialog supports every shortcut assigned to the command. Type one shortcut into the Shortcut field, use **Add Another Shortcut** for an additional assignment, or remove a selected assignment. Enter accepts the dialog. Escape cancels it. Tab, Shift+Tab, Enter, Escape, Alt+F4, Windows-key combinations, and other reserved system commands are not captured.
+Choose **Tools > Accessible OBS Studio > Keyboard Shortcut Editor**. Search the Commands list and select a command. Press Enter or activate **Add or Edit** to open the Keyboard Shortcut dialog; press Delete to remove the selected command's assignments. The list uses arrow-key navigation, while Tab moves between the search field, the currently selected command, the OBS hotkey-control checkbox, and the editor buttons. The checkbox is cleared by default. OpenAI configuration is also available directly from the Accessible OBS Studio submenu.
+
+The Keyboard Shortcut dialog supports every keyboard shortcut assigned to the command. Type one combination into the Keyboard Shortcut field, use **Add Another Keyboard Shortcut** for an additional assignment, or remove a selected assignment. Enter or OK checks immediately for duplicates. If another command uses the combination, the dialog identifies it and asks whether to reassign it. No returns to the assignment dialog; Yes removes that conflicting assignment. Escape cancels the dialog. Tab, Shift+Tab, Enter, Escape, Alt+F4, Windows-key combinations, and other reserved system commands are not captured.
 
 Changes are staged until you activate OK in the main editor. Delete or Remove clears every assignment for the selected command. Closing with unsaved changes offers Save, Discard, and Cancel.
 
 ## Audio Mixer and Media Controls
 
-Ctrl+3 focuses the Audio Mixer. Its visible volume controls are numbered in display order. Press 1 through 9 for sources one through nine, or 0 for source ten. Native OBS arrow keys adjust the focused slider. Muting and other controls remain native OBS operations available through Tab navigation.
+Ctrl+3 focuses the native Audio Mixer. The plugin no longer renames, numbers, or monitors its controls; use Tab and Shift+Tab with native OBS keyboard behavior. Number-based source selection remains available in the Accessible Volume Console.
 
 Ctrl+Grave opens the modal **Accessible Volume Console** without changing the control remembered in the main OBS window. It contains every audio source currently active in the OBS Mixer, including applicable sources in groups or nested scenes and global devices such as Desktop Audio and Mic/Aux. The first vertical slider receives focus. Left and Right move between sources; Up and Down change the selected source by 1 dB; Home restores 0 dB; and Space toggles mute. Number keys 1 through 9 select the first nine sources and 0 selects the tenth. Changes take effect immediately. Escape closes the console and restores the previous OBS control. JAWS and NVDA receive the source name, volume in dB, and mute state as values change.
 
-The console updates if OBS or an external controller changes a volume, mute state, scene, or available Mixer sources. All sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default shortcut can be changed in the Shortcut Editor.
+The console takes an exclusive snapshot of the available audio sources, volumes, and mute states when it opens. Its changes take effect in OBS immediately, but it does not monitor changes made through the native mixer, an external controller, scene switching, or other control methods while it remains open. Do not manipulate the mixer elsewhere during an Accessible Volume Console session; close and reopen the console to load external changes. All initially captured sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default keyboard shortcut can be changed in the Keyboard Shortcut Editor.
 
 Ctrl+M focuses the Media Controls only when they are visible. Accessible OBS Studio does not replace or intercept OBS media commands; use the keys supplied by OBS.
 
-## Canvas analysis and approved actions
+## Canvas Describer and approved fixes
 
-An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio > OpenAI API Settings** when you want to save a key. The Qt dialog supports standard keyboard navigation. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account. If an OpenAI feature requests a key and you do not have one, activate **I Have No Key Yet**; OpenAI features remain blocked, while all other plugin functions continue to work.
+An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible OBS Studio > OpenAI API Settings** when you want to save, replace, or remove a key. The Qt dialog supports standard keyboard navigation. A stored key is never displayed. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account; an existing key is retained if its replacement cannot be validated or saved. **I Have No Key Yet** appears only when no key is stored, while **Remove key** appears only when a key is stored. Removal requires confirmation and reports whether it succeeded. OpenAI features remain blocked without a key, while all other plugin functions continue to work.
 
-F3 captures the rendered canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The analysis window then receives focus; closing it restores the previous OBS control when it still exists and does not steal focus from another application.
+All five Canvas Describer keyboard shortcuts capture the rendered OBS canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The WebView2 result window then receives focus; closing it restores the previous OBS control when appropriate and does not steal focus from another application. Only a newly received answer uses the aggressive ARIA alert role. Questions are never echoed into the conversation.
 
-Follow-up questions must concern the captured image. Image text and follow-up messages are treated as untrusted content. Unrelated questions are refused, and the image conversation ends when the window closes or another capture begins.
+All five modes permit image-related follow-up questions. Image text and follow-up messages are treated as untrusted content. Unrelated questions are refused, and the image conversation ends when the window closes or another direct capture begins.
 
-The **Suggested Actions** button exposes a bounded list of reversible OBS transform actions. A source must be selected; if none is selected, an accessible source list is shown. Each action displays its risk and requires an individual checkbox. Nothing runs until **Apply Selected** is activated. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
+Basic Description is also a starting point. Detailed Description is always offered without resubmitting the image. Read Text appears only when text is detected; People and Backgrounds appears only when people are detected. Suggested Fixes appears only when the plugin has a specific approved OBS transform that can address a detected issue. A successful preset disappears while other relevant presets remain.
+
+People and Backgrounds makes visible people the primary subject, then describes their immediate backgrounds. Unrelated interface, text, and scene details are omitted unless they directly affect a person's presentation.
+
+Analyze for Issues reports high-severity automatically correctable OBS layout problems, blank black or white captures, unusable camera or lighting conditions, and visibly non-full-screen Zoom meetings; medium-severity framing concerns; and low-severity lighting, blur, possible lens contamination, grain, appearance, clothing, background, and other visible concerns. A blank capture is reported without guessing its cause. For a visibly non-full-screen Zoom meeting, the guidance is to switch to Zoom, press Alt+F, return to OBS, and avoid minimizing Zoom or all windows during the stream. Browser, presentation, and other video-calling interfaces are treated as possible captured content. Automatic-fix controls appear only for approved source transforms. When issues remain, **Analyze Again** captures and submits a fresh frame, compares it with the earlier frame, and reports improvements, regressions, changes, and unresolved issues.
+
+The **Suggested Fixes** and **Fix Automatically** buttons expose only applicable items from a bounded list of reversible OBS source transforms. A source must be selected; if none is selected, an accessible source list is shown. Each fix displays its risk and requires an individual checkbox. Nothing runs until **Apply Selected** is activated. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
 
 ## Compatibility analysis
 
@@ -77,13 +100,13 @@ A successful report is saved for the exact OBS version, Accessible OBS Studio ve
 
 ## Privacy and cost
 
-Canvas analysis sends the captured canvas, OBS locale, the fixed safety prompt, and valid follow-up questions to OpenAI. Compatibility analysis sends version and dependency information plus a fixed plugin capability manifest; it does not send scenes, media, credentials, or the API key itself as content. OpenAI API charges belong to the key owner. No telemetry, advertising, or unrelated network request is included.
+Canvas analysis sends the captured canvas, OBS locale, the fixed safety prompt, and valid follow-up questions to OpenAI. Preset descriptions reuse the existing response chain without resubmitting the frame. Analyze Again intentionally sends a fresh frame for comparison. Compatibility analysis sends version and dependency information plus a fixed plugin capability manifest; it does not send scenes, media, credentials, or the API key itself as content. OpenAI API charges belong to the key owner. No telemetry, advertising, or unrelated network request is included.
 
 ## Troubleshooting
 
 - If the plugin does not appear, confirm that OBS is 64-bit and was closed during installation.
 - If F3 reports that no key is stored, save the key through OpenAI Settings.
-- If a shortcut does not fire, inspect OBS Settings > Hotkeys and Advanced > Hotkey Focus Behavior.
+- If a keyboard shortcut does not fire, inspect the Keyboard Shortcut Editor, OBS Settings > Hotkeys, and Advanced > Hotkey Focus Behavior.
 - If Media Controls are unavailable, select a currently playable media source so OBS displays them.
 - If WebView2 cannot initialize, repair its Microsoft runtime or run the Accessible OBS Studio installer again while connected to the Internet.
 

@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "docs:html": "node tools/generate-readme-html.mjs"
+  },
+  "devDependencies": {
+    "marked": "17.0.5"
+  }
+}

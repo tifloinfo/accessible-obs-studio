@@ -22,6 +22,10 @@ static const VolumeText SLIDER_INSTRUCTIONS={"Left and Right select a source. Up
 struct VolumeEntry{
     void *source{};
     QString name;
+    int value{-100};
+    bool muted{};
+    QPointer<QWidget> column;
+    QPointer<QLabel> nameLabel;
     QPointer<QSlider> slider;
     QPointer<QLabel> valueLabel;
     QPointer<QPushButton> muteButton;
@@ -34,7 +38,7 @@ static int MixerRank(const QString &name,const std::vector<QString> &mixerNames)
 
 static bool CollectAudioSource(void *parameter,void *source){
     auto *entries=static_cast<std::vector<VolumeEntry>*>(parameter);constexpr uint32_t AUDIO_FLAG=1u<<1;if(!source||(api.source_output_flags(source)&AUDIO_FLAG)==0||!api.source_audio_active(source))return true;
-    void *reference=api.source_get_ref(source);if(!reference)return true;const char *rawName=api.source_name(reference);QString name=QString::fromUtf8(rawName?rawName:"");if(name.isEmpty())name=QStringLiteral("Audio source");entries->push_back(VolumeEntry{reference,name,{},{},{}});return true;
+    void *reference=api.source_get_ref(source);if(!reference)return true;const char *rawName=api.source_name(reference);QString name=QString::fromUtf8(rawName?rawName:"");if(name.isEmpty())name=LText(LocalText::AudioSource);entries->push_back(VolumeEntry{reference,name});return true;
 }
 
 static std::vector<VolumeEntry> CurrentMixerEntries(){
@@ -49,11 +53,11 @@ static QString DbValueText(int value){if(value<=-100)return VText(SILENT_TEXT);r
 class VolumeConsoleDialog final:public QDialog{
 public:
     explicit VolumeConsoleDialog(QWidget *parent):QDialog(parent){
-        setWindowTitle(VText(VOLUME_CONSOLE_TITLE));setWindowModality(Qt::ApplicationModal);setModal(true);resize(800,460);setMinimumSize(460,360);
+        setWindowTitle(VText(VOLUME_CONSOLE_TITLE));setAccessibleDescription(VText(SLIDER_INSTRUCTIONS));setWindowModality(Qt::ApplicationModal);setModal(true);resize(800,460);setMinimumSize(460,360);
         auto *outer=new QVBoxLayout(this);scroll_=new QScrollArea(this);scroll_->setWidgetResizable(true);scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setFocusPolicy(Qt::NoFocus);outer->addWidget(scroll_);
-        ReplaceSources(CurrentMixerEntries(),nullptr);
-        buttons_=new QDialogButtonBox(QDialogButtonBox::Close,this);connect(buttons_,&QDialogButtonBox::rejected,this,&QDialog::reject);connect(buttons_,&QDialogButtonBox::accepted,this,&QDialog::accept);outer->addWidget(buttons_);
-        timer_=new QTimer(this);timer_->setInterval(500);connect(timer_,&QTimer::timeout,this,[this]{RefreshFromObs();});timer_->start();
+        panel_=new QWidget(scroll_);sourceLayout_=new QHBoxLayout(panel_);sourceLayout_->setAlignment(Qt::AlignLeft);emptyMessage_=new QLabel(VText(NO_AUDIO_SOURCES),panel_);emptyMessage_->setWordWrap(true);sourceLayout_->addWidget(emptyMessage_);sourceLayout_->addStretch(1);scroll_->setWidget(panel_);
+        buttons_=new QDialogButtonBox(QDialogButtonBox::Close,this);if(QPushButton *close=buttons_->button(QDialogButtonBox::Close))close->setText(QString::fromWCharArray(Tr(UiText::Close)));connect(buttons_,&QDialogButtonBox::rejected,this,&QDialog::reject);connect(buttons_,&QDialogButtonBox::accepted,this,&QDialog::accept);outer->addWidget(buttons_);
+        InitializeSources(CurrentMixerEntries());if(!sources_.empty())FocusIndex(0);else if(QPushButton *close=buttons_->button(QDialogButtonBox::Close))close->setFocus(Qt::OtherFocusReason);
     }
     ~VolumeConsoleDialog() override{ReleaseSources();}
 protected:
@@ -62,7 +66,7 @@ protected:
         Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;if(modifiers==Qt::NoModifier){
             if(keyEvent->key()==Qt::Key_Left){FocusIndex(index-1);return true;}if(keyEvent->key()==Qt::Key_Right){FocusIndex(index+1);return true;}
             if(keyEvent->key()==Qt::Key_Home&&watched==sources_[static_cast<size_t>(index)].slider){QSlider *slider=sources_[static_cast<size_t>(index)].slider;if(slider->value()!=0)slider->setValue(0);else Announce(index);return true;}
-            if(keyEvent->key()==Qt::Key_Space&&watched==sources_[static_cast<size_t>(index)].slider){ToggleMute(index);return true;}
+            if(keyEvent->key()==Qt::Key_Space&&watched==sources_[static_cast<size_t>(index)].slider){ToggleMute(index,true);return true;}
             int direct=DirectIndex(keyEvent->key());if(direct>=0){FocusIndex(direct);return true;}
             if(keyEvent->key()==Qt::Key_Escape){reject();return true;}
         }
@@ -75,25 +79,21 @@ private:
     static int DirectIndex(int key){if(key>=Qt::Key_1&&key<=Qt::Key_9)return key-Qt::Key_1;if(key==Qt::Key_0)return 9;return -1;}
     int EntryIndex(QObject *object) const{for(size_t index=0;index<sources_.size();++index)if(object==sources_[index].slider||object==sources_[index].muteButton)return static_cast<int>(index);return -1;}
     int FocusedIndex() const{QWidget *focus=QApplication::focusWidget();return EntryIndex(focus);}
-    QString Announcement(int index) const{const VolumeEntry &entry=sources_[static_cast<size_t>(index)];int value=VolumeToDb(api.source_get_volume(entry.source));bool muted=api.source_muted(entry.source);return QStringLiteral("%1. %2, %3 %4, %5.").arg(index+1).arg(entry.name,VText(VOLUME_TEXT),DbValueText(value),VText(muted?MUTED_TEXT:UNMUTED_TEXT));}
+    QString Announcement(int index) const{const VolumeEntry &entry=sources_[static_cast<size_t>(index)];return QStringLiteral("%1. %2, %3 %4, %5.").arg(index+1).arg(entry.name,VText(VOLUME_TEXT),DbValueText(entry.value),VText(entry.muted?MUTED_TEXT:UNMUTED_TEXT));}
     void Announce(int index){if(index<0||index>=static_cast<int>(sources_.size()))return;QAccessibleAnnouncementEvent announcement(this,Announcement(index));announcement.setPoliteness(QAccessible::AnnouncementPoliteness::Assertive);QAccessible::updateAccessibility(&announcement);}
-    void UpdateVisual(int index){
-        VolumeEntry &entry=sources_[static_cast<size_t>(index)];int value=VolumeToDb(api.source_get_volume(entry.source));bool muted=api.source_muted(entry.source);syncing_=true;if(entry.slider&&entry.slider->value()!=value)entry.slider->setValue(value);syncing_=false;QString valueText=DbValueText(value);if(entry.valueLabel&&entry.valueLabel->text()!=valueText)entry.valueLabel->setText(valueText);if(entry.slider){QString accessibleName=QStringLiteral("%1. %2. %3.").arg(index+1).arg(entry.name,VText(VOLUME_TEXT));if(entry.slider->accessibleName()!=accessibleName)entry.slider->setAccessibleName(accessibleName);QString instructions=VText(SLIDER_INSTRUCTIONS);if(entry.slider->accessibleDescription()!=instructions)entry.slider->setAccessibleDescription(instructions);}if(entry.muteButton){QString buttonText=VText(muted?UNMUTE_TEXT:MUTE_TEXT);if(entry.muteButton->text()!=buttonText)entry.muteButton->setText(buttonText);QString buttonName=QStringLiteral("%1: %2").arg(entry.name,buttonText);if(entry.muteButton->accessibleName()!=buttonName)entry.muteButton->setAccessibleName(buttonName);}
-    }
-    void ToggleMute(int index){if(index<0||index>=static_cast<int>(sources_.size()))return;VolumeEntry &entry=sources_[static_cast<size_t>(index)];api.source_set_muted(entry.source,!api.source_muted(entry.source));UpdateVisual(index);Announce(index);}
+    void UpdateValueVisual(VolumeEntry &entry){QString valueText=DbValueText(entry.value);if(entry.valueLabel&&entry.valueLabel->text()!=valueText)entry.valueLabel->setText(valueText);}
+    void UpdateMuteVisual(VolumeEntry &entry){if(!entry.muteButton)return;QString buttonText=VText(entry.muted?UNMUTE_TEXT:MUTE_TEXT);if(entry.muteButton->text()!=buttonText)entry.muteButton->setText(buttonText);QString buttonName=QStringLiteral("%1: %2").arg(entry.name,buttonText);if(entry.muteButton->accessibleName()!=buttonName)entry.muteButton->setAccessibleName(buttonName);}
+    void ToggleMute(int index,bool announce){if(index<0||index>=static_cast<int>(sources_.size()))return;VolumeEntry &entry=sources_[static_cast<size_t>(index)];entry.muted=!entry.muted;api.source_set_muted(entry.source,entry.muted);UpdateMuteVisual(entry);if(announce)Announce(index);}
     void FocusIndex(int index){if(index<0||index>=static_cast<int>(sources_.size())){QApplication::beep();return;}QSlider *slider=sources_[static_cast<size_t>(index)].slider;if(!slider)return;scroll_->ensureWidgetVisible(slider,30,30);if(QApplication::focusWidget()!=slider)slider->setFocus(Qt::ShortcutFocusReason);}
     void ReleaseSources(){for(VolumeEntry &entry:sources_)if(entry.source)api.source_release(entry.source);sources_.clear();}
-    bool SameSources(const std::vector<VolumeEntry> &fresh) const{if(fresh.size()!=sources_.size())return false;for(size_t index=0;index<fresh.size();++index)if(fresh[index].source!=sources_[index].source)return false;return true;}
-    void ReplaceSources(std::vector<VolumeEntry> fresh,void *preferredSource){
-        QWidget *old=scroll_->takeWidget();delete old;ReleaseSources();sources_=std::move(fresh);auto *panel=new QWidget(scroll_);auto *layout=new QHBoxLayout(panel);layout->setAlignment(Qt::AlignLeft);
-        if(sources_.empty()){auto *message=new QLabel(VText(NO_AUDIO_SOURCES),panel);message->setWordWrap(true);layout->addWidget(message);scroll_->setWidget(panel);if(isVisible()&&buttons_)QTimer::singleShot(0,buttons_,[this]{if(QPushButton *close=buttons_->button(QDialogButtonBox::Close);close&&QApplication::focusWidget()!=close)close->setFocus(Qt::OtherFocusReason);});return;}
-        int preferredIndex=0;for(size_t index=0;index<sources_.size();++index){VolumeEntry &entry=sources_[index];if(entry.source==preferredSource)preferredIndex=static_cast<int>(index);auto *column=new QWidget(panel);column->setMinimumWidth(145);auto *columnLayout=new QVBoxLayout(column);auto *name=new QLabel(QStringLiteral("%1. %2").arg(index+1).arg(entry.name),column);name->setAlignment(Qt::AlignHCenter);name->setWordWrap(true);columnLayout->addWidget(name);entry.slider=new QSlider(Qt::Vertical,column);entry.slider->setRange(-100,0);entry.slider->setSingleStep(1);entry.slider->setPageStep(5);entry.slider->setMinimumHeight(230);entry.slider->setFocusPolicy(Qt::StrongFocus);entry.slider->installEventFilter(this);columnLayout->addWidget(entry.slider,1,Qt::AlignHCenter);entry.valueLabel=new QLabel(column);entry.valueLabel->setAlignment(Qt::AlignHCenter);columnLayout->addWidget(entry.valueLabel);entry.muteButton=new QPushButton(column);entry.muteButton->setFocusPolicy(Qt::StrongFocus);entry.muteButton->installEventFilter(this);columnLayout->addWidget(entry.muteButton);layout->addWidget(column);void *source=entry.source;connect(entry.slider,&QSlider::valueChanged,this,[this,source](int value){if(syncing_)return;auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found==sources_.end())return;int index=static_cast<int>(std::distance(sources_.begin(),found));api.source_set_volume(source,DbToVolume(value));UpdateVisual(index);});connect(entry.muteButton,&QPushButton::clicked,this,[this,source]{auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found!=sources_.end())ToggleMute(static_cast<int>(std::distance(sources_.begin(),found)));});UpdateVisual(static_cast<int>(index));}
-        layout->addStretch(1);scroll_->setWidget(panel);if(isVisible())QTimer::singleShot(0,this,[this,preferredIndex]{FocusIndex(preferredIndex);});
+    void CreateControls(VolumeEntry &entry,int index){
+        entry.column=new QWidget(panel_);entry.column->setMinimumWidth(145);auto *columnLayout=new QVBoxLayout(entry.column);entry.nameLabel=new QLabel(entry.column);entry.nameLabel->setAlignment(Qt::AlignHCenter);entry.nameLabel->setWordWrap(true);columnLayout->addWidget(entry.nameLabel);entry.slider=new QSlider(Qt::Vertical,entry.column);entry.slider->setRange(-100,0);entry.slider->setSingleStep(1);entry.slider->setPageStep(5);entry.slider->setMinimumHeight(230);entry.slider->setFocusPolicy(Qt::StrongFocus);entry.slider->installEventFilter(this);columnLayout->addWidget(entry.slider,1,Qt::AlignHCenter);entry.valueLabel=new QLabel(entry.column);entry.valueLabel->setAlignment(Qt::AlignHCenter);entry.valueLabel->setAccessibleName(QStringLiteral(" "));entry.valueLabel->setAccessibleDescription(QStringLiteral(" "));columnLayout->addWidget(entry.valueLabel);entry.muteButton=new QPushButton(entry.column);entry.muteButton->setFocusPolicy(Qt::StrongFocus);entry.muteButton->installEventFilter(this);columnLayout->addWidget(entry.muteButton);void *source=entry.source;
+        entry.value=VolumeToDb(api.source_get_volume(source));entry.muted=api.source_muted(source);entry.slider->setValue(entry.value);entry.nameLabel->setText(QStringLiteral("%1. %2").arg(index+1).arg(entry.name));entry.slider->setAccessibleName(QStringLiteral("%1. %2. %3.").arg(index+1).arg(entry.name,VText(VOLUME_TEXT)));entry.slider->setAccessibleDescription(QString());UpdateValueVisual(entry);UpdateMuteVisual(entry);
+        connect(entry.slider,&QSlider::valueChanged,this,[this,source](int value){auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found==sources_.end())return;found->value=value;api.source_set_volume(source,DbToVolume(value));UpdateValueVisual(*found);});
+        connect(entry.muteButton,&QPushButton::clicked,this,[this,source]{auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found!=sources_.end())ToggleMute(static_cast<int>(std::distance(sources_.begin(),found)),false);});
     }
-    void RefreshFromObs(){
-        std::vector<VolumeEntry> fresh=CurrentMixerEntries();if(!SameSources(fresh)){int focused=FocusedIndex();void *preferred=focused>=0?sources_[static_cast<size_t>(focused)].source:nullptr;ReplaceSources(std::move(fresh),preferred);return;}for(VolumeEntry &entry:fresh)api.source_release(entry.source);for(size_t index=0;index<sources_.size();++index)UpdateVisual(static_cast<int>(index));
-    }
-    QScrollArea *scroll_{};QDialogButtonBox *buttons_{};QTimer *timer_{};std::vector<VolumeEntry> sources_;bool syncing_{};
+    void InitializeSources(std::vector<VolumeEntry> entries){sources_=std::move(entries);emptyMessage_->setVisible(sources_.empty());for(size_t index=0;index<sources_.size();++index){CreateControls(sources_[index],static_cast<int>(index));sourceLayout_->insertWidget(static_cast<int>(index),sources_[index].column);}}
+    QScrollArea *scroll_{};QWidget *panel_{};QHBoxLayout *sourceLayout_{};QLabel *emptyMessage_{};QDialogButtonBox *buttons_{};std::vector<VolumeEntry> sources_;
 };
 
 static QPointer<VolumeConsoleDialog> volumeConsoleWindow;
@@ -103,5 +103,5 @@ static QPointer<VolumeConsoleDialog> volumeConsoleWindow;
 static std::string VolumeConsoleCommandLabel(){QByteArray utf8=VText(VOLUME_CONSOLE_COMMAND).toUtf8();return std::string(utf8.constData(),static_cast<size_t>(utf8.size()));}
 
 static void VolumeConsoleHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;if(volumeConsoleWindow){volumeConsoleWindow->raise();volumeConsoleWindow->activateWindow();return;}if(!MainInterfaceActive())return;QPointer<QWidget> returnFocus=QApplication::focusWidget();VolumeConsoleDialog dialog(obsMainWindow);volumeConsoleWindow=&dialog;dialog.exec();volumeConsoleWindow=nullptr;if(returnFocus&&returnFocus->isVisible()&&returnFocus->isEnabled()){returnFocus->setFocus(Qt::ShortcutFocusReason);returnFocus->activateWindow();}
+    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{if(volumeConsoleWindow){if(volumeConsoleWindow->isMinimized())volumeConsoleWindow->showNormal();else if(!volumeConsoleWindow->isVisible())volumeConsoleWindow->show();if(QApplication::activeWindow()!=volumeConsoleWindow){volumeConsoleWindow->raise();volumeConsoleWindow->activateWindow();}return;}if(!MainInterfaceActive())return;QPointer<QWidget> returnFocus=QApplication::focusWidget();VolumeConsoleDialog dialog(obsMainWindow);volumeConsoleWindow=&dialog;dialog.exec();volumeConsoleWindow=nullptr;if(returnFocus&&returnFocus->isVisible()&&returnFocus->isEnabled()&&QApplication::focusWidget()!=returnFocus){if(QWidget *window=returnFocus->window();window&&QApplication::activeWindow()!=window)window->activateWindow();returnFocus->setFocus(Qt::ShortcutFocusReason);}},Qt::QueuedConnection);
 }

@@ -1,60 +1,50 @@
 # Accessible OBS Studio 1.0
 
-[![Logotipo de Tiflo.Info: ondas azules sobre el texto Tiflo.info y el lema ruso «Cierra los ojos y mira»](../assets/tiflo-info-logo.jpg)](https://tiflo.info)
+Accessible OBS Studio es un complemento de accesibilidad para OBS Studio 32 de 64 bits en Windows 10 y 11. Está pensado para usuarios ciegos de teclado y lector de pantalla, y se ha probado con JAWS y NVDA. La clave de API de OpenAI e Internet solo son necesarios para las funciones de OpenAI.
 
-Accessible OBS Studio es un complemento de accesibilidad para OBS Studio en Windows. Está pensado para personas ciegas que trabajan con el teclado y un lector de pantalla, especialmente JAWS o NVDA.
+## Instalación
 
-## Requisitos e instalación
+Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `AccessibleOBSStudio-1.0-Setup.exe`. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la [página oficial de descarga de OBS](https://obsproject.com/download) y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda > Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la [página del complemento más reciente](https://tiflo.info/aobs) antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla **Abrir el archivo Léame en el navegador web** abre la documentación HTML en español.
 
-Requiere Windows 10 u 11 de 64 bits y una versión compatible de OBS Studio 32 de 64 bits. Solo las funciones de OpenAI necesitan una clave API propia y conexión a Internet.
+## Métodos abreviados de teclado predeterminados
 
-Cierre OBS y ejecute `AccessibleOBSStudio-1.0-Setup.exe`. El instalador coloca el complemento en `C:\ProgramData\obs-studio\plugins\accessible-obs-studio` y comprueba Microsoft WebView2 y Visual C++. Solo descarga de Microsoft los componentes que falten; para ello necesita conexión a Internet. No sustituye archivos de OBS ni de Qt. Para desinstalarlo, use Aplicaciones instaladas de Windows. La configuración se conserva salvo que elija expresamente eliminarla.
-
-## Teclas predeterminadas
-
-- F3: capturar y analizar el lienzo mediante OpenAI.
-- Ctrl+M: enfocar los Controles multimedia nativos visibles.
-- F5: iniciar o detener la transmisión.
+- F3: descripción básica del lienzo, con un máximo de 80 caracteres.
+- Mayús+F3: descripción detallada.
+- Alt+F3: leer el texto visible sin traducirlo ni comentarlo.
+- Ctrl+F3: describir personas y fondos.
+- F4: analizar problemas de grabación, emisión, cámara, iluminación, encuadre, nitidez, grano, apariencia y fondo.
+- Ctrl+M: enfocar los controles multimedia visibles.
+- F5, F7 y F8: iniciar o detener la emisión, grabación o cámara virtual.
 - F6 / Mayús+F6: área principal siguiente / anterior.
-- F7: iniciar o detener la grabación.
-- F8: activar o desactivar la cámara virtual.
-- Ctrl+acento grave: abrir la Consola de volumen accesible. Se refiere a la tecla física situada justo debajo de Escape; su carácter depende de la distribución del teclado.
-- Ctrl+0 a Ctrl+5: enfocar Vista previa, Escenas, Fuentes, Mezclador de audio, Transiciones o Controles.
+- Ctrl+0 a Ctrl+5: lienzo, escenas, fuentes, mezclador de audio, transiciones o controles.
+- Ctrl+` (tecla bajo Escape): abrir la consola de volumen accesible.
 
-El comando **Accessible OBS Studio: Open Accessible OBS Studio** abre el editor de atajos. Se le puede asignar un atajo, pero no tiene ninguno de forma predeterminada.
+De forma predeterminada, Accessible OBS Studio obliga a que todos los métodos abreviados de teclado de OBS funcionen solo mientras OBS sea la aplicación activa. Mantiene **Configuración > Avanzado > Comportamiento del foco de los métodos abreviados** en **Deshabilitar métodos abreviados cuando la ventana principal no tenga el foco** y restaura el valor si cambia. Para devolver el control a OBS, marque y guarde **Permitir que OBS Studio gestione si los métodos abreviados de teclado funcionan fuera de OBS** en el editor. A partir de entonces, el complemento deja de intervenir.
 
-En el primer inicio, el complemento desactiva los atajos de OBS cuando la ventana principal de OBS no tiene el foco, pero únicamente si el usuario nunca eligió esa opción. Los cambios posteriores siempre se respetan.
+En el primer inicio y después de cambiar de perfil, el complemento compara sus asignaciones previstas con las existentes. El diálogo solo aparece si existe un conflicto real. Puede eliminar únicamente las asignaciones en conflicto y aplicar los valores predeterminados de Accessibility, o conservar las asignaciones existentes; en ese caso, los valores predeterminados en conflicto quedarán sin asignar. **No volver a preguntar para esta versión** se aplica a todos los perfiles, pero una nueva versión o compilación vuelve a comprobarlos.
 
-## Editor de atajos
+## Editor de métodos abreviados de teclado
 
-Abra **Herramientas > Accessible OBS Studio**. Busque un comando y pulse Intro o active **Añadir o editar**. La configuración de OpenAI está disponible mediante **API Settings** en esta ventana. El cuadro «Hot Key» permite gestionar varios atajos. **Añadir otro atajo** crea una asignación adicional. Intro acepta y Escape cancela. Tab, Mayús+Tab, Intro, Escape, Alt+F4, combinaciones con la tecla Windows y órdenes reservadas del sistema no se capturan.
+Abra **Herramientas > Accessible OBS Studio > Editor de métodos abreviados de teclado**. Las flechas recorren la lista de órdenes; Tab se mueve entre la orden seleccionada, la casilla de control de métodos abreviados de OBS —desmarcada de forma predeterminada— y los botones. Intro o **Añadir o editar** abre el diálogo de asignación. Intro y Aceptar comprueban inmediatamente los duplicados. Si hay un conflicto, se identifica la otra orden: No vuelve a la entrada y Sí reasigna el método abreviado.
 
-Los cambios se guardan en OBS solo al activar Aceptar en la ventana principal. Supr o **Eliminar** borra todas las asignaciones del comando seleccionado. Al cerrar con cambios pendientes se ofrecen Guardar, Descartar y Cancelar.
+## Mezclador y controles multimedia
 
-## Audio y medios
+Ctrl+3 enfoca el mezclador normal de OBS. El complemento ya no numera sus deslizadores ni les instala un filtro global de eventos. Ctrl+` abre la consola accesible modal: Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen 1 dB, Inicio establece 0 dB, Espacio silencia o reactiva y 1 a 0 seleccionan las diez primeras fuentes.
 
-Ctrl+3 enfoca el Mezclador de audio. Los controles de volumen visibles se numeran en el orden mostrado. 1 a 9 seleccionan las primeras nueve fuentes y 0 la décima. Las flechas y los demás controles siguen siendo funciones nativas de OBS. Ctrl+M enfoca los Controles multimedia cuando OBS los muestra; el complemento no sustituye las teclas multimedia de OBS.
+Al abrirse, la consola toma el control exclusivo de las fuentes, volúmenes y estados de silencio disponibles en ese momento. Sus cambios se aplican inmediatamente a OBS, pero durante la sesión no supervisa cambios realizados con el mezclador nativo, controladores externos, cambios de escena u otros métodos. No manipule el mezclador de otra forma mientras la consola esté abierta; ciérrela y vuelva a abrirla para cargar cambios externos.
 
-Ctrl+acento grave abre la **Consola de volumen accesible** modal. El complemento recuerda el control de OBS que tenía el foco y lo restaura al pulsar Escape. La consola incluye todas las fuentes de audio actualmente activas en el Mezclador de OBS, incluidas las fuentes aplicables de grupos o escenas anidadas y los dispositivos globales. Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen en 1 dB, Inicio restablece 0 dB y Espacio alterna el silencio. Las teclas 1 a 9 seleccionan las nueve primeras fuentes y 0 la décima. Los cambios son inmediatos y JAWS y NVDA los anuncian. El comando y su atajo pueden modificarse en el editor.
+## Descripción del lienzo
 
-## Análisis del lienzo y acciones
+Los cinco modos capturan el lienzo renderizado por OBS. Solo la respuesta más reciente usa el rol ARIA alert agresivo; nunca se repite la pregunta del usuario. Los cinco modos admiten preguntas de seguimiento.
 
-La clave API es opcional. Guárdela solo cuando la necesite mediante **API Settings** en el editor de atajos. El cuadro admite Tab y Mayús+Tab; Intro en el campo de la clave activa **Guardar clave**. El formato y la autenticación de OpenAI se comprueban antes del almacenamiento cifrado en el Administrador de credenciales de Windows. Sin clave se bloquean únicamente las funciones de OpenAI; las demás funciones siguen disponibles.
+En la descripción básica, **Descripción detallada** siempre está disponible, **Leer texto** solo si se detectó texto, **Personas y fondos** solo si se detectaron personas y **Correcciones sugeridas** solo si un problema puede corregirse realmente de forma automática. Estas acciones reutilizan la imagen ya enviada.
 
-F3 no exige enfocar la vista previa. Un breve clic confirma que la solicitud ha comenzado. El foco permanece donde estaba durante la captura. La ventana del resultado recibe el foco después y, al cerrarla, se restaura el control anterior de OBS si todavía existe. Nunca se roba el foco a otra aplicación.
+El modo **Personas y fondos** da prioridad a las personas visibles y después describe su fondo inmediato. Se omiten los detalles no relacionados de la interfaz, el texto o la escena, salvo que afecten directamente a la presentación de una persona.
 
-Las preguntas posteriores deben referirse directamente a la imagen capturada. El texto de la imagen y las preguntas se tratan como datos no fiables. Se rechazan las consultas ajenas a la imagen, y la conversación termina al cerrar la ventana o efectuar otra captura.
+**Analizar problemas** clasifica como graves las transformaciones reversibles de fuentes de OBS, una captura vacía negra o blanca, los estados críticos de cámara o iluminación y una reunión de Zoom visiblemente fuera del modo de pantalla completa. Una captura vacía se notifica sin suponer su causa. Para una reunión de Zoom visiblemente fuera de pantalla completa, indica cambiar a Zoom, pulsar Alt+F, volver a OBS y no minimizar Zoom ni todas las ventanas durante la emisión. Las interfaces de navegadores, presentaciones y otros programas de videollamada se consideran posible contenido capturado. El encuadre tiene gravedad media; la poca luz, desenfoque, posible suciedad de la lente, grano, apariencia, ropa, fondo y objetos no deseados tienen gravedad baja. La corrección automática se limita a una lista fija de transformaciones reversibles de OBS. Si encuentra problemas, **Analizar de nuevo** captura una imagen nueva e informa únicamente de mejoras, empeoramientos, cambios y problemas restantes.
 
-**Acciones sugeridas** presenta una lista limitada de transformaciones reversibles de OBS. Si no hay una fuente seleccionada, se abre una lista de fuentes accesible. Cada acción tiene su propia casilla y nivel de riesgo. Nada se ejecuta hasta activar **Aplicar selección**. Se usan las acciones y el historial Deshacer de OBS. Quedan excluidos transmisión, grabación, audio, credenciales, órdenes arbitrarias y ajustes de salida.
+La clave de API se valida antes de guardarla, se almacena en el Administrador de credenciales de Windows y nunca se muestra. Para eliminarla se pide confirmación y se anuncia el resultado correcto.
 
-## Compatibilidad
+## Privacidad y licencia
 
-Ante una versión principal de OBS no probada, el aviso ofrece **Cancelar**, **Ejecutar de todos modos** y **Analizar compatibilidad**. El análisis combina comprobaciones locales de solo lectura con fuentes oficiales de OBS y clasifica el riesgo como Bajo, Medio, Alto o Desconocido. No garantiza compatibilidad.
-
-El informe satisfactorio se guarda para la versión exacta de OBS, la versión del complemento y la arquitectura. Las consultas posteriores muestran el informe guardado sin contactar de nuevo con OpenAI. Se abre en una ventana WebView2 accesible y se copia al Portapapeles.
-
-## Privacidad, coste y licencia
-
-El análisis del lienzo envía a OpenAI el lienzo, la configuración regional de OBS, un prompt de seguridad fijo y preguntas válidas. El análisis de compatibilidad envía versiones, dependencias y un manifiesto fijo, pero no escenas, medios ni credenciales. Los costes de API corresponden al propietario de la clave. No hay telemetría ni publicidad.
-
-Copyright (C) 2026 [Tiflo.Info](https://tiflo.info). GNU GPL versión 2 o posterior; consulte [LICENSE.txt](../LICENSE.txt). [English](../README.md).
+Las funciones del lienzo envían a OpenAI la imagen capturada, el idioma de OBS, instrucciones de seguridad fijas y preguntas de seguimiento. No hay telemetría ni publicidad. Copyright (C) 2026 [Tiflo.Info](https://tiflo.info). GNU GPL versión 2 o posterior; consulte [LICENSE.txt](../LICENSE.txt). [English](../README.md).

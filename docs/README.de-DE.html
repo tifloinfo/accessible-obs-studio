@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessible OBS Studio 1.0</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    background: Canvas;
+    color: CanvasText;
+  }
+  main { max-width: 72rem; margin: 0 auto; padding: 1.5rem; }
+  h1, h2, h3 { line-height: 1.25; }
+  a { color: LinkText; text-decoration: underline; text-underline-offset: .15em; }
+  a:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+  .skip-link {
+    position: absolute;
+    left: .5rem;
+    top: -5rem;
+    padding: .75rem;
+    background: Canvas;
+    color: CanvasText;
+    border: 2px solid CanvasText;
+  }
+  .skip-link:focus { top: .5rem; }
+  code { overflow-wrap: anywhere; }
+  img { max-width: 100%; height: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+<main id="main-content">
+<h1>Accessible OBS Studio 1.0</h1>
+<p>Accessible OBS Studio ist ein Windows-Zugänglichkeits-Plugin für die 64-Bit-Version von OBS Studio 32. Es richtet sich an blinde Tastatur- und Screenreader-Nutzer und wurde für JAWS und NVDA entwickelt. Windows 10 oder 11 wird benötigt. Ein OpenAI-API-Schlüssel und Internetzugang sind nur für OpenAI-Funktionen erforderlich.</p>
+<h2>Installation</h2>
+<p>Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten Sie <code>AccessibleOBSStudio-1.0-Setup.exe</code>. Fehlt OBS Studio, ist die Installation beschädigt oder älter als 32.0, bietet Setup die <a href="https://obsproject.com/download">offizielle OBS-Download-Seite</a> an und beendet sich ohne Änderungen. Eine ältere Version kann auch in OBS Studio über Hilfe &gt; Nach Updates suchen aktualisiert werden. OBS Studio 32.x wird unterstützt. Bei OBS Studio 33 oder neuer warnt Setup vor möglicher Inkompatibilität und verweist auf die <a href="https://tiflo.info/aobs">Seite der neuesten Plugin-Version</a>, bevor eine ausdrückliche Installation trotzdem möglich ist. Läuft OBS Studio, fordert Setup zum vollständigen Schließen und anschließenden Auswählen von Wiederholen auf; es beendet OBS niemals automatisch. Das Plugin wird unter <code>C:\ProgramData\obs-studio\plugins\accessible-obs-studio</code> installiert. Fehlende Microsoft-WebView2- und Visual-C++-Komponenten werden erst nach diesen Prüfungen ergänzt; OBS- und Qt-Dateien werden nicht ersetzt. Auf der Abschlussseite öffnet das Kontrollkästchen <strong>ReadMe im Webbrowser öffnen</strong> die deutsche HTML-Dokumentation. Einstellungen bleiben bei der Deinstallation standardmäßig erhalten.</p>
+<h2>Standard-Tastenkombinationen</h2>
+<ul>
+<li>F3: Kurzbeschreibung des Canvas mit höchstens 80 Zeichen.</li>
+<li>Umschalt+F3: detaillierte Canvas-Beschreibung.</li>
+<li>Alt+F3: sichtbaren Text ohne Übersetzung oder Kommentar lesen.</li>
+<li>Strg+F3: sichtbare Personen und Hintergründe beschreiben.</li>
+<li>F4: Canvas auf Aufnahme-, Streaming-, Kamera-, Beleuchtungs-, Bildausschnitt-, Schärfe-, Körnungs-, Erscheinungs- und Hintergrundprobleme prüfen.</li>
+<li>Strg+M: sichtbare Mediensteuerung fokussieren.</li>
+<li>F5: Streaming starten oder beenden.</li>
+<li>F6 / Umschalt+F6: nächster / vorheriger Hauptbereich.</li>
+<li>F7: Aufnahme starten oder beenden.</li>
+<li>F8: virtuelle Kamera ein- oder ausschalten.</li>
+<li>Strg+0 bis Strg+5: Videovorschau, Szenen, Quellen, Audiomixer, Szenenübergänge oder Steuerung fokussieren.</li>
+<li>Strg+Gravis: barrierefreie Lautstärkekonsole öffnen. Gemeint ist die physische Taste direkt unter Escape.</li>
+</ul>
+<p>Der Befehl <strong>Accessible OBS Studio: Open Accessible OBS Studio</strong> öffnet das Auswahlmenü, besitzt aber keine Standard-Tastenkombination.</p>
+<p>Standardmäßig erzwingt Accessible OBS Studio, dass alle OBS-Tastenkombinationen nur funktionieren, solange OBS die aktive Anwendung ist. Der Wert unter <strong>Einstellungen &gt; Erweitert &gt; Hotkey-Fokusverhalten</strong> wird auf <strong>Hotkeys deaktivieren, wenn das Hauptfenster nicht fokussiert ist</strong> gehalten und nach Änderungen wiederhergestellt. Aktivieren und speichern Sie im Tastenkombinations-Editor <strong>OBS Studio verwalten lassen, ob Tastenkombinationen außerhalb von OBS funktionieren</strong>, um die Steuerung an OBS zurückzugeben. Danach greift das Plugin nicht mehr ein.</p>
+<p>Beim ersten Start und nach einem Profilwechsel werden geplante Standards mit vorhandenen Zuweisungen verglichen. Nur bei echten Konflikten erscheint ein modaler, screenreader-zugänglicher Dialog. Sie können ausschließlich die kollidierenden Kombinationen entfernen oder die vorhandenen Zuweisungen beibehalten; dann bleiben kollidierende Accessibility-Standards unbelegt. <strong>Für diese Version nicht erneut fragen</strong> merkt sich die gewählte Richtlinie profilübergreifend. Eine neue Plugin-Version oder ein neuer Build prüft erneut.</p>
+<h2>Tastenkombinations-Editor</h2>
+<p>Öffnen Sie <strong>Werkzeuge &gt; Accessible OBS Studio &gt; Tastenkombinations-Editor</strong>. Die Befehlsliste wird mit den Pfeiltasten bedient; Tab wechselt zum standardmäßig deaktivierten OBS-Hotkey-Steuerungs-Kontrollkästchen und zu den Schaltflächen. Eingabe oder <strong>Hinzufügen oder Bearbeiten</strong> öffnet den Dialog <strong>Tastenkombination</strong>. Dort sind mehrere Zuweisungen möglich. Eingabe oder OK prüft sofort auf Duplikate. Bei einem Konflikt wird der andere Befehl genannt; Nein kehrt zum Eingabedialog zurück, Ja weist die Kombination neu zu. Escape verwirft die Bearbeitung.</p>
+<h2>Audiomixer und Mediensteuerung</h2>
+<p>Strg+3 fokussiert den nativen Audiomixer. Das Plugin benennt, nummeriert und überwacht dessen Regler nicht mehr; verwenden Sie Tab und Umschalt+Tab mit der nativen OBS-Tastaturbedienung.</p>
+<p>Strg+Gravis öffnet die modale barrierefreie Lautstärkekonsole. Links und Rechts wechseln die Quelle, Hoch und Runter ändern die Lautstärke um 1 dB, Pos1 setzt 0 dB und die Leertaste schaltet stumm. 1 bis 9 wählen die ersten neun Quellen, 0 die zehnte. Beim Öffnen übernimmt die Konsole exklusiv die dann verfügbaren Quellen, Lautstärken und Stummschaltungen. Änderungen wirken sofort in OBS; Änderungen über den nativen Mixer, externe Controller, Szenenwechsel oder andere Bedienwege werden während der Sitzung nicht überwacht. Bedienen Sie den Mixer währenddessen nicht an anderer Stelle; schließen und öffnen Sie die Konsole erneut, um externe Änderungen zu laden. Beim Schließen wird der vorherige OBS-Fokus nur dann wiederhergestellt, wenn dies noch angemessen ist.</p>
+<h2>Canvas-Beschreiber</h2>
+<p>Alle fünf Canvas-Tastenkombinationen erfassen das gerenderte OBS-Canvas ohne Vorschaufokus. Ein kurzer Klickton bestätigt den Start. Das WebView2-Ergebnisfenster erhält danach den Fokus. Nur die neueste Antwort besitzt die aggressive ARIA-Alert-Rolle; Fragen werden niemals wiederholt. Alle fünf Modi erlauben bildbezogene Anschlussfragen.</p>
+<p>Die Kurzbeschreibung ist zugleich ein Ausgangspunkt. <strong>Detaillierte Beschreibung</strong> ist immer verfügbar, <strong>Text lesen</strong> nur bei erkanntem Text und <strong>Personen und Hintergründe</strong> nur bei erkannten Personen. Diese Voreinstellungen verwenden dasselbe Bild ohne erneuten Upload. <strong>Vorgeschlagene Korrekturen</strong> erscheint ausschließlich bei einer tatsächlich automatisch behebbaren OBS-Quellentransformation.</p>
+<p><strong>Personen und Hintergründe</strong> stellt sichtbare Personen in den Mittelpunkt und beschreibt anschließend deren unmittelbaren Hintergrund. Nicht zugehörige Oberflächen-, Text- und Szenendetails werden ausgelassen, sofern sie die Darstellung einer Person nicht direkt beeinflussen.</p>
+<p><strong>Auf Probleme analysieren</strong> meldet als schwerwiegend: automatisch korrigierbare OBS-Layoutprobleme, leere schwarze oder weiße Aufnahmen, unbrauchbare Kamera- oder Beleuchtungszustände und sichtbar nicht im Vollbild dargestellte Zoom-Meetings. Bei einer leeren Aufnahme wird keine Ursache vermutet. Bei einem sichtbar nicht im Vollbild dargestellten Zoom-Meeting lautet die Anleitung: zu Zoom wechseln, Alt+F drücken, zu OBS zurückkehren und Zoom beziehungsweise nicht alle Fenster während des Streams minimieren. Browser-, Präsentations- und andere Videokonferenzoberflächen gelten als möglicher Aufnahmeinhalt. Bildausschnittprobleme sind mittel, weniger schwere Beleuchtungs-, Unschärfe-, mögliche Linsenverschmutzungs-, Körnungs-, Erscheinungs-, Kleidungs- und Hintergrundprobleme niedrig eingestuft. Automatische Korrekturen werden nur für eine feste Liste umkehrbarer OBS-Quellentransformationen angeboten. <strong>Erneut analysieren</strong> erfasst bewusst ein neues Bild und meldet Verbesserungen, Verschlechterungen, Änderungen und verbleibende Probleme.</p>
+<p>Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüsselt gespeichert und niemals angezeigt. Format und OpenAI-Authentifizierung werden vor dem Speichern geprüft. <strong>Ich habe noch keinen Schlüssel</strong> erscheint nur ohne gespeicherten Schlüssel; <strong>Schlüssel entfernen</strong> nur mit einem gespeicherten Schlüssel. Das Entfernen benötigt eine Bestätigung und meldet den Erfolg.</p>
+<h2>Datenschutz und Lizenz</h2>
+<p>Canvas-Funktionen senden das erfasste Bild, die OBS-Sprache, feste Sicherheitsanweisungen und gültige Anschlussfragen an OpenAI. Voreinstellungen verwenden die bestehende Antwortkette; <strong>Erneut analysieren</strong> sendet absichtlich ein neues Vergleichsbild. Der API-Schlüssel wird nicht als Inhalt übertragen. Es gibt keine Telemetrie oder Werbung.</p>
+<p>Copyright (C) 2026 <a href="https://tiflo.info">Tiflo.Info</a>. GNU GPL Version 2 oder neuer; siehe <a href="../LICENSE.txt">LICENSE.txt</a>. <a href="../README.md">English</a>.</p>
+</main>
+</body>
+</html>

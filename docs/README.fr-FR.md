@@ -1,60 +1,50 @@
 # Accessible OBS Studio 1.0
 
-[![Logo Tiflo.Info : des vagues bleues au-dessus du nom Tiflo.info et de la devise russe « Ferme les yeux et regarde »](../assets/tiflo-info-logo.jpg)](https://tiflo.info)
+Accessible OBS Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.
 
-Accessible OBS Studio est un module d’accessibilité pour OBS Studio sous Windows. Il est destiné aux personnes aveugles qui utilisent le clavier et un lecteur d’écran, notamment JAWS ou NVDA.
+## Installation
 
-## Configuration requise et installation
+Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez `AccessibleOBSStudio-1.0-Setup.exe`. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la [page officielle de téléchargement d’OBS](https://obsproject.com/download), puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide > Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la [page du dernier module](https://tiflo.info/aobs) avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case **Ouvrir le fichier Lisez-moi dans le navigateur web** ouvre la documentation HTML française.
 
-Le module nécessite Windows 10 ou 11 64 bits et une version compatible d’OBS Studio 32 64 bits. Seules les fonctions OpenAI exigent une clé API personnelle et une connexion Internet.
+## Raccourcis clavier par défaut
 
-Fermez OBS, puis exécutez `AccessibleOBSStudio-1.0-Setup.exe`. Le programme d’installation place le module dans `C:\ProgramData\obs-studio\plugins\accessible-obs-studio` et vérifie Microsoft WebView2 ainsi que Visual C++. Seuls les composants absents sont téléchargés directement depuis Microsoft ; une connexion Internet est alors nécessaire. Aucun fichier OBS ou Qt n’est remplacé. Pour désinstaller le module, utilisez Applications installées dans Windows. Les paramètres sont conservés par défaut.
+- F3 : description de base du canevas, limitée à 80 caractères.
+- Maj+F3 : description détaillée.
+- Alt+F3 : lecture du texte visible, sans traduction ni commentaire.
+- Ctrl+F3 : description des personnes et des arrière-plans.
+- F4 : analyse des problèmes d’enregistrement, de diffusion, de caméra, d’éclairage, de cadrage, de netteté, de grain, d’apparence et d’arrière-plan.
+- Ctrl+M : placer le focus sur les commandes multimédias visibles.
+- F5, F7, F8 : démarrer ou arrêter la diffusion, l’enregistrement ou la caméra virtuelle.
+- F6 / Maj+F6 : zone principale suivante / précédente.
+- Ctrl+0 à Ctrl+5 : canevas, scènes, sources, mélangeur audio, transitions ou commandes.
+- Ctrl+` (touche sous Échap) : ouvrir la console de volume accessible.
 
-## Raccourcis par défaut
+Par défaut, Accessible OBS Studio impose que tous les raccourcis clavier d’OBS ne fonctionnent que lorsque OBS est l’application active. Il maintient **Paramètres > Avancé > Comportement du focus des raccourcis clavier** sur **Désactiver les raccourcis clavier lorsque la fenêtre principale n’a pas le focus** et rétablit cette valeur si elle change. Pour rendre le contrôle à OBS, cochez puis enregistrez **Autoriser OBS Studio à gérer le fonctionnement des raccourcis clavier hors d’OBS** dans l’éditeur. Le module cesse alors d’intervenir.
 
-- F3 : capturer et analyser le canevas avec OpenAI.
-- Ctrl+M : placer le focus sur les commandes multimédias natives visibles.
-- F5 : démarrer ou arrêter la diffusion.
-- F6 / Maj+F6 : zone principale suivante / précédente.
-- F7 : démarrer ou arrêter l’enregistrement.
-- F8 : activer ou désactiver la caméra virtuelle.
-- Ctrl+accent grave : ouvrir la console de volume accessible. Il s’agit de la touche physique juste sous Échap ; son caractère dépend de la disposition du clavier.
-- Ctrl+0 à Ctrl+5 : aperçu vidéo, scènes, sources, mélangeur audio, transitions ou commandes.
+Au premier démarrage et après un changement de profil, le module compare ses attributions prévues aux attributions existantes. La boîte de dialogue n’apparaît qu’en cas de conflit réel. Vous pouvez supprimer uniquement les attributions en conflit et appliquer les raccourcis Accessibility par défaut, ou conserver les attributions existantes ; les raccourcis par défaut en conflit restent alors non attribués. **Ne plus me demander pour cette version** s’applique à tous les profils, mais une nouvelle version ou compilation déclenche un nouveau contrôle.
 
-La commande **Accessible OBS Studio: Open Accessible OBS Studio** ouvre l’éditeur de raccourcis. Elle peut recevoir un raccourci, mais aucun n’est attribué par défaut.
+## Éditeur de raccourcis clavier
 
-Au premier démarrage, le module désactive les raccourcis OBS lorsque la fenêtre principale d’OBS n’a pas le focus, uniquement si vous n’avez jamais défini ce réglage vous-même. Toute modification ultérieure est respectée.
+Ouvrez **Outils > Accessible OBS Studio > Éditeur de raccourcis clavier**. Les flèches parcourent la liste des commandes ; Tab passe entre la commande sélectionnée, la case de contrôle des raccourcis OBS —décochée par défaut— et les boutons. Entrée ou **Ajouter ou modifier** ouvre la boîte d’attribution. Entrée et OK vérifient immédiatement les doublons. En cas de conflit, l’autre commande est nommée : Non revient à la saisie, Oui réattribue le raccourci.
 
-## Éditeur de raccourcis
+## Mélangeur et commandes multimédias
 
-Ouvrez **Outils > Accessible OBS Studio**. Recherchez une commande, puis appuyez sur Entrée ou activez **Ajouter ou modifier**. La configuration OpenAI est accessible avec **API Settings** dans cette fenêtre. La boîte « Hot Key » gère plusieurs raccourcis par commande. **Ajouter un autre raccourci** crée une attribution supplémentaire. Entrée valide et Échap annule. Tab, Maj+Tab, Entrée, Échap, Alt+F4, les combinaisons avec la touche Windows et les commandes système réservées ne sont pas capturées.
+Ctrl+3 place le focus sur le mélangeur OBS standard. Le module ne numérote plus ses curseurs et n’y installe plus de filtre d’événements global. Ctrl+` ouvre la console accessible modale : Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine règle 0 dB, Espace active ou désactive le son, et 1 à 0 sélectionnent les dix premières sources.
 
-Les changements ne sont inscrits dans OBS qu’après activation de OK dans la fenêtre principale. Suppr ou **Supprimer** efface toutes les attributions de la commande sélectionnée. Si des changements ne sont pas enregistrés, la fermeture propose Enregistrer, Ignorer les modifications et Annuler.
+À son ouverture, la console prend le contrôle exclusif des sources, volumes et états de coupure disponibles à cet instant. Ses modifications sont appliquées immédiatement à OBS, mais elle ne surveille pas les changements effectués pendant la session au moyen du mélangeur natif, d’un contrôleur externe, d’un changement de scène ou d’une autre méthode. Ne manipulez pas le mélangeur ailleurs pendant que la console est ouverte ; fermez-la puis rouvrez-la pour charger les changements externes.
 
-## Audio et médias
+## Description du canevas
 
-Ctrl+3 place le focus sur le mélangeur audio. Les réglages de volume visibles sont numérotés dans l’ordre d’affichage. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les flèches et les autres commandes restent celles d’OBS. Ctrl+M place le focus sur les commandes multimédias lorsque celles-ci sont affichées ; le module ne remplace aucune touche multimédia d’OBS.
+Les cinq modes capturent le canevas rendu par OBS. Seule la réponse la plus récente utilise le rôle ARIA alert agressif ; la question de l’utilisateur n’est jamais répétée. Les cinq modes acceptent des questions complémentaires.
 
-Ctrl+accent grave ouvre la **console de volume accessible** modale. Le module mémorise le contrôle OBS précédemment ciblé et le restaure après Échap. La console présente toutes les sources audio actuellement actives dans le mélangeur OBS, y compris les sources pertinentes dans les groupes ou scènes imbriquées et les périphériques globaux. Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine rétablit 0 dB et Espace active ou coupe le son. Les touches 1 à 9 sélectionnent les neuf premières sources et 0 la dixième. Les changements sont immédiats et annoncés par JAWS et NVDA. La commande et son raccourci peuvent être modifiés dans l’éditeur.
+Dans la description de base, **Description détaillée** est toujours disponible, **Lire le texte** uniquement si du texte a été détecté, **Personnes et arrière-plans** uniquement si des personnes ont été détectées, et **Corrections suggérées** uniquement si un problème peut réellement être corrigé automatiquement. Ces actions réutilisent l’image déjà envoyée.
 
-## Analyse du canevas et actions
+Le mode **Personnes et arrière-plans** donne la priorité aux personnes visibles, puis décrit leur arrière-plan immédiat. Les détails sans rapport concernant l’interface, le texte ou la scène sont omis sauf s’ils influencent directement la présentation d’une personne.
 
-La clé API est facultative. Enregistrez-la uniquement si nécessaire avec **API Settings** dans l’éditeur de raccourcis. La boîte de dialogue accepte Tab et Maj+Tab ; Entrée dans le champ de la clé active **Enregistrer la clé**. Le format et l’authentification OpenAI sont vérifiés avant le stockage chiffré dans le Gestionnaire d’identifiants Windows. Sans clé, seules les fonctions OpenAI sont bloquées ; toutes les autres restent disponibles.
+**Analyser les problèmes** classe comme graves les transformations de sources OBS réversibles, une capture vide noire ou blanche, les états critiques de caméra ou d’éclairage et une réunion Zoom visiblement hors plein écran. Une capture vide est signalée sans supposer sa cause. Pour une réunion Zoom visiblement hors plein écran, il conseille de passer à Zoom, d’appuyer sur Alt+F, de revenir à OBS et de ne pas réduire Zoom ni toutes les fenêtres pendant la diffusion. Les interfaces de navigateur, de présentation et d’autres logiciels d’appel vidéo sont considérées comme du contenu capturé possible. Le cadrage est de gravité moyenne ; le faible éclairage, le flou, une lentille potentiellement sale, le grain, l’apparence, les vêtements, l’arrière-plan et les objets indésirables sont de gravité faible. La correction automatique est limitée à une liste fixe de transformations OBS réversibles. Si des problèmes sont trouvés, **Analyser à nouveau** capture une nouvelle image et signale uniquement les améliorations, dégradations, changements et problèmes restants.
 
-F3 ne nécessite pas de placer le focus sur l’aperçu. Un bref clic confirme le démarrage de la requête. Le focus reste inchangé pendant la capture. La fenêtre de résultat reçoit ensuite le focus et, à sa fermeture, le contrôle OBS précédent est restauré s’il existe encore. Le module ne reprend jamais le focus à une autre application.
+La clé API est validée avant l’enregistrement, conservée dans le Gestionnaire d’informations d’identification Windows et jamais affichée. Sa suppression demande confirmation et affiche un message de réussite.
 
-Les questions complémentaires doivent porter directement sur l’image capturée. Le texte de l’image et les questions sont traités comme des données non fiables. Les questions sans rapport sont refusées. La conversation prend fin à la fermeture de la fenêtre ou lors d’une nouvelle capture.
+## Confidentialité et licence
 
-**Actions suggérées** présente une liste limitée de transformations OBS réversibles. Si aucune source n’est sélectionnée, une liste de sources accessible apparaît. Chaque action possède sa propre case et son niveau de risque. Rien n’est exécuté avant l’activation de **Appliquer la sélection**. Le module utilise les actions natives et l’historique Annuler d’OBS. La diffusion, l’enregistrement, l’audio, les identifiants, les commandes arbitraires et les réglages de sortie sont exclus.
-
-## Analyse de compatibilité
-
-Pour une version majeure d’OBS non testée, l’avertissement propose **Annuler**, **Exécuter quand même** et **Analyser la compatibilité**. L’analyse associe des contrôles locaux en lecture seule à des sources OBS officielles et classe le risque comme Faible, Moyen, Élevé ou Inconnu. Elle ne constitue jamais une garantie.
-
-Un rapport réussi est enregistré pour les versions exactes d’OBS et du module, ainsi que pour l’architecture. Il est ensuite réaffiché sans nouvel appel OpenAI, dans une fenêtre WebView2 accessible, et copié dans le Presse-papiers.
-
-## Confidentialité, coût et licence
-
-L’analyse du canevas transmet à OpenAI le canevas, la langue d’OBS, une invite de sécurité fixe et les questions valides. L’analyse de compatibilité transmet les versions, les dépendances et un manifeste fixe, mais aucune scène, aucun média ni identifiant. Les frais d’API incombent au propriétaire de la clé. Le module ne contient ni télémétrie ni publicité.
-
-Copyright (C) 2026 [Tiflo.Info](https://tiflo.info). GNU GPL version 2 ou ultérieure ; voir [LICENSE.txt](../LICENSE.txt). [English](../README.md).
+Les fonctions du canevas envoient à OpenAI l’image capturée, la langue d’OBS, des instructions de sécurité fixes et les questions complémentaires. Il n’y a ni télémétrie ni publicité. Copyright (C) 2026 [Tiflo.Info](https://tiflo.info). GNU GPL version 2 ou ultérieure ; voir [LICENSE.txt](../LICENSE.txt). [English](../README.md).

@@ -16,3 +16,8 @@ The output is `build/Release/accessible-obs-studio.dll`. The installer source
 is `installer/AccessibleOBSStudio.iss` and requires Inno Setup 6.7 or later.
 When required on the destination computer, the installer downloads WebView2
 and the Visual C++ Runtime directly from Microsoft's permanent download links.
+
+After changing any localized Markdown ReadMe, install Node.js dependencies once
+with `npm install`, then run `npm run docs:html`. This regenerates the six
+accessible HTML ReadMe files that the installer can open in the user's selected
+installation language.
