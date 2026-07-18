@@ -1,4 +1,4 @@
-# Building Accessible OBS Studio 1.0
+# Building Accessible OBS Studio 1.0.1
 
 The Windows x64 build requires Visual Studio 2022 Build Tools with the C++
 desktop workload, Qt 6 development files compatible with OBS Studio, and the

@@ -1,4 +1,4 @@
-Accessible OBS Studio 1.0
+Accessible OBS Studio 1.0.1
 Copyright (C) 2026 Tiflo.Info
 https://tiflo.info
 

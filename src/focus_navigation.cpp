@@ -103,7 +103,7 @@ static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
     QStringList applied,skipped;for(int i=0;i<list->count();++i){QListWidgetItem *item=list->item(i);if(item->checkState()!=Qt::Checked)continue;QAction *action=obsMainWindow->findChild<QAction*>(item->data(Qt::UserRole).toString());if(action&&action->isEnabled()){action->trigger();applied<<item->text();}else skipped<<item->text();}QString result=applied.isEmpty()?LText(LocalText::NoActionsApplied):LText(LocalText::Applied).arg(applied.join(QStringLiteral("\n")))+QStringLiteral("\n\n")+LText(LocalText::Undo);if(!skipped.empty())result+=QStringLiteral("\n\n")+LText(LocalText::Skipped).arg(skipped.join(QStringLiteral("\n")));QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);restoreFocus();
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0-build-20260717-5";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.1-build-20260718-1";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
     config *cfg=api.profile_config?api.profile_config():nullptr;if(!cfg||!api.config_has_user_value(cfg,"Hotkeys",name)){api.load_bindings(id,nullptr,0);return;}const char *json=api.config_get_string(cfg,"Hotkeys",name);obs_data *data=json&&*json?api.data_create_json(json):nullptr;if(!data){api.load_bindings(id,nullptr,0);return;}obs_data_array *array=api.data_get_array(data,"bindings");if(array){api.hotkey_load(id,array);api.array_release(array);}else api.load_bindings(id,nullptr,0);api.data_release(data);
