@@ -12,7 +12,7 @@ Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten S
 - Umschalt+F3: detaillierte Canvas-Beschreibung.
 - Alt+F3: sichtbaren Text ohne Übersetzung oder Kommentar lesen.
 - Strg+F3: sichtbare Personen und Hintergründe beschreiben.
-- F4: Canvas auf Aufnahme-, Streaming-, Kamera-, Beleuchtungs-, Bildausschnitt-, Schärfe-, Körnungs-, Erscheinungs- und Hintergrundprobleme prüfen.
+- F4: Visuelle Prüfung des Streams oder der Aufnahme auf Layout-, Kamera-, Beleuchtungs-, Bildausschnitt-, Schärfe-, Körnungs-, Erscheinungs-, Kleidungs-, Hintergrund- und Objektprobleme.
 - Strg+M: sichtbare Mediensteuerung fokussieren.
 - F5: Streaming starten oder beenden.
 - F6 / Umschalt+F6: nächster / vorheriger Hauptbereich.
@@ -45,12 +45,12 @@ Die Kurzbeschreibung ist zugleich ein Ausgangspunkt. **Detaillierte Beschreibung
 
 **Personen und Hintergründe** stellt sichtbare Personen in den Mittelpunkt und beschreibt anschließend deren unmittelbaren Hintergrund. Nicht zugehörige Oberflächen-, Text- und Szenendetails werden ausgelassen, sofern sie die Darstellung einer Person nicht direkt beeinflussen.
 
-**Auf Probleme analysieren** meldet als schwerwiegend: automatisch korrigierbare OBS-Layoutprobleme, leere schwarze oder weiße Aufnahmen, unbrauchbare Kamera- oder Beleuchtungszustände und sichtbar nicht im Vollbild dargestellte Zoom-Meetings. Bei einer leeren Aufnahme wird keine Ursache vermutet. Bei einem sichtbar nicht im Vollbild dargestellten Zoom-Meeting lautet die Anleitung: zu Zoom wechseln, Alt+F drücken, zu OBS zurückkehren und Zoom beziehungsweise nicht alle Fenster während des Streams minimieren. Browser-, Präsentations- und andere Videokonferenzoberflächen gelten als möglicher Aufnahmeinhalt. Bildausschnittprobleme sind mittel, weniger schwere Beleuchtungs-, Unschärfe-, mögliche Linsenverschmutzungs-, Körnungs-, Erscheinungs-, Kleidungs- und Hintergrundprobleme niedrig eingestuft. Automatische Korrekturen werden nur für eine feste Liste umkehrbarer OBS-Quellentransformationen angeboten. **Erneut analysieren** erfasst bewusst ein neues Bild und meldet Verbesserungen, Verschlechterungen, Änderungen und verbleibende Probleme.
+**Visuelle Prüfung** prüft ausschließlich, wie der Stream oder die Aufnahme aussieht. Die bisherigen visuellen Prüfungen auf OBS-Layout, leere Aufnahmen, Kamera, Beleuchtung, Zoom-Vollbild, Bildausschnitt, Unschärfe, mögliche Linsenverschmutzung, Körnung, Erscheinung, Kleidung, Hintergrund und unerwünschte Objekte bleiben erhalten. Sprachliche Inhalte wie Sprache, Rechtschreibung, Grammatik, Übersetzung, Formulierung, Fakten, Zahlen, Thema, Ton, Angemessenheit, Untertitel und Beschriftungen werden ignoriert. Text wird nur als visuelles Objekt gemeldet, wenn er etwa zu klein, abgeschnitten, unscharf, kontrastarm oder verdeckt ist oder wichtige Bildinhalte verdeckt. Ein Dialog- oder Fehlerfenster wird nur gemeldet, wenn es Bildinhalt verdeckt oder ein sichtbares Aufnahme- oder Layoutproblem zeigt, niemals wegen seiner Meldung. Automatische Korrekturen werden nur für die feste Liste umkehrbarer OBS-Quellentransformationen angeboten. **Erneut prüfen** erfasst ein neues Bild und meldet visuelle Verbesserungen, Verschlechterungen, Änderungen und verbleibende visuelle Probleme.
 
 Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüsselt gespeichert und niemals angezeigt. Format und OpenAI-Authentifizierung werden vor dem Speichern geprüft. **Ich habe noch keinen Schlüssel** erscheint nur ohne gespeicherten Schlüssel; **Schlüssel entfernen** nur mit einem gespeicherten Schlüssel. Das Entfernen benötigt eine Bestätigung und meldet den Erfolg.
 
 ## Datenschutz und Lizenz
 
-Canvas-Funktionen senden das erfasste Bild, die OBS-Sprache, feste Sicherheitsanweisungen und gültige Anschlussfragen an OpenAI. Voreinstellungen verwenden die bestehende Antwortkette; **Erneut analysieren** sendet absichtlich ein neues Vergleichsbild. Der API-Schlüssel wird nicht als Inhalt übertragen. Es gibt keine Telemetrie oder Werbung.
+Canvas-Funktionen senden das erfasste Bild, die OBS-Sprache, feste Sicherheitsanweisungen und gültige Anschlussfragen an OpenAI. Voreinstellungen verwenden die bestehende Antwortkette; **Erneut prüfen** sendet absichtlich ein neues Vergleichsbild. Der API-Schlüssel wird nicht als Inhalt übertragen. Es gibt keine Telemetrie oder Werbung.
 
 Copyright (C) 2026 [Tiflo.Info](https://tiflo.info). GNU GPL Version 2 oder neuer; siehe [LICENSE.txt](../LICENSE.txt). [English](../README.md).

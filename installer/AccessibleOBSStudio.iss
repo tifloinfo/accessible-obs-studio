@@ -188,7 +188,7 @@ ukrainian.OpenLocalizedReadme=Відкрити файл ReadMe у веббрау
 [Files]
 Source: "..\package\bin\64bit\accessible-obs-studio.dll"; DestDir: "{app}\bin\64bit"; Flags: ignoreversion
 Source: "..\package\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\PROJECT_README.md"; DestDir: "{app}"; DestName: "README.md"; Flags: ignoreversion
 Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE-GPL-2.0.txt"; DestDir: "{app}"; Flags: ignoreversion

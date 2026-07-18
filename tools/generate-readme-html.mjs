@@ -4,7 +4,7 @@ const markedModule = await import(process.env.MARKED_MODULE ?? "marked");
 const { marked } = markedModule;
 
 const documents = [
-  ["README.md", "docs/README.en-US.html", "en", "Skip to content"],
+  ["PROJECT_README.md", "docs/README.en-US.html", "en", "Skip to content"],
   ["docs/README.de-DE.md", "docs/README.de-DE.html", "de", "Zum Inhalt springen"],
   ["docs/README.es-ES.md", "docs/README.es-ES.html", "es", "Saltar al contenido"],
   ["docs/README.fr-FR.md", "docs/README.fr-FR.html", "fr", "Aller au contenu"],
