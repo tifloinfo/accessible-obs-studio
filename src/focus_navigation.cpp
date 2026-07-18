@@ -74,7 +74,14 @@ static void DirectAreaHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
 }
 
 static void FocusMediaControlsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{if(!MainInterfaceActive())return;QWidget *controls=obsMainWindow->findChild<QWidget*>(QStringLiteral("MediaControls"));if(!controls||!controls->isVisible()){MessageBeep(MB_ICONINFORMATION);return;}FocusRegion(controls);},Qt::QueuedConnection);
+    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{
+        if(!MainInterfaceActive())return;QWidget *controls=obsMainWindow->findChild<QWidget*>(QStringLiteral("MediaControls"));if(!controls||!controls->isVisible()){MessageBeep(MB_ICONINFORMATION);return;}
+        struct MediaControlSpec{const char *objectName;LocalText name;};
+        static constexpr MediaControlSpec specs[]={{"playPauseButton",LocalText::MediaPlayPause},{"stopButton",LocalText::MediaStop},{"previousButton",LocalText::MediaPrevious},{"nextButton",LocalText::MediaNext},{"slider",LocalText::MediaPosition}};
+        QWidget *playPause=nullptr;for(const MediaControlSpec &spec:specs)if(QWidget *widget=controls->findChild<QWidget*>(QString::fromLatin1(spec.objectName))){widget->setAccessibleName(LText(spec.name));if(strcmp(spec.objectName,"playPauseButton")==0)playPause=widget;}
+        if(playPause&&playPause->isVisible()&&playPause->isEnabled()){if(playPause->focusPolicy()==Qt::NoFocus)playPause->setFocusPolicy(Qt::StrongFocus);playPause->setFocus(Qt::ShortcutFocusReason);if(playPause->hasFocus())return;}
+        if(!FocusRegion(controls))MessageBeep(MB_ICONINFORMATION);
+    },Qt::QueuedConnection);
 }
 
 enum class SourceSelectionResult{Ready,Cancelled,Unavailable};

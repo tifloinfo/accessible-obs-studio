@@ -12,7 +12,7 @@ Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis 
 - Maj+F3 : description détaillée.
 - Alt+F3 : lecture du texte visible, sans traduction ni commentaire.
 - Ctrl+F3 : description des personnes et des arrière-plans.
-- F4 : analyse des problèmes d’enregistrement, de diffusion, de caméra, d’éclairage, de cadrage, de netteté, de grain, d’apparence et d’arrière-plan.
+- F4 : Vérification visuelle de la diffusion ou de l’enregistrement pour les problèmes de mise en page, caméra, éclairage, cadrage, netteté, grain, apparence, vêtements, arrière-plan et objets indésirables.
 - Ctrl+M : placer le focus sur les commandes multimédias visibles.
 - F5, F7, F8 : démarrer ou arrêter la diffusion, l’enregistrement ou la caméra virtuelle.
 - F6 / Maj+F6 : zone principale suivante / précédente.
@@ -43,7 +43,7 @@ Dans la description de base, **Description détaillée** est toujours disponible
 
 Le mode **Personnes et arrière-plans** donne la priorité aux personnes visibles, puis décrit leur arrière-plan immédiat. Les détails sans rapport concernant l’interface, le texte ou la scène sont omis sauf s’ils influencent directement la présentation d’une personne.
 
-**Analyser les problèmes** classe comme graves les transformations de sources OBS réversibles, une capture vide noire ou blanche, les états critiques de caméra ou d’éclairage et une réunion Zoom visiblement hors plein écran. Une capture vide est signalée sans supposer sa cause. Pour une réunion Zoom visiblement hors plein écran, il conseille de passer à Zoom, d’appuyer sur Alt+F, de revenir à OBS et de ne pas réduire Zoom ni toutes les fenêtres pendant la diffusion. Les interfaces de navigateur, de présentation et d’autres logiciels d’appel vidéo sont considérées comme du contenu capturé possible. Le cadrage est de gravité moyenne ; le faible éclairage, le flou, une lentille potentiellement sale, le grain, l’apparence, les vêtements, l’arrière-plan et les objets indésirables sont de gravité faible. La correction automatique est limitée à une liste fixe de transformations OBS réversibles. Si des problèmes sont trouvés, **Analyser à nouveau** capture une nouvelle image et signale uniquement les améliorations, dégradations, changements et problèmes restants.
+**Vérification visuelle** contrôle uniquement l’aspect de la diffusion ou de l’enregistrement. Les contrôles visuels existants concernant la mise en page OBS, les captures vides, la caméra, l’éclairage, le plein écran Zoom, le cadrage, le flou, une lentille potentiellement sale, le grain, l’apparence, les vêtements, l’arrière-plan et les objets indésirables sont conservés. Le contenu verbal est ignoré : langue, orthographe, grammaire, traduction, formulation, faits, nombres, sujet, ton, pertinence, sous-titres et légendes. Le texte n’est signalé comme objet visuel que s’il est trop petit, coupé, flou, peu contrasté, masqué ou s’il masque des éléments visuels importants. Une boîte de dialogue ou d’erreur n’est signalée que si elle masque du contenu ou révèle un problème visible de capture ou de mise en page, jamais à cause de son message. La correction automatique reste limitée à une liste fixe de transformations OBS réversibles. **Vérifier à nouveau** capture une nouvelle image et signale les améliorations, dégradations, changements et problèmes visuels restants.
 
 La clé API est validée avant l’enregistrement, conservée dans le Gestionnaire d’informations d’identification Windows et jamais affichée. Sa suppression demande confirmation et affiche un message de réussite.
 

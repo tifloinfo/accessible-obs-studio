@@ -15,7 +15,8 @@ enum class LocalText{
     CenterFully,CenterHorizontally,CenterVertically,FitCanvas,ResetTransform,FlipHorizontally,FlipVertically,
     Rotate90Clockwise,Rotate90Counterclockwise,Rotate180,
     AnalyzingCompatibility,CompatibilityProgress,CompatibilityKeyRequired,CacheFailure,CompatibilityReportHeading,
-    UntestedInstruction,UntestedContent,RunAnyway,AnalyzeCompatibility,Cancel,FocusMediaCommand,OpenAccessibleCommand,
+    UntestedInstruction,UntestedContent,RunAnyway,AnalyzeCompatibility,Cancel,
+    MediaPlayPause,MediaStop,MediaPrevious,MediaNext,MediaPosition,FocusMediaCommand,OpenAccessibleCommand,
     NoShortcutsToRemove,Save,Discard,Ok,AudioSource,ReportObsLabel,ReportPluginLabel,Yes,No,Count
 };
 
@@ -104,6 +105,11 @@ static QString LText(LocalText id){
         A{"Run Anyway","Trotzdem ausführen","Запустить всё равно","Усе одно запустити","Exécuter quand même","Ejecutar de todos modos"},
         A{"Analyze Compatibility","Kompatibilität analysieren","Анализировать совместимость","Аналізувати сумісність","Analyser la compatibilité","Analizar compatibilidad"},
         A{"Cancel","Abbrechen","Отмена","Скасувати","Annuler","Cancelar"},
+        A{"Play or pause media","Medienwiedergabe starten oder pausieren","Воспроизвести или приостановить медиа","Відтворити або призупинити медіа","Lire ou mettre le média en pause","Reproducir o pausar contenido multimedia"},
+        A{"Stop media","Medienwiedergabe stoppen","Остановить медиа","Зупинити медіа","Arrêter le média","Detener contenido multimedia"},
+        A{"Previous media","Vorheriges Medium","Предыдущее медиа","Попереднє медіа","Média précédent","Contenido multimedia anterior"},
+        A{"Next media","Nächstes Medium","Следующее медиа","Наступне медіа","Média suivant","Contenido multimedia siguiente"},
+        A{"Media position","Wiedergabeposition","Позиция воспроизведения","Позиція відтворення","Position du média","Posición de reproducción"},
         A{"Accessible OBS Studio: Focus Media Controls","Accessible OBS Studio: Mediensteuerung fokussieren","Accessible OBS Studio: Перейти к элементам управления мультимедиа","Accessible OBS Studio: Перейти до елементів керування медіа","Accessible OBS Studio : Placer le focus sur les commandes multimédias","Accessible OBS Studio: Enfocar los controles multimedia"},
         A{"Accessible OBS Studio: Open Keyboard Shortcut Editor","Accessible OBS Studio: Tastenkombinations-Editor öffnen","Accessible OBS Studio: Открыть редактор сочетаний клавиш","Accessible OBS Studio: Відкрити редактор сполучень клавіш","Accessible OBS Studio : Ouvrir l’éditeur de raccourcis clavier","Accessible OBS Studio: Abrir el editor de métodos abreviados de teclado"},
         A{"This command has no keyboard shortcuts to remove.","Dieser Befehl hat keine zu entfernenden Tastenkombinationen.","У этой команды нет сочетаний для удаления.","Ця команда не має сполучень для видалення.","Cette commande n’a aucun raccourci clavier à supprimer.","Este comando no tiene métodos abreviados de teclado que eliminar."},

@@ -12,7 +12,7 @@ Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `Accessi
 - Mayús+F3: descripción detallada.
 - Alt+F3: leer el texto visible sin traducirlo ni comentarlo.
 - Ctrl+F3: describir personas y fondos.
-- F4: analizar problemas de grabación, emisión, cámara, iluminación, encuadre, nitidez, grano, apariencia y fondo.
+- F4: Verificación visual de la emisión o grabación para detectar problemas de diseño, cámara, iluminación, encuadre, nitidez, grano, apariencia, ropa, fondo y objetos no deseados.
 - Ctrl+M: enfocar los controles multimedia visibles.
 - F5, F7 y F8: iniciar o detener la emisión, grabación o cámara virtual.
 - F6 / Mayús+F6: área principal siguiente / anterior.
@@ -43,7 +43,7 @@ En la descripción básica, **Descripción detallada** siempre está disponible,
 
 El modo **Personas y fondos** da prioridad a las personas visibles y después describe su fondo inmediato. Se omiten los detalles no relacionados de la interfaz, el texto o la escena, salvo que afecten directamente a la presentación de una persona.
 
-**Analizar problemas** clasifica como graves las transformaciones reversibles de fuentes de OBS, una captura vacía negra o blanca, los estados críticos de cámara o iluminación y una reunión de Zoom visiblemente fuera del modo de pantalla completa. Una captura vacía se notifica sin suponer su causa. Para una reunión de Zoom visiblemente fuera de pantalla completa, indica cambiar a Zoom, pulsar Alt+F, volver a OBS y no minimizar Zoom ni todas las ventanas durante la emisión. Las interfaces de navegadores, presentaciones y otros programas de videollamada se consideran posible contenido capturado. El encuadre tiene gravedad media; la poca luz, desenfoque, posible suciedad de la lente, grano, apariencia, ropa, fondo y objetos no deseados tienen gravedad baja. La corrección automática se limita a una lista fija de transformaciones reversibles de OBS. Si encuentra problemas, **Analizar de nuevo** captura una imagen nueva e informa únicamente de mejoras, empeoramientos, cambios y problemas restantes.
+**Verificación visual** comprueba únicamente el aspecto de la emisión o grabación. Se mantienen las comprobaciones visuales de diseño de OBS, capturas vacías, cámara, iluminación, pantalla completa de Zoom, encuadre, desenfoque, posible suciedad de la lente, grano, apariencia, ropa, fondo y objetos no deseados. Se ignora el contenido verbal: idioma, ortografía, gramática, traducción, redacción, hechos, números, tema, tono, idoneidad, subtítulos y leyendas. El texto solo se notifica como objeto visual si es demasiado pequeño, está cortado, borroso, tiene poco contraste, queda obstruido u oculta elementos visuales importantes. Una ventana de diálogo o error solo se notifica si tapa contenido o revela un problema visible de captura o diseño, nunca por su mensaje. La corrección automática se limita a una lista fija de transformaciones reversibles de OBS. **Comprobar de nuevo** captura una imagen nueva e informa de mejoras, empeoramientos, cambios y problemas visuales restantes.
 
 La clave de API se valida antes de guardarla, se almacena en el Administrador de credenciales de Windows y nunca se muestra. Para eliminarla se pide confirmación y se anuncia el resultado correcto.
 
