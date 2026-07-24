@@ -68,12 +68,12 @@ protected:
             if(keyEvent->key()==Qt::Key_Home&&watched==sources_[static_cast<size_t>(index)].slider){QSlider *slider=sources_[static_cast<size_t>(index)].slider;if(slider->value()!=0)slider->setValue(0);else Announce(index);return true;}
             if(keyEvent->key()==Qt::Key_Space&&watched==sources_[static_cast<size_t>(index)].slider){ToggleMute(index,true);return true;}
             int direct=DirectIndex(keyEvent->key());if(direct>=0){FocusIndex(direct);return true;}
-            if(keyEvent->key()==Qt::Key_Escape){reject();return true;}
+            if(keyEvent->key()==Qt::Key_Escape||keyEvent->key()==Qt::Key_Return||keyEvent->key()==Qt::Key_Enter){reject();return true;}
         }
         return QDialog::eventFilter(watched,event);
     }
     void keyPressEvent(QKeyEvent *event) override{
-        Qt::KeyboardModifiers modifiers=event->modifiers()&~Qt::KeypadModifier;if(modifiers==Qt::NoModifier){if(event->key()==Qt::Key_Escape){reject();return;}int direct=DirectIndex(event->key());if(direct>=0){FocusIndex(direct);return;}}QDialog::keyPressEvent(event);
+        Qt::KeyboardModifiers modifiers=event->modifiers()&~Qt::KeypadModifier;if(modifiers==Qt::NoModifier){if(event->key()==Qt::Key_Escape||event->key()==Qt::Key_Return||event->key()==Qt::Key_Enter){reject();return;}int direct=DirectIndex(event->key());if(direct>=0){FocusIndex(direct);return;}}QDialog::keyPressEvent(event);
     }
 private:
     static int DirectIndex(int key){if(key>=Qt::Key_1&&key<=Qt::Key_9)return key-Qt::Key_1;if(key==Qt::Key_0)return 9;return -1;}
