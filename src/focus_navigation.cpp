@@ -59,6 +59,93 @@ static bool MainInterfaceActive(){
     return false;
 }
 
+static QWidget *VisibleMediaControls(){
+    if(!obsMainWindow)return nullptr;
+    for(QWidget *controls:obsMainWindow->findChildren<QWidget*>(QStringLiteral("MediaControls")))if(controls->isVisible()&&controls->isEnabled())return controls;
+    return nullptr;
+}
+
+static bool FocusVisibleMediaControls(){
+    QWidget *controls=VisibleMediaControls();if(!controls)return false;
+    struct MediaControlSpec{const char *objectName;LocalText name;};
+    static constexpr MediaControlSpec specs[]={{"playPauseButton",LocalText::MediaPlayPause},{"stopButton",LocalText::MediaStop},{"previousButton",LocalText::MediaPrevious},{"nextButton",LocalText::MediaNext},{"slider",LocalText::MediaPosition}};
+    QWidget *playPause=nullptr;for(const MediaControlSpec &spec:specs)if(QWidget *widget=controls->findChild<QWidget*>(QString::fromLatin1(spec.objectName))){widget->setAccessibleName(LText(spec.name));if(strcmp(spec.objectName,"playPauseButton")==0)playPause=widget;}
+    if(playPause&&playPause->isVisible()&&playPause->isEnabled()){if(playPause->focusPolicy()==Qt::NoFocus)playPause->setFocusPolicy(Qt::StrongFocus);playPause->setFocus(Qt::ShortcutFocusReason);if(playPause->hasFocus())return true;}
+    return FocusRegion(controls);
+}
+
+static bool CollectMediaSourceName(void *parameter,void *source){
+    constexpr uint32_t CONTROLLABLE_MEDIA_FLAG=1u<<13;if(!source||(api.source_output_flags(source)&CONTROLLABLE_MEDIA_FLAG)==0)return true;
+    const char *rawName=api.source_name(source);QString name=QString::fromUtf8(rawName?rawName:"");auto *names=static_cast<QStringList*>(parameter);if(!name.isEmpty()&&!names->contains(name))names->push_back(name);return true;
+}
+
+static QString SourceIndexName(const QModelIndex &index){
+    QString name=index.data(Qt::AccessibleTextRole).toString();if(name.isEmpty())name=index.data(Qt::DisplayRole).toString();return name;
+}
+
+static bool SelectMediaSourceForControls(){
+    QAbstractItemView *sources=obsMainWindow?obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources")):nullptr;if(!sources||!sources->model()||!sources->selectionModel())return false;
+    QStringList mediaNames;api.enum_sources(CollectMediaSourceName,&mediaNames);if(mediaNames.empty())return false;
+    std::vector<QModelIndex> candidates;QStringList candidateNames;
+    for(int row=0;row<sources->model()->rowCount();++row){QModelIndex index=sources->model()->index(row,0);QString name=SourceIndexName(index);if(mediaNames.contains(name)){candidates.push_back(index);candidateNames.push_back(name);}}
+    if(candidates.empty())return false;
+    QModelIndex selected;
+    QModelIndex current=sources->currentIndex();for(const QModelIndex &candidate:candidates)if(candidate==current){selected=candidate;break;}
+    if(!selected.isValid()&&candidates.size()==1)selected=candidates.front();
+    if(!selected.isValid()){bool accepted=false;QString name=QInputDialog::getItem(obsMainWindow,LText(LocalText::FocusMediaCommand),LText(LocalText::Source),candidateNames,0,false,&accepted);if(!accepted)return false;int choice=candidateNames.indexOf(name);if(choice<0)return false;selected=candidates[static_cast<size_t>(choice)];}
+    sources->setCurrentIndex(selected);sources->selectionModel()->select(selected,QItemSelectionModel::ClearAndSelect|QItemSelectionModel::Rows);return true;
+}
+
+class MediaSeekEventFilter final:public QObject{
+public:
+    explicit MediaSeekEventFilter(QObject *parent):QObject(parent){seekClock_.start();}
+protected:
+    bool eventFilter(QObject *watched,QEvent *event) override{
+        if(event->type()!=QEvent::ShortcutOverride&&event->type()!=QEvent::KeyPress)return QObject::eventFilter(watched,event);
+        QWidget *target=qobject_cast<QWidget*>(watched);if(!target)target=QApplication::focusWidget();
+        QWidget *controls=nullptr;for(QWidget *widget=target;widget;widget=widget->parentWidget())if(widget->objectName()==QStringLiteral("MediaControls")){controls=widget;break;}
+        if(!controls||!controls->isVisible()||!controls->isEnabled())return QObject::eventFilter(watched,event);
+        auto *keyEvent=static_cast<QKeyEvent*>(event);const Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;
+        int seconds=0;
+        if(modifiers==Qt::NoModifier&&keyEvent->key()==Qt::Key_Right)seconds=5;
+        else if(modifiers==Qt::NoModifier&&keyEvent->key()==Qt::Key_Left)seconds=-5;
+        else if(modifiers==Qt::ShiftModifier&&keyEvent->key()==Qt::Key_Right)seconds=60;
+        else if(modifiers==Qt::ShiftModifier&&keyEvent->key()==Qt::Key_Left)seconds=-60;
+        else if(modifiers==Qt::NoModifier&&keyEvent->key()==Qt::Key_PageUp)seconds=-300;
+        else if(modifiers==Qt::NoModifier&&keyEvent->key()==Qt::Key_PageDown)seconds=300;
+        if(seconds==0)return QObject::eventFilter(watched,event);
+        event->accept();if(event->type()==QEvent::ShortcutOverride)return true;
+        if(Seek(seconds))return true;
+        const char *fallback=seconds>0?"MoveSliderFoward":"MoveSliderBackwards";
+        return QMetaObject::invokeMethod(controls,fallback,Qt::DirectConnection,Q_ARG(int,std::abs(seconds)));
+    }
+private:
+    struct MediaSourceLookup{QString name;void *source{};};
+    static bool FindMediaSource(void *parameter,void *source){
+        auto *lookup=static_cast<MediaSourceLookup*>(parameter);if(!source||lookup->source)return true;
+        const char *rawName=api.source_name(source);if(QString::fromUtf8(rawName?rawName:"")!=lookup->name)return true;
+        constexpr uint32_t CONTROLLABLE_MEDIA_FLAG=1u<<13;if((api.source_output_flags(source)&CONTROLLABLE_MEDIA_FLAG)==0)return true;
+        lookup->source=api.source_get_ref(source);return lookup->source==nullptr;
+    }
+    bool Seek(int seconds){
+        QAbstractItemView *sources=obsMainWindow?obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources")):nullptr;if(!sources||!sources->model())return false;
+        QModelIndex currentIndex=sources->currentIndex();if(!currentIndex.isValid())return false;
+        MediaSourceLookup lookup{SourceIndexName(currentIndex)};if(lookup.name.isEmpty())return false;
+        api.enum_sources(FindMediaSource,&lookup);if(!lookup.source)return false;
+        const int64_t current=std::max<int64_t>(0,api.source_media_time(lookup.source));const int64_t duration=api.source_media_duration(lookup.source);const qint64 now=seekClock_.elapsed();
+        int64_t base=current;if(pending_&&lookup.name==pendingSource_&&now-lastSeekMs_<=750)base=seconds>0?std::max(current,pendingTargetMs_):std::min(current,pendingTargetMs_);
+        int64_t target=base+static_cast<int64_t>(seconds)*1000;target=std::max<int64_t>(0,target);if(duration>0)target=std::min(target,duration);
+        api.source_media_set_time(lookup.source,target);api.source_release(lookup.source);
+        pending_=true;pendingSource_=lookup.name;pendingTargetMs_=target;lastSeekMs_=now;return true;
+    }
+    QElapsedTimer seekClock_;
+    QString pendingSource_;
+    int64_t pendingTargetMs_{};
+    qint64 lastSeekMs_{};
+    bool pending_{};
+};
+static MediaSeekEventFilter *mediaSeekEventFilter{};
+
 static void CycleInterfaceArea(bool backwards){
     if(!MainInterfaceActive())return;auto regions=InterfaceRegions();if(regions.empty())return;
     QWidget *focus=QApplication::focusWidget();int current=-1;for(size_t i=0;i<regions.size();++i)if(Contains(regions[i],focus)){current=static_cast<int>(i);break;}
@@ -75,35 +162,31 @@ static void DirectAreaHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
 
 static void FocusMediaControlsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
     if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{
-        if(!MainInterfaceActive())return;QWidget *controls=obsMainWindow->findChild<QWidget*>(QStringLiteral("MediaControls"));if(!controls||!controls->isVisible()){MessageBeep(MB_ICONINFORMATION);return;}
-        struct MediaControlSpec{const char *objectName;LocalText name;};
-        static constexpr MediaControlSpec specs[]={{"playPauseButton",LocalText::MediaPlayPause},{"stopButton",LocalText::MediaStop},{"previousButton",LocalText::MediaPrevious},{"nextButton",LocalText::MediaNext},{"slider",LocalText::MediaPosition}};
-        QWidget *playPause=nullptr;for(const MediaControlSpec &spec:specs)if(QWidget *widget=controls->findChild<QWidget*>(QString::fromLatin1(spec.objectName))){widget->setAccessibleName(LText(spec.name));if(strcmp(spec.objectName,"playPauseButton")==0)playPause=widget;}
-        if(playPause&&playPause->isVisible()&&playPause->isEnabled()){if(playPause->focusPolicy()==Qt::NoFocus)playPause->setFocusPolicy(Qt::StrongFocus);playPause->setFocus(Qt::ShortcutFocusReason);if(playPause->hasFocus())return;}
-        if(!FocusRegion(controls))MessageBeep(MB_ICONINFORMATION);
+        if(!MainInterfaceActive())return;if(FocusVisibleMediaControls())return;if(!SelectMediaSourceForControls()){MessageBeep(MB_ICONINFORMATION);return;}
+        QTimer::singleShot(0,obsMainWindow,[]{if(!FocusVisibleMediaControls())MessageBeep(MB_ICONINFORMATION);});
     },Qt::QueuedConnection);
 }
 
 enum class SourceSelectionResult{Ready,Cancelled,Unavailable};
 
-static SourceSelectionResult EnsureSourceSelection(){
+static SourceSelectionResult SelectSourceForAutomaticFix(){
     QAbstractItemView *sources=obsMainWindow?obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources")):nullptr;if(!sources||!sources->model())return SourceSelectionResult::Unavailable;
-    if(sources->selectionModel()&&!sources->selectionModel()->selectedRows().empty())return SourceSelectionResult::Ready;
-    QStringList names;for(int row=0;row<sources->model()->rowCount();++row)names<<sources->model()->index(row,0).data(Qt::DisplayRole).toString();if(names.empty())return SourceSelectionResult::Unavailable;
-    bool accepted=false;QString selected=QInputDialog::getItem(obsMainWindow,LText(LocalText::SelectSource),LText(LocalText::Source),names,0,false,&accepted);if(!accepted)return SourceSelectionResult::Cancelled;
-    int row=names.indexOf(selected);if(row<0)return SourceSelectionResult::Unavailable;QModelIndex index=sources->model()->index(row,0);sources->setCurrentIndex(index);if(sources->selectionModel())sources->selectionModel()->select(index,QItemSelectionModel::ClearAndSelect|QItemSelectionModel::Rows);return SourceSelectionResult::Ready;
+    std::vector<QModelIndex> indexes;QDialog dialog(obsMainWindow);dialog.setWindowTitle(LText(LocalText::SelectSource));dialog.setModal(true);auto *layout=new QVBoxLayout(&dialog);auto *list=new QListWidget(&dialog);list->setAccessibleName(LText(LocalText::Source));list->setSelectionMode(QAbstractItemView::SingleSelection);int selectedRow=0;QModelIndex current=sources->currentIndex();
+    for(int row=0;row<sources->model()->rowCount();++row){QModelIndex index=sources->model()->index(row,0);QString name=SourceIndexName(index);if(name.isEmpty())continue;if(index==current)selectedRow=static_cast<int>(indexes.size());indexes.push_back(index);list->addItem(name);}
+    if(indexes.empty())return SourceSelectionResult::Unavailable;layout->addWidget(list);auto *buttons=new QDialogButtonBox(&dialog);QPushButton *next=buttons->addButton(LText(LocalText::Ok),QDialogButtonBox::AcceptRole);buttons->addButton(LText(LocalText::Cancel),QDialogButtonBox::RejectRole);QObject::connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept);QObject::connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);QObject::connect(list,&QListWidget::itemActivated,[&](QListWidgetItem*){dialog.accept();});QObject::connect(list,&QListWidget::currentRowChanged,[next](int row){next->setEnabled(row>=0);});layout->addWidget(buttons);list->setCurrentRow(selectedRow);list->setFocus(Qt::OtherFocusReason);dialog.resize(520,420);if(dialog.exec()!=QDialog::Accepted)return SourceSelectionResult::Cancelled;
+    int row=list->currentRow();if(row<0||row>=static_cast<int>(indexes.size()))return SourceSelectionResult::Unavailable;QModelIndex index=indexes[static_cast<size_t>(row)];sources->setCurrentIndex(index);if(sources->selectionModel())sources->selectionModel()->select(index,QItemSelectionModel::ClearAndSelect|QItemSelectionModel::Rows);return SourceSelectionResult::Ready;
 }
 
 static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
-    if(!obsMainWindow)return;HWND foreground=GetForegroundWindow();bool restoreDescription=descriptionWindow&&foreground&&GetAncestor(foreground,GA_ROOT)==descriptionWindow;auto restoreFocus=[&]{if(restoreDescription&&descriptionWindow&&IsWindowVisible(descriptionWindow)&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);};SourceSelectionResult sourceResult=EnsureSourceSelection();if(sourceResult==SourceSelectionResult::Cancelled){restoreFocus();return;}if(sourceResult==SourceSelectionResult::Unavailable){QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),LText(LocalText::NoSource));restoreFocus();return;}
+    if(!obsMainWindow)return;SourceSelectionResult sourceResult=SelectSourceForAutomaticFix();if(sourceResult==SourceSelectionResult::Cancelled)return;if(sourceResult==SourceSelectionResult::Unavailable){QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),LText(LocalText::NoSource));return;}
     struct ActionSpec{const char *objectName;LocalText label;LocalText risk;};static constexpr ActionSpec specs[]={{"actionCenterToScreen",LocalText::CenterFully,LocalText::RiskLow},{"actionHorizontalCenter",LocalText::CenterHorizontally,LocalText::RiskLow},{"actionVerticalCenter",LocalText::CenterVertically,LocalText::RiskLow},{"actionFitToScreen",LocalText::FitCanvas,LocalText::RiskMedium},{"actionResetTransform",LocalText::ResetTransform,LocalText::RiskMedium},{"actionFlipHorizontal",LocalText::FlipHorizontally,LocalText::RiskMedium},{"actionFlipVertical",LocalText::FlipVertically,LocalText::RiskMedium},{"actionRotate90CW",LocalText::Rotate90Clockwise,LocalText::RiskMedium},{"actionRotate90CCW",LocalText::Rotate90Counterclockwise,LocalText::RiskMedium},{"actionRotate180",LocalText::Rotate180,LocalText::RiskMedium}};
-    QDialog dialog(obsMainWindow);dialog.setWindowTitle(QStringLiteral("Accessible OBS Studio - ")+CText(CanvasText::SuggestedFixes));dialog.setModal(true);auto *layout=new QVBoxLayout(&dialog);bool studio=api.studio_mode_active&&api.studio_mode_active();auto *state=new QLabel(LText(studio?LocalText::StudioActive:LocalText::StudioInactive),&dialog);state->setWordWrap(true);layout->addWidget(state);auto *list=new QListWidget(&dialog);list->setAccessibleName(CText(CanvasText::SuggestedFixes));
-    for(const auto &spec:specs){if(!allowed.empty()&&std::find(allowed.begin(),allowed.end(),spec.objectName)==allowed.end())continue;QAction *action=obsMainWindow->findChild<QAction*>(QString::fromLatin1(spec.objectName));auto *item=new QListWidgetItem(LText(LocalText::RiskFormat).arg(LText(spec.label),LText(spec.risk)),list);item->setData(Qt::UserRole,QString::fromLatin1(spec.objectName));item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(Qt::Unchecked);if(!action||!action->isEnabled()){QString unavailable=LText(LocalText::UnavailableAction);item->setFlags(item->flags()&~Qt::ItemIsEnabled);item->setToolTip(unavailable);item->setData(Qt::AccessibleDescriptionRole,unavailable);}}
-    layout->addWidget(list);auto *explanation=new QLabel(LText(LocalText::NothingChanges),&dialog);explanation->setWordWrap(true);layout->addWidget(explanation);auto *buttons=new QDialogButtonBox(&dialog);QPushButton *apply=buttons->addButton(LText(LocalText::ApplySelected),QDialogButtonBox::AcceptRole);QPushButton *explain=buttons->addButton(LText(LocalText::Explain),QDialogButtonBox::HelpRole);QPushButton *cancel=buttons->addButton(LText(LocalText::Cancel),QDialogButtonBox::RejectRole);apply->setEnabled(false);auto updateApply=[&]{bool checked=false;for(int i=0;i<list->count();++i)if(list->item(i)->flags().testFlag(Qt::ItemIsEnabled)&&list->item(i)->checkState()==Qt::Checked){checked=true;break;}apply->setEnabled(checked);};QObject::connect(list,&QListWidget::itemChanged,[&](QListWidgetItem*){updateApply();});QObject::connect(apply,&QPushButton::clicked,&dialog,&QDialog::accept);QObject::connect(cancel,&QPushButton::clicked,&dialog,&QDialog::reject);QObject::connect(explain,&QPushButton::clicked,[&]{QMessageBox::information(&dialog,CText(CanvasText::SuggestedFixes),LText(LocalText::ExplainActions));});layout->addWidget(buttons);dialog.resize(620,520);if(restoreDescription)SetWindowLongPtr(reinterpret_cast<HWND>(dialog.winId()),GWLP_HWNDPARENT,reinterpret_cast<LONG_PTR>(descriptionWindow));if(list->count()>0)list->setCurrentRow(0);list->setFocus(Qt::OtherFocusReason);if(dialog.exec()!=QDialog::Accepted){restoreFocus();return;}
-    QStringList applied,skipped;for(int i=0;i<list->count();++i){QListWidgetItem *item=list->item(i);if(item->checkState()!=Qt::Checked)continue;QAction *action=obsMainWindow->findChild<QAction*>(item->data(Qt::UserRole).toString());if(action&&action->isEnabled()){action->trigger();applied<<item->text();}else skipped<<item->text();}QString result=applied.isEmpty()?LText(LocalText::NoActionsApplied):LText(LocalText::Applied).arg(applied.join(QStringLiteral("\n")))+QStringLiteral("\n\n")+LText(LocalText::Undo);if(!skipped.empty())result+=QStringLiteral("\n\n")+LText(LocalText::Skipped).arg(skipped.join(QStringLiteral("\n")));QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);restoreFocus();
+    QDialog dialog(obsMainWindow);dialog.setWindowTitle(QStringLiteral("Accessible OBS Studio - ")+CText(CanvasText::SuggestedFixes));dialog.setModal(true);auto *layout=new QVBoxLayout(&dialog);bool studio=api.studio_mode_active&&api.studio_mode_active();auto *state=new QLabel(LText(studio?LocalText::StudioActive:LocalText::StudioInactive),&dialog);state->setWordWrap(true);layout->addWidget(state);auto *list=new QListWidget(&dialog);list->setAccessibleName(LText(LocalText::SuggestedActions));list->setSelectionMode(QAbstractItemView::SingleSelection);int firstEnabled=-1;
+    for(const auto &spec:specs){if(!allowed.empty()&&std::find(allowed.begin(),allowed.end(),spec.objectName)==allowed.end())continue;QAction *action=obsMainWindow->findChild<QAction*>(QString::fromLatin1(spec.objectName));auto *item=new QListWidgetItem(LText(LocalText::RiskFormat).arg(LText(spec.label),LText(spec.risk)),list);item->setData(Qt::UserRole,QString::fromLatin1(spec.objectName));if(action&&action->isEnabled()){if(firstEnabled<0)firstEnabled=list->row(item);}else{QString unavailable=LText(LocalText::UnavailableAction);item->setFlags(item->flags()&~Qt::ItemIsEnabled&~Qt::ItemIsSelectable);item->setToolTip(unavailable);item->setData(Qt::AccessibleDescriptionRole,unavailable);}}
+    layout->addWidget(list);auto *explanation=new QLabel(LText(LocalText::NothingChanges),&dialog);explanation->setWordWrap(true);layout->addWidget(explanation);auto *buttons=new QDialogButtonBox(&dialog);QPushButton *apply=buttons->addButton(LText(LocalText::ApplySelected),QDialogButtonBox::AcceptRole);QPushButton *explain=buttons->addButton(LText(LocalText::Explain),QDialogButtonBox::HelpRole);buttons->addButton(LText(LocalText::Cancel),QDialogButtonBox::RejectRole);auto updateApply=[&]{QListWidgetItem *item=list->currentItem();apply->setEnabled(item&&item->flags().testFlag(Qt::ItemIsEnabled));};QObject::connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept);QObject::connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);QObject::connect(explain,&QPushButton::clicked,[&]{QMessageBox::information(&dialog,CText(CanvasText::SuggestedFixes),LText(LocalText::ExplainActions));});QObject::connect(list,&QListWidget::currentItemChanged,[&](QListWidgetItem*,QListWidgetItem*){updateApply();});QObject::connect(list,&QListWidget::itemActivated,[&](QListWidgetItem *item){if(item&&item->flags().testFlag(Qt::ItemIsEnabled))dialog.accept();});layout->addWidget(buttons);dialog.resize(620,520);if(firstEnabled>=0)list->setCurrentRow(firstEnabled);updateApply();list->setFocus(Qt::OtherFocusReason);if(dialog.exec()!=QDialog::Accepted)return;
+    QListWidgetItem *item=list->currentItem();QAction *action=item?obsMainWindow->findChild<QAction*>(item->data(Qt::UserRole).toString()):nullptr;QString result;if(action&&action->isEnabled()){action->trigger();result=LText(LocalText::Applied).arg(item->text())+QStringLiteral("\n\n")+LText(LocalText::Undo);}else result=item?LText(LocalText::Skipped).arg(item->text()):LText(LocalText::NoActionsApplied);QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.2-build-20260723-1";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.3-build-20260724-1";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
     config *cfg=api.profile_config?api.profile_config():nullptr;if(!cfg||!api.config_has_user_value(cfg,"Hotkeys",name)){api.load_bindings(id,nullptr,0);return;}const char *json=api.config_get_string(cfg,"Hotkeys",name);obs_data *data=json&&*json?api.data_create_json(json):nullptr;if(!data){api.load_bindings(id,nullptr,0);return;}obs_data_array *array=api.data_get_array(data,"bindings");if(array){api.hotkey_load(id,array);api.array_release(array);}else api.load_bindings(id,nullptr,0);api.data_release(data);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accessible OBS Studio 1.0.2</title>
+<title>Accessible OBS Studio 1.0.3</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -39,10 +39,10 @@
 <body>
 <a class="skip-link" href="#main-content">Saltar al contenido</a>
 <main id="main-content">
-<h1>Accessible OBS Studio 1.0.2</h1>
+<h1>Accessible OBS Studio 1.0.3</h1>
 <p>Accessible OBS Studio es un complemento de accesibilidad para OBS Studio 32 de 64 bits en Windows 10 y 11. Está pensado para usuarios ciegos de teclado y lector de pantalla, y se ha probado con JAWS y NVDA. La clave de API de OpenAI e Internet solo son necesarios para las funciones de OpenAI.</p>
 <h2>Instalación</h2>
-<p>Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute <code>AccessibleOBSStudio-1.0.2-Setup.exe</code>. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la <a href="https://obsproject.com/download">página oficial de descarga de OBS</a> y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda &gt; Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la <a href="https://tiflo.info/aobs">página del complemento más reciente</a> antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en <code>C:\ProgramData\obs-studio\plugins\accessible-obs-studio</code>. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla <strong>Abrir el archivo Léame en el navegador web</strong> abre la documentación HTML en español.</p>
+<p>Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute <code>AccessibleOBSStudio-1.0.3-Setup.exe</code>. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la <a href="https://obsproject.com/download">página oficial de descarga de OBS</a> y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda &gt; Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la <a href="https://tiflo.info/aobs">página del complemento más reciente</a> antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en <code>C:\ProgramData\obs-studio\plugins\accessible-obs-studio</code>. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla <strong>Abrir el archivo Léame en el navegador web</strong> abre la documentación HTML en español.</p>
 <h2>Métodos abreviados de teclado predeterminados</h2>
 <ul>
 <li>F3: descripción básica del lienzo, con un máximo de 80 caracteres.</li>
@@ -64,6 +64,7 @@
 <h2>Mezclador y controles multimedia</h2>
 <p>Ctrl+3 enfoca el mezclador normal de OBS. El complemento ya no numera sus deslizadores ni les instala un filtro global de eventos. Ctrl+` abre la consola accesible modal: Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen 1 dB, Inicio establece 0 dB, Espacio silencia o reactiva y 1 a 0 seleccionan las diez primeras fuentes.</p>
 <p>Al abrirse, la consola toma el control exclusivo de las fuentes, volúmenes y estados de silencio disponibles en ese momento. Sus cambios se aplican inmediatamente a OBS, pero durante la sesión no supervisa cambios realizados con el mezclador nativo, controladores externos, cambios de escena u otros métodos. No manipule el mezclador de otra forma mientras la consola esté abierta; ciérrela y vuelva a abrirla para cargar cambios externos.</p>
+<p>Cuando el foco está dentro de los controles multimedia, Izquierda y Derecha retroceden o avanzan 5 segundos. Mayús+Izquierda y Mayús+Derecha retroceden o avanzan 1 minuto; Re Pág retrocede 5 minutos y Av Pág avanza 5 minutos. Fuera de los controles multimedia, estas teclas conservan su función normal.</p>
 <h2>Descripción del lienzo</h2>
 <p>Los cinco modos capturan el lienzo renderizado por OBS. Solo la respuesta más reciente usa el rol ARIA alert agresivo; nunca se repite la pregunta del usuario. Los cinco modos admiten preguntas de seguimiento.</p>
 <p>En la descripción básica, <strong>Descripción detallada</strong> siempre está disponible, <strong>Leer texto</strong> solo si se detectó texto, <strong>Personas y fondos</strong> solo si se detectaron personas y <strong>Correcciones sugeridas</strong> solo si un problema puede corregirse realmente de forma automática. Estas acciones reutilizan la imagen ya enviada.</p>

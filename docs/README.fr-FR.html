@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accessible OBS Studio 1.0.2</title>
+<title>Accessible OBS Studio 1.0.3</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -39,10 +39,10 @@
 <body>
 <a class="skip-link" href="#main-content">Aller au contenu</a>
 <main id="main-content">
-<h1>Accessible OBS Studio 1.0.2</h1>
+<h1>Accessible OBS Studio 1.0.3</h1>
 <p>Accessible OBS Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.</p>
 <h2>Installation</h2>
-<p>Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez <code>AccessibleOBSStudio-1.0.2-Setup.exe</code>. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la <a href="https://obsproject.com/download">page officielle de téléchargement d’OBS</a>, puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide &gt; Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la <a href="https://tiflo.info/aobs">page du dernier module</a> avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans <code>C:\ProgramData\obs-studio\plugins\accessible-obs-studio</code>. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case <strong>Ouvrir le fichier Lisez-moi dans le navigateur web</strong> ouvre la documentation HTML française.</p>
+<p>Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez <code>AccessibleOBSStudio-1.0.3-Setup.exe</code>. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la <a href="https://obsproject.com/download">page officielle de téléchargement d’OBS</a>, puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide &gt; Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la <a href="https://tiflo.info/aobs">page du dernier module</a> avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans <code>C:\ProgramData\obs-studio\plugins\accessible-obs-studio</code>. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case <strong>Ouvrir le fichier Lisez-moi dans le navigateur web</strong> ouvre la documentation HTML française.</p>
 <h2>Raccourcis clavier par défaut</h2>
 <ul>
 <li>F3 : description de base du canevas, limitée à 80 caractères.</li>
@@ -64,6 +64,7 @@
 <h2>Mélangeur et commandes multimédias</h2>
 <p>Ctrl+3 place le focus sur le mélangeur OBS standard. Le module ne numérote plus ses curseurs et n’y installe plus de filtre d’événements global. Ctrl+` ouvre la console accessible modale : Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine règle 0 dB, Espace active ou désactive le son, et 1 à 0 sélectionnent les dix premières sources.</p>
 <p>À son ouverture, la console prend le contrôle exclusif des sources, volumes et états de coupure disponibles à cet instant. Ses modifications sont appliquées immédiatement à OBS, mais elle ne surveille pas les changements effectués pendant la session au moyen du mélangeur natif, d’un contrôleur externe, d’un changement de scène ou d’une autre méthode. Ne manipulez pas le mélangeur ailleurs pendant que la console est ouverte ; fermez-la puis rouvrez-la pour charger les changements externes.</p>
+<p>Lorsque le focus se trouve dans les commandes multimédias, Gauche et Droite reculent ou avancent de 5 secondes. Maj+Gauche et Maj+Droite reculent ou avancent d’une minute ; Page précédente recule de 5 minutes et Page suivante avance de 5 minutes. En dehors des commandes multimédias, ces touches conservent leur fonction normale.</p>
 <h2>Description du canevas</h2>
 <p>Les cinq modes capturent le canevas rendu par OBS. Seule la réponse la plus récente utilise le rôle ARIA alert agressif ; la question de l’utilisateur n’est jamais répétée. Les cinq modes acceptent des questions complémentaires.</p>
 <p>Dans la description de base, <strong>Description détaillée</strong> est toujours disponible, <strong>Lire le texte</strong> uniquement si du texte a été détecté, <strong>Personnes et arrière-plans</strong> uniquement si des personnes ont été détectées, et <strong>Corrections suggérées</strong> uniquement si un problème peut réellement être corrigé automatiquement. Ces actions réutilisent l’image déjà envoyée.</p>

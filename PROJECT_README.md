@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.2
+# Accessible OBS Studio 1.0.3
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -17,7 +17,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleOBSStudio-1.0.2-Setup.exe`.
+   `AccessibleOBSStudio-1.0.3-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -74,7 +74,7 @@ Ctrl+Grave opens the modal **Accessible Volume Console** without changing the co
 
 The console takes an exclusive snapshot of the available audio sources, volumes, and mute states when it opens. Its changes take effect in OBS immediately, but it does not monitor changes made through the native mixer, an external controller, scene switching, or other control methods while it remains open. Do not manipulate the mixer elsewhere during an Accessible Volume Console session; close and reopen the console to load external changes. All initially captured sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default keyboard shortcut can be changed in the Keyboard Shortcut Editor.
 
-Ctrl+M focuses the Media Controls only when they are visible. Accessible OBS Studio does not replace or intercept OBS media commands; use the keys supplied by OBS.
+Ctrl+M focuses the Media Controls only when they are visible. While focus is within those controls, Left and Right move backward or forward by 5 seconds, Shift+Left and Shift+Right move backward or forward by 1 minute, Page Up moves backward by 5 minutes, and Page Down moves forward by 5 minutes. These overrides are confined to the Media Controls; the keys retain their normal behavior everywhere else.
 
 ## Canvas Describer and approved fixes
 
@@ -90,7 +90,7 @@ People and Backgrounds makes visible people the primary subject, then describes 
 
 **Visual Checker** reports high-severity automatically correctable OBS layout problems, blank black or white captures, unusable camera or lighting conditions, and visibly non-full-screen Zoom meetings; medium-severity framing concerns; and low-severity lighting, blur, possible lens contamination, grain, appearance, clothing, background, unwanted objects, and other visual concerns. It checks only how the stream or recording looks. It ignores verbal content: the language, spelling, grammar, translation, wording, facts, calculations, subject matter, names, numbers, opinions, tone, appropriateness, captions, and subtitles are never treated as issues. Text can be reported only as a visual object when it is too small, clipped, blurred, low contrast, obstructed, or obstructs important visuals. A dialog or error window can be reported only when it visibly covers content or reveals a capture or layout problem, not because of its message. A blank capture is reported without guessing its cause. For a visibly non-full-screen Zoom meeting, the guidance is to switch to Zoom, press Alt+F, return to OBS, and avoid minimizing Zoom or all windows during the stream. Browser, presentation, and other video-calling interfaces are treated as possible captured content. Automatic-fix controls appear only for approved source transforms. When visual issues remain, **Check Again** captures and submits a fresh frame, compares it with the earlier frame, and reports improvements, regressions, changes, and unresolved visual issues.
 
-The **Suggested Fixes** and **Fix Automatically** buttons expose only applicable items from a bounded list of reversible OBS source transforms. A source must be selected; if none is selected, an accessible source list is shown. Each fix displays its risk and requires an individual checkbox. Nothing runs until **Apply Selected** is activated. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
+The **Suggested Fixes** and **Fix Automatically** links expose only applicable items from a bounded list of reversible OBS source transforms. Activating either link closes the results window and opens a source list. After one source is selected, a second list presents the applicable fixes and their risk levels. Only one fix can be selected and applied at a time. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
 
 ## Compatibility analysis
 

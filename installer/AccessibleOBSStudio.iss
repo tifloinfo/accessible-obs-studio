@@ -1,5 +1,5 @@
 #define AppName "Accessible OBS Studio"
-#define AppVersion "1.0.2"
+#define AppVersion "1.0.3"
 #define Publisher "Tiflo.Info"
 #define Website "https://tiflo.info"
 #define ObsWebsite "https://obsproject.com/download"
@@ -20,7 +20,7 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE.txt
 OutputDir=..\..\outputs
-OutputBaseFilename=AccessibleOBSStudio-1.0.2-Setup
+OutputBaseFilename=AccessibleOBSStudio-1.0.3-Setup
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
@@ -33,7 +33,7 @@ SetupIconFile=
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayName={#AppName} {#AppVersion}
-VersionInfoVersion=1.0.2.0
+VersionInfoVersion=1.0.3.0
 VersionInfoCompany={#Publisher}
 VersionInfoDescription={#AppName} installer
 VersionInfoCopyright=Copyright (C) 2026 {#Publisher}
@@ -197,12 +197,12 @@ Source: "..\assets\tiflo-info-logo.jpg"; DestDir: "{app}\assets"; Flags: ignorev
 Source: "..\assets\tiflo-info-logo.png"; DestDir: "{app}\assets"; Flags: ignoreversion
 
 [Run]
-Filename: "{app}\docs\README.en-US.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: english
-Filename: "{app}\docs\README.de-DE.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: german
-Filename: "{app}\docs\README.es-ES.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: spanish
-Filename: "{app}\docs\README.fr-FR.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: french
-Filename: "{app}\docs\README.ru-RU.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: russian
-Filename: "{app}\docs\README.uk-UA.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser; Languages: ukrainian
+Filename: "{app}\docs\README.en-US.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: english
+Filename: "{app}\docs\README.de-DE.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: german
+Filename: "{app}\docs\README.es-ES.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: spanish
+Filename: "{app}\docs\README.fr-FR.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: french
+Filename: "{app}\docs\README.ru-RU.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: russian
+Filename: "{app}\docs\README.uk-UA.html"; Description: "{cm:OpenLocalizedReadme}"; WorkingDir: "{app}\docs"; Flags: postinstall shellexec skipifsilent nowait runasoriginaluser unchecked; Languages: ukrainian
 
 [Code]
 const
@@ -591,10 +591,12 @@ var
   Version: String;
   Key: String;
 begin
-  Key := 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F1E7E3A2-46B8-4A6C-8A53-EDC92C0D0399}';
-  Result := RegQueryStringValue(HKLM32, Key, 'pv', Version) or
-            RegQueryStringValue(HKLM64, Key, 'pv', Version) or
-            RegQueryStringValue(HKCU, Key, 'pv', Version);
+  Key := 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
+  Result := RegQueryStringValue(HKLM32, Key, 'pv', Version) and
+            (Trim(Version) <> '') and (Trim(Version) <> '0.0.0.0');
+  if not Result then
+    Result := RegQueryStringValue(HKCU, Key, 'pv', Version) and
+              (Trim(Version) <> '') and (Trim(Version) <> '0.0.0.0');
 end;
 
 function VCRuntimeInstalled: Boolean;
