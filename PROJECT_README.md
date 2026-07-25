@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.4
+# Accessible OBS Studio 1.0.5
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -17,7 +17,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleOBSStudio-1.0.4-Setup.exe`.
+   `AccessibleOBSStudio-1.0.5-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -90,7 +90,7 @@ People and Backgrounds makes visible people the primary subject, then describes 
 
 **Visual Checker** reports high-severity automatically correctable OBS layout problems, blank black or white captures, unusable camera or lighting conditions, and visibly non-full-screen Zoom meetings; medium-severity framing concerns; and low-severity lighting, blur, possible lens contamination, grain, appearance, clothing, background, unwanted objects, and other visual concerns. It checks only how the stream or recording looks. It ignores verbal content: the language, spelling, grammar, translation, wording, facts, calculations, subject matter, names, numbers, opinions, tone, appropriateness, captions, and subtitles are never treated as issues. Text can be reported only as a visual object when it is too small, clipped, blurred, low contrast, obstructed, or obstructs important visuals. A dialog or error window can be reported only when it visibly covers content or reveals a capture or layout problem, not because of its message. A blank capture is reported without guessing its cause. For a visibly non-full-screen Zoom meeting, the guidance is to switch to Zoom, press Alt+F, return to OBS, and avoid minimizing Zoom or all windows during the stream. Browser, presentation, and other video-calling interfaces are treated as possible captured content. Automatic-fix controls appear only for approved source transforms. When visual issues remain, **Check Again** captures and submits a fresh frame, compares it with the earlier frame, and reports improvements, regressions, changes, and unresolved visual issues.
 
-The **Suggested Fixes** and **Fix Automatically** links expose only applicable items from a bounded list of reversible OBS source transforms. Activating either link closes the results window and opens a source list. After one source is selected, a second list presents the applicable fixes and their risk levels. Only one fix can be selected and applied at a time. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
+The **Suggested Fixes** and **Fix Automatically** links expose only applicable items from a bounded list of reversible OBS source transforms. Activating either link closes the results window and opens a list containing only video-capable sources; if exactly one is available, it is selected automatically and the source list is skipped. After one source is selected, a second list presents the applicable fixes and their risk levels. Only one fix can be selected and applied at a time. For off-canvas or improperly centered content, Fit to Canvas is prioritized. After the user approves it, the plugin captures a fresh frame and asks the model only whether enlargement made the image unusably blurred, grainy, noisy, or pixelated. If quality is unacceptable or cannot be confirmed, the plugin automatically undoes Fit and applies Center Fully instead. Stretch to Screen is never offered. OBS’s own actions and Undo history are used. Streaming, recording, audio, credentials, arbitrary commands, scene deletion, and output settings cannot be controlled through this feature.
 
 ## Compatibility analysis
 

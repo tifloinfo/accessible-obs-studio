@@ -65,6 +65,7 @@ protected:
         if(event->type()!=QEvent::KeyPress)return QDialog::eventFilter(watched,event);auto *keyEvent=static_cast<QKeyEvent*>(event);int index=EntryIndex(watched);if(index<0)return QDialog::eventFilter(watched,event);
         Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;if(modifiers==Qt::NoModifier){
             if(keyEvent->key()==Qt::Key_Left){FocusIndex(index-1);return true;}if(keyEvent->key()==Qt::Key_Right){FocusIndex(index+1);return true;}
+            if(watched==sources_[static_cast<size_t>(index)].slider&&(keyEvent->key()==Qt::Key_Up||keyEvent->key()==Qt::Key_Down)){VolumeEntry &entry=sources_[static_cast<size_t>(index)];int step=keyEvent->key()==Qt::Key_Up?1:-1;entry.slider->setValue(std::clamp(entry.value+step,-100,0));return true;}
             if(keyEvent->key()==Qt::Key_Home&&watched==sources_[static_cast<size_t>(index)].slider){QSlider *slider=sources_[static_cast<size_t>(index)].slider;if(slider->value()!=0)slider->setValue(0);else Announce(index);return true;}
             if(keyEvent->key()==Qt::Key_Space&&watched==sources_[static_cast<size_t>(index)].slider){ToggleMute(index,true);return true;}
             int direct=DirectIndex(keyEvent->key());if(direct>=0){FocusIndex(direct);return true;}

@@ -39,6 +39,7 @@
 #include <QMainWindow>
 #include <QMetaObject>
 #include <QKeyEvent>
+#include <QPersistentModelIndex>
 #include <QPointer>
 #include <QObject>
 #include <QCheckBox>
@@ -162,7 +163,7 @@ static QMainWindow *obsMainWindow{};
 static QPointer<QDialog> qtHotkeyEditor;
 static QPointer<QAction> accessibleToolsAction;
 struct CanvasCapture;
-enum class CanvasMode {Basic,Detailed,ReadText,PeopleBackgrounds,AnalyzeIssues};
+enum class CanvasMode {Basic,Detailed,ReadText,PeopleBackgrounds,AnalyzeIssues,FitQuality};
 struct CanvasTurn {std::wstring label,text;bool assistant{true};};
 struct CanvasWebAction {std::string id;std::wstring label,accessibleLabel;std::vector<std::string> fixes;CanvasMode mode{CanvasMode::Basic};bool capturesNewFrame{false};bool link{false};std::wstring afterText;};
 static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1);
@@ -331,7 +332,7 @@ static bool ValidApiKeyFormat(const std::string &key){
 
 enum class ApiKeyValidation{Valid,Invalid,ConnectionFailed};
 static ApiKeyValidation ValidateApiKeyOnline(const std::string &key){
-    HINTERNET session=WinHttpOpen(L"Accessible OBS Studio/1.0.4",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);if(!session)return ApiKeyValidation::ConnectionFailed;WinHttpSetTimeouts(session,10000,10000,10000,15000);
+    HINTERNET session=WinHttpOpen(L"Accessible OBS Studio/1.0.5",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);if(!session)return ApiKeyValidation::ConnectionFailed;WinHttpSetTimeouts(session,10000,10000,10000,15000);
     HINTERNET connection=WinHttpConnect(session,L"api.openai.com",INTERNET_DEFAULT_HTTPS_PORT,0);HINTERNET request=connection?WinHttpOpenRequest(connection,L"GET",L"/v1/models",nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE):nullptr;DisableRequestRedirects(request);SecureWideText authorization=AuthorizationHeader(key,false);BOOL sent=request?WinHttpSendRequest(request,authorization.value.c_str(),static_cast<DWORD>(authorization.value.size()),WINHTTP_NO_REQUEST_DATA,0,0,0):FALSE;if(!authorization.value.empty())SecureZeroMemory(authorization.value.data(),authorization.value.size()*sizeof(wchar_t));BOOL received=sent?WinHttpReceiveResponse(request,nullptr):FALSE;DWORD status=0,size=sizeof(status);if(received)WinHttpQueryHeaders(request,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&size,WINHTTP_NO_HEADER_INDEX);if(request)WinHttpCloseHandle(request);if(connection)WinHttpCloseHandle(connection);WinHttpCloseHandle(session);if(!received)return ApiKeyValidation::ConnectionFailed;if((status>=200&&status<300)||status==403||status==429)return ApiKeyValidation::Valid;if(status==401)return ApiKeyValidation::Invalid;return ApiKeyValidation::ConnectionFailed;
 }
 
@@ -404,8 +405,9 @@ static bool RequireApiKey(std::string &key){
 static void SendFollowup(const std::wstring &question);
 static void HandleCanvasAction(const std::string &id);
 static void ShowSuggestedFixes(const std::vector<std::string> &allowed={});
+static bool StartFitQualityValidation();
 
-static CanvasText CanvasModeText(CanvasMode mode){switch(mode){case CanvasMode::Basic:return CanvasText::BasicDescription;case CanvasMode::Detailed:return CanvasText::DetailedDescription;case CanvasMode::ReadText:return CanvasText::ReadText;case CanvasMode::PeopleBackgrounds:return CanvasText::PeopleBackgrounds;case CanvasMode::AnalyzeIssues:return CanvasText::AnalyzeIssues;}return CanvasText::BasicDescription;}
+static CanvasText CanvasModeText(CanvasMode mode){switch(mode){case CanvasMode::Basic:return CanvasText::BasicDescription;case CanvasMode::Detailed:return CanvasText::DetailedDescription;case CanvasMode::ReadText:return CanvasText::ReadText;case CanvasMode::PeopleBackgrounds:return CanvasText::PeopleBackgrounds;case CanvasMode::AnalyzeIssues:case CanvasMode::FitQuality:return CanvasText::AnalyzeIssues;}return CanvasText::BasicDescription;}
 
 static std::wstring HtmlEscape(const std::wstring &text){
     std::wstring escaped;escaped.reserve(text.size());
