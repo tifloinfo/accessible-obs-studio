@@ -1,10 +1,10 @@
-# Accessible OBS Studio 1.0.5
+# Accessible OBS Studio 1.0.6
 
 Accessible OBS Studio ist ein Windows-Zugänglichkeits-Plugin für die 64-Bit-Version von OBS Studio 32. Es richtet sich an blinde Tastatur- und Screenreader-Nutzer und wurde für JAWS und NVDA entwickelt. Windows 10 oder 11 wird benötigt. Ein OpenAI-API-Schlüssel und Internetzugang sind nur für OpenAI-Funktionen erforderlich.
 
 ## Installation
 
-Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten Sie `AccessibleOBSStudio-1.0.5-Setup.exe`. Fehlt OBS Studio, ist die Installation beschädigt oder älter als 32.0, bietet Setup die [offizielle OBS-Download-Seite](https://obsproject.com/download) an und beendet sich ohne Änderungen. Eine ältere Version kann auch in OBS Studio über Hilfe > Nach Updates suchen aktualisiert werden. OBS Studio 32.x wird unterstützt. Bei OBS Studio 33 oder neuer warnt Setup vor möglicher Inkompatibilität und verweist auf die [Seite der neuesten Plugin-Version](https://tiflo.info/aobs), bevor eine ausdrückliche Installation trotzdem möglich ist. Läuft OBS Studio, fordert Setup zum vollständigen Schließen und anschließenden Auswählen von Wiederholen auf; es beendet OBS niemals automatisch. Das Plugin wird unter `C:\ProgramData\obs-studio\plugins\accessible-obs-studio` installiert. Fehlende Microsoft-WebView2- und Visual-C++-Komponenten werden erst nach diesen Prüfungen ergänzt; OBS- und Qt-Dateien werden nicht ersetzt. Auf der Abschlussseite öffnet das Kontrollkästchen **ReadMe im Webbrowser öffnen** die deutsche HTML-Dokumentation. Einstellungen bleiben bei der Deinstallation standardmäßig erhalten.
+Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten Sie `AccessibleOBSStudio-1.0.6-Setup.exe`. Fehlt OBS Studio, ist die Installation beschädigt oder älter als 32.0, bietet Setup die [offizielle OBS-Download-Seite](https://obsproject.com/download) an und beendet sich ohne Änderungen. Eine ältere Version kann auch in OBS Studio über Hilfe > Nach Updates suchen aktualisiert werden. OBS Studio 32.x wird unterstützt. Bei OBS Studio 33 oder neuer warnt Setup vor möglicher Inkompatibilität und verweist auf die [Seite der neuesten Plugin-Version](https://tiflo.info/aobs), bevor eine ausdrückliche Installation trotzdem möglich ist. Läuft OBS Studio, fordert Setup zum vollständigen Schließen und anschließenden Auswählen von Wiederholen auf; es beendet OBS niemals automatisch. Das Plugin wird unter `C:\ProgramData\obs-studio\plugins\accessible-obs-studio` installiert. Fehlende Microsoft-WebView2- und Visual-C++-Komponenten werden erst nach diesen Prüfungen ergänzt; OBS- und Qt-Dateien werden nicht ersetzt. Auf der Abschlussseite öffnet das Kontrollkästchen **ReadMe im Webbrowser öffnen** die deutsche HTML-Dokumentation. Einstellungen bleiben bei der Deinstallation standardmäßig erhalten.
 
 ## Standard-Tastenkombinationen
 
@@ -15,8 +15,10 @@ Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten S
 - F4: Visuelle Prüfung des Streams oder der Aufnahme auf Layout-, Kamera-, Beleuchtungs-, Bildausschnitt-, Schärfe-, Körnungs-, Erscheinungs-, Kleidungs-, Hintergrund- und Objektprobleme.
 - Strg+M: sichtbare Mediensteuerung fokussieren.
 - F5: Streaming starten oder beenden.
+- Alt+F2: Statusinformationen für Streaming, Aufnahme, virtuelle Kamera und Studiomodus anzeigen.
 - F6 / Umschalt+F6: nächster / vorheriger Hauptbereich.
 - F7: Aufnahme starten oder beenden.
+- Alt+F7: Aufnahme pausieren oder fortsetzen.
 - F8: virtuelle Kamera ein- oder ausschalten.
 - Strg+0 bis Strg+5: Videovorschau, Szenen, Quellen, Audiomixer, Szenenübergänge oder Steuerung fokussieren.
 - Strg+Gravis: barrierefreie Lautstärkekonsole öffnen. Gemeint ist die physische Taste direkt unter Escape.
@@ -35,13 +37,17 @@ Beim ersten Start und nach einem Profilwechsel werden geplante Standards mit vor
 
 Strg+3 fokussiert den nativen Audiomixer. Das Plugin benennt, nummeriert und überwacht dessen Regler nicht mehr; verwenden Sie Tab und Umschalt+Tab mit der nativen OBS-Tastaturbedienung.
 
-Strg+Gravis öffnet die modale barrierefreie Lautstärkekonsole. Links und Rechts wechseln die Quelle, Hoch und Runter ändern die Lautstärke um 1 dB, Pos1 setzt 0 dB und die Leertaste schaltet stumm. 1 bis 9 wählen die ersten neun Quellen, 0 die zehnte. Beim Öffnen übernimmt die Konsole exklusiv die dann verfügbaren Quellen, Lautstärken und Stummschaltungen. Änderungen wirken sofort in OBS; Änderungen über den nativen Mixer, externe Controller, Szenenwechsel oder andere Bedienwege werden während der Sitzung nicht überwacht. Bedienen Sie den Mixer währenddessen nicht an anderer Stelle; schließen und öffnen Sie die Konsole erneut, um externe Änderungen zu laden. Beim Schließen wird der vorherige OBS-Fokus nur dann wiederhergestellt, wenn dies noch angemessen ist.
+Strg+Gravis öffnet die modale barrierefreie Lautstärkekonsole. Links und Rechts wechseln die Quelle, Hoch und Runter ändern die Lautstärke um 1 dB und Pos1 setzt 0 dB. Die Leertaste schaltet Monitoring und Programmausgabe sicher gemeinsam um, Strg+Leertaste nur das Monitoring und Umschalt+Leertaste nur die Ausgabe. Jede Quelle besitzt außerdem getrennte Schaltflächen für Ausgabe und Monitoring. 1 bis 9 wählen die ersten neun Quellen, 0 die zehnte. Beim Öffnen übernimmt die Konsole exklusiv die dann verfügbaren Quellen, Lautstärken, Ausgabe- und Monitoringzustände. Änderungen wirken sofort in OBS; Änderungen über den nativen Mixer, externe Controller, Szenenwechsel oder andere Bedienwege werden während der Sitzung nicht überwacht. OBS 32.2 oder neuer behandelt Stummschaltung und Monitoring unabhängig; unter OBS 32.0 und 32.1 setzt die Konsole dieselben Befehle in die älteren Zustände „Nur Monitor“, „Monitor und Ausgabe“ und „stumm“ um. Bedienen Sie den Mixer währenddessen nicht an anderer Stelle; schließen und öffnen Sie die Konsole erneut, um externe Änderungen zu laden. Beim Schließen wird der vorherige OBS-Fokus nur dann wiederhergestellt, wenn dies noch angemessen ist.
 
 Wenn sich der Fokus in der Mediensteuerung befindet, springen Links und Rechts 5 Sekunden zurück oder vor. Umschalt+Links und Umschalt+Rechts springen 1 Minute zurück oder vor, Bild auf 5 Minuten zurück und Bild ab 5 Minuten vor. Außerhalb der Mediensteuerung behalten diese Tasten ihre normale Funktion.
 
+Die Lautstärkekonsole startet mit aktiviertem Kontrollkästchen **Nur aktive Quellen** und zeigt damit nur Quellen der aktuellen Programmausgabe; Vorschauquellen im Studiomodus sind ausgeschlossen. Bei deaktiviertem Kontrollkästchen werden alle Mixerquellen angezeigt, aktive Quellen zuerst.
+
+Statusänderungen von Streaming, Aufnahme, Aufnahme-Pause, virtueller Kamera und Studiomodus werden für Screenreader angekündigt. Alt+F2 zeigt **Statusinformationen** einschließlich der Zustände „erneute Verbindung“ und „Aufnahme pausiert“. Alt+F7 pausiert oder setzt eine Aufnahme fort.
+
 ## Canvas-Beschreiber
 
-Alle fünf Canvas-Tastenkombinationen erfassen das gerenderte OBS-Canvas ohne Vorschaufokus. Ein kurzer Klickton bestätigt den Start. Das WebView2-Ergebnisfenster erhält danach den Fokus. Nur die neueste Antwort besitzt die aggressive ARIA-Alert-Rolle; Fragen werden niemals wiederholt. Alle fünf Modi erlauben bildbezogene Anschlussfragen.
+Alle fünf Canvas-Tastenkombinationen erfassen das gerenderte OBS-Canvas ohne Vorschaufokus. Ein kurzer Klickton bestätigt den Start. Das WebView2-Ergebnisfenster erhält danach den Fokus. Jede neu empfangene erste Antwort oder Antwort auf eine Anschlussfrage wird einmal über einen assertiven ARIA-Live-Bereich angekündigt; Fragen werden niemals wiederholt. Alle fünf Modi erlauben bildbezogene Anschlussfragen.
 
 Die Kurzbeschreibung ist zugleich ein Ausgangspunkt. **Detaillierte Beschreibung** ist immer verfügbar, **Text lesen** nur bei erkanntem Text und **Personen und Hintergründe** nur bei erkannten Personen. Diese Voreinstellungen verwenden dasselbe Bild ohne erneuten Upload. **Vorgeschlagene Korrekturen** erscheint ausschließlich bei einer tatsächlich automatisch behebbaren OBS-Quellentransformation.
 

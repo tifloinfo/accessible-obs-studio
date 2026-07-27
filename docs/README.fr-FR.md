@@ -1,10 +1,10 @@
-# Accessible OBS Studio 1.0.5
+# Accessible OBS Studio 1.0.6
 
 Accessible OBS Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.
 
 ## Installation
 
-Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez `AccessibleOBSStudio-1.0.5-Setup.exe`. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la [page officielle de téléchargement d’OBS](https://obsproject.com/download), puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide > Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la [page du dernier module](https://tiflo.info/aobs) avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case **Ouvrir le fichier Lisez-moi dans le navigateur web** ouvre la documentation HTML française.
+Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez `AccessibleOBSStudio-1.0.6-Setup.exe`. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la [page officielle de téléchargement d’OBS](https://obsproject.com/download), puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide > Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la [page du dernier module](https://tiflo.info/aobs) avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case **Ouvrir le fichier Lisez-moi dans le navigateur web** ouvre la documentation HTML française.
 
 ## Raccourcis clavier par défaut
 
@@ -15,6 +15,8 @@ Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis 
 - F4 : Vérification visuelle de la diffusion ou de l’enregistrement pour les problèmes de mise en page, caméra, éclairage, cadrage, netteté, grain, apparence, vêtements, arrière-plan et objets indésirables.
 - Ctrl+M : placer le focus sur les commandes multimédias visibles.
 - F5, F7, F8 : démarrer ou arrêter la diffusion, l’enregistrement ou la caméra virtuelle.
+- Alt+F2 : afficher l’état de la diffusion, de l’enregistrement, de la caméra virtuelle et du mode Studio.
+- Alt+F7 : suspendre ou reprendre l’enregistrement.
 - F6 / Maj+F6 : zone principale suivante / précédente.
 - Ctrl+0 à Ctrl+5 : canevas, scènes, sources, mélangeur audio, transitions ou commandes.
 - Ctrl+` (touche sous Échap) : ouvrir la console de volume accessible.
@@ -31,15 +33,19 @@ Ouvrez **Outils > Accessible OBS Studio** pour ouvrir directement l’éditeur d
 
 ## Mélangeur et commandes multimédias
 
-Ctrl+3 place le focus sur le mélangeur OBS standard. Le module ne numérote plus ses curseurs et n’y installe plus de filtre d’événements global. Ctrl+` ouvre la console accessible modale : Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB, Origine règle 0 dB, Espace active ou désactive le son, et 1 à 0 sélectionnent les dix premières sources.
+Ctrl+3 place le focus sur le mélangeur OBS standard. Le module ne numérote plus ses curseurs et n’y installe plus de filtre d’événements global. Ctrl+` ouvre la console accessible modale : Gauche et Droite changent de source, Haut et Bas modifient le volume de 1 dB et Origine règle 0 dB. Espace bascule en toute sécurité le contrôle audio et la sortie Programme ensemble, Ctrl+Espace bascule uniquement le contrôle audio et Maj+Espace uniquement la sortie. Chaque source possède aussi des boutons distincts pour la sortie et le contrôle audio. Les touches 1 à 0 sélectionnent les dix premières sources.
 
-À son ouverture, la console prend le contrôle exclusif des sources, volumes et états de coupure disponibles à cet instant. Ses modifications sont appliquées immédiatement à OBS, mais elle ne surveille pas les changements effectués pendant la session au moyen du mélangeur natif, d’un contrôleur externe, d’un changement de scène ou d’une autre méthode. Ne manipulez pas le mélangeur ailleurs pendant que la console est ouverte ; fermez-la puis rouvrez-la pour charger les changements externes.
+À son ouverture, la console prend le contrôle exclusif des sources, volumes, états de sortie et états de contrôle audio disponibles à cet instant. Ses modifications sont appliquées immédiatement à OBS, mais elle ne surveille pas les changements effectués pendant la session au moyen du mélangeur natif, d’un contrôleur externe, d’un changement de scène ou d’une autre méthode. Sous OBS 32.2 et versions ultérieures, la coupure et le contrôle audio sont indépendants ; sous OBS 32.0 et 32.1, la console traduit les mêmes commandes vers les anciens états Contrôle uniquement, Contrôle et sortie, et coupé. Ne manipulez pas le mélangeur ailleurs pendant que la console est ouverte ; fermez-la puis rouvrez-la pour charger les changements externes.
 
 Lorsque le focus se trouve dans les commandes multimédias, Gauche et Droite reculent ou avancent de 5 secondes. Maj+Gauche et Maj+Droite reculent ou avancent d’une minute ; Page précédente recule de 5 minutes et Page suivante avance de 5 minutes. En dehors des commandes multimédias, ces touches conservent leur fonction normale.
 
+La console de volume s’ouvre avec **Sources actives uniquement** coché et n’affiche que les sources de la sortie Programme actuelle ; les sources propres à l’Aperçu sont exclues en mode Studio. Une fois la case décochée, toutes les sources du mélangeur apparaissent, les sources actives en premier.
+
+Les changements de diffusion, d’enregistrement, de pause, de caméra virtuelle et de mode Studio sont annoncés au lecteur d’écran. Alt+F2 affiche les **Informations d’état**, notamment « reconnexion » et « enregistrement suspendu ». Alt+F7 suspend ou reprend un enregistrement.
+
 ## Description du canevas
 
-Les cinq modes capturent le canevas rendu par OBS. Seule la réponse la plus récente utilise le rôle ARIA alert agressif ; la question de l’utilisateur n’est jamais répétée. Les cinq modes acceptent des questions complémentaires.
+Les cinq modes capturent le canevas rendu par OBS. Chaque nouvelle réponse initiale ou complémentaire est annoncée une fois par une région active ARIA assertive ; la question de l’utilisateur n’est jamais répétée. Les cinq modes acceptent des questions complémentaires.
 
 Dans la description de base, **Description détaillée** est toujours disponible, **Lire le texte** uniquement si du texte a été détecté, **Personnes et arrière-plans** uniquement si des personnes ont été détectées, et **Corrections suggérées** uniquement si un problème peut réellement être corrigé automatiquement. Ces actions réutilisent l’image déjà envoyée.
 

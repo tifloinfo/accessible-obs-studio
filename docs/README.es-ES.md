@@ -1,10 +1,10 @@
-# Accessible OBS Studio 1.0.5
+# Accessible OBS Studio 1.0.6
 
 Accessible OBS Studio es un complemento de accesibilidad para OBS Studio 32 de 64 bits en Windows 10 y 11. Está pensado para usuarios ciegos de teclado y lector de pantalla, y se ha probado con JAWS y NVDA. La clave de API de OpenAI e Internet solo son necesarios para las funciones de OpenAI.
 
 ## Instalación
 
-Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `AccessibleOBSStudio-1.0.5-Setup.exe`. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la [página oficial de descarga de OBS](https://obsproject.com/download) y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda > Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la [página del complemento más reciente](https://tiflo.info/aobs) antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla **Abrir el archivo Léame en el navegador web** abre la documentación HTML en español.
+Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `AccessibleOBSStudio-1.0.6-Setup.exe`. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la [página oficial de descarga de OBS](https://obsproject.com/download) y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda > Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la [página del complemento más reciente](https://tiflo.info/aobs) antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en `C:\ProgramData\obs-studio\plugins\accessible-obs-studio`. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla **Abrir el archivo Léame en el navegador web** abre la documentación HTML en español.
 
 ## Métodos abreviados de teclado predeterminados
 
@@ -15,6 +15,8 @@ Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `Accessi
 - F4: Verificación visual de la emisión o grabación para detectar problemas de diseño, cámara, iluminación, encuadre, nitidez, grano, apariencia, ropa, fondo y objetos no deseados.
 - Ctrl+M: enfocar los controles multimedia visibles.
 - F5, F7 y F8: iniciar o detener la emisión, grabación o cámara virtual.
+- Alt+F2: mostrar el estado de la emisión, grabación, cámara virtual y Modo Estudio.
+- Alt+F7: pausar o reanudar la grabación.
 - F6 / Mayús+F6: área principal siguiente / anterior.
 - Ctrl+0 a Ctrl+5: lienzo, escenas, fuentes, mezclador de audio, transiciones o controles.
 - Ctrl+` (tecla bajo Escape): abrir la consola de volumen accesible.
@@ -31,15 +33,19 @@ Abra **Herramientas > Accessible OBS Studio** para abrir directamente el editor 
 
 ## Mezclador y controles multimedia
 
-Ctrl+3 enfoca el mezclador normal de OBS. El complemento ya no numera sus deslizadores ni les instala un filtro global de eventos. Ctrl+` abre la consola accesible modal: Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen 1 dB, Inicio establece 0 dB, Espacio silencia o reactiva y 1 a 0 seleccionan las diez primeras fuentes.
+Ctrl+3 enfoca el mezclador normal de OBS. El complemento ya no numera sus deslizadores ni les instala un filtro global de eventos. Ctrl+` abre la consola accesible modal: Izquierda y Derecha cambian de fuente, Arriba y Abajo modifican el volumen 1 dB e Inicio establece 0 dB. Espacio alterna de forma segura la monitorización y la salida de programa juntas, Ctrl+Espacio alterna solo la monitorización y Mayús+Espacio alterna solo la salida. Cada fuente también tiene botones separados para la salida y la monitorización. Las teclas 1 a 0 seleccionan las diez primeras fuentes.
 
-Al abrirse, la consola toma el control exclusivo de las fuentes, volúmenes y estados de silencio disponibles en ese momento. Sus cambios se aplican inmediatamente a OBS, pero durante la sesión no supervisa cambios realizados con el mezclador nativo, controladores externos, cambios de escena u otros métodos. No manipule el mezclador de otra forma mientras la consola esté abierta; ciérrela y vuelva a abrirla para cargar cambios externos.
+Al abrirse, la consola toma el control exclusivo de las fuentes, volúmenes, estados de salida y estados de monitorización disponibles en ese momento. Sus cambios se aplican inmediatamente a OBS, pero durante la sesión no supervisa cambios realizados con el mezclador nativo, controladores externos, cambios de escena u otros métodos. En OBS 32.2 y posteriores, el silencio y la monitorización son independientes; en OBS 32.0 y 32.1, la consola traduce los mismos controles a los estados antiguos Solo monitorización, Monitorización y salida, y silenciado. No manipule el mezclador de otra forma mientras la consola esté abierta; ciérrela y vuelva a abrirla para cargar cambios externos.
 
 Cuando el foco está dentro de los controles multimedia, Izquierda y Derecha retroceden o avanzan 5 segundos. Mayús+Izquierda y Mayús+Derecha retroceden o avanzan 1 minuto; Re Pág retrocede 5 minutos y Av Pág avanza 5 minutos. Fuera de los controles multimedia, estas teclas conservan su función normal.
 
+La consola de volumen se abre con **Solo fuentes activas** marcado y muestra únicamente las fuentes de la salida de programa actual; las fuentes exclusivas de Vista previa quedan excluidas en Modo Estudio. Al desmarcarlo aparecen todas las fuentes del mezclador, con las activas primero.
+
+Los cambios de emisión, grabación, pausa de grabación, cámara virtual y Modo Estudio se anuncian al lector de pantalla. Alt+F2 muestra **Información de estado**, incluidos «reconectando» y «grabación en pausa». Alt+F7 pausa o reanuda una grabación.
+
 ## Descripción del lienzo
 
-Los cinco modos capturan el lienzo renderizado por OBS. Solo la respuesta más reciente usa el rol ARIA alert agresivo; nunca se repite la pregunta del usuario. Los cinco modos admiten preguntas de seguimiento.
+Los cinco modos capturan el lienzo renderizado por OBS. Cada nueva respuesta inicial o de seguimiento se anuncia una vez mediante una región activa ARIA asertiva; nunca se repite la pregunta del usuario. Los cinco modos admiten preguntas de seguimiento.
 
 En la descripción básica, **Descripción detallada** siempre está disponible, **Leer texto** solo si se detectó texto, **Personas y fondos** solo si se detectaron personas y **Correcciones sugeridas** solo si un problema puede corregirse realmente de forma automática. Estas acciones reutilizan la imagen ya enviada.
 
