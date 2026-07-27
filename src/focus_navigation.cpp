@@ -51,6 +51,26 @@ static bool FocusRegion(QWidget *region){
     return false;
 }
 
+enum class ScreenReaderKind {None,Nvda,Jaws,Narrator,Multiple,Unknown};
+
+static ScreenReaderKind DetectRunningScreenReader(){
+    HANDLE snapshot=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);if(snapshot==INVALID_HANDLE_VALUE)return ScreenReaderKind::Unknown;
+    bool nvda=false,jaws=false,narrator=false;PROCESSENTRY32W process{};process.dwSize=sizeof(process);
+    if(Process32FirstW(snapshot,&process))do{const wchar_t *name=process.szExeFile;if(_wcsicmp(name,L"nvda.exe")==0)nvda=true;else if(_wcsicmp(name,L"jfw.exe")==0||_wcsicmp(name,L"jfwUI.exe")==0)jaws=true;else if(_wcsicmp(name,L"Narrator.exe")==0)narrator=true;}while(Process32NextW(snapshot,&process));
+    else{CloseHandle(snapshot);return ScreenReaderKind::Unknown;}CloseHandle(snapshot);
+    const int count=static_cast<int>(nvda)+static_cast<int>(jaws)+static_cast<int>(narrator);if(count>1)return ScreenReaderKind::Multiple;if(nvda)return ScreenReaderKind::Nvda;if(jaws)return ScreenReaderKind::Jaws;if(narrator)return ScreenReaderKind::Narrator;return ScreenReaderKind::None;
+}
+
+static QString RegionAnnouncementName(QWidget *region){
+    if(!region)return {};
+    if(region->objectName()==QStringLiteral("previewContainer"))return QString::fromWCharArray(Tr(UiText::PreviewName));
+    QString name;if(auto *dock=qobject_cast<QDockWidget*>(region))name=dock->windowTitle();if(name.isEmpty())name=region->accessibleName();if(name.isEmpty())name=region->windowTitle();return name.remove(u'&').trimmed();
+}
+
+static bool FocusRegionAndAnnounce(QWidget *region){
+    if(!FocusRegion(region))return false;if(DetectRunningScreenReader()!=ScreenReaderKind::Nvda)return true;QString name=RegionAnnouncementName(region);if(!name.isEmpty()){QAccessibleAnnouncementEvent event(obsMainWindow,name);event.setPoliteness(QAccessible::AnnouncementPoliteness::Assertive);QAccessible::updateAccessibility(&event);}return true;
+}
+
 static bool MainInterfaceActive(){
     if(!obsMainWindow||QApplication::activeModalWidget()||QApplication::activePopupWidget())return false;
     HWND foreground=GetForegroundWindow(),obsHandle=api.main_hwnd?api.main_hwnd():nullptr;if(!obsHandle||GetAncestor(foreground,GA_ROOTOWNER)!=GetAncestor(obsHandle,GA_ROOTOWNER))return false;
@@ -149,7 +169,7 @@ static MediaSeekEventFilter *mediaSeekEventFilter{};
 static void CycleInterfaceArea(bool backwards){
     if(!MainInterfaceActive())return;auto regions=InterfaceRegions();if(regions.empty())return;
     QWidget *focus=QApplication::focusWidget();int current=-1;for(size_t i=0;i<regions.size();++i)if(Contains(regions[i],focus)){current=static_cast<int>(i);break;}
-    const int count=static_cast<int>(regions.size());for(int step=1;step<=count;++step){int index=backwards?(current-step+count*2)%count:(current+step)%count;if(FocusRegion(regions[static_cast<size_t>(index)]))return;}
+    const int count=static_cast<int>(regions.size());for(int step=1;step<=count;++step){int index=backwards?(current-step+count*2)%count:(current+step)%count;if(FocusRegionAndAnnounce(regions[static_cast<size_t>(index)]))return;}
 }
 
 static void NavigationHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&obsMainWindow){bool backwards=data!=nullptr;QMetaObject::invokeMethod(obsMainWindow,[backwards]{CycleInterfaceArea(backwards);},Qt::QueuedConnection);}}
@@ -157,7 +177,7 @@ static void NavigationHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){if(p
 static constexpr std::array<const char*,6> DIRECT_AREA_WIDGETS={"previewContainer","scenesDock","sourcesDock","mixerDock","transitionsDock","controlsDock"};
 
 static void DirectAreaHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;const intptr_t encoded=reinterpret_cast<intptr_t>(data);QMetaObject::invokeMethod(obsMainWindow,[encoded]{if(!MainInterfaceActive()||encoded<1||encoded>static_cast<intptr_t>(DIRECT_AREA_WIDGETS.size()))return;QWidget *region=obsMainWindow->findChild<QWidget*>(DIRECT_AREA_WIDGETS[static_cast<size_t>(encoded-1)]);if(region&&region->isVisible())FocusRegion(region);},Qt::QueuedConnection);
+    if(!pressed||!obsMainWindow)return;const intptr_t encoded=reinterpret_cast<intptr_t>(data);QMetaObject::invokeMethod(obsMainWindow,[encoded]{if(!MainInterfaceActive()||encoded<1||encoded>static_cast<intptr_t>(DIRECT_AREA_WIDGETS.size()))return;QWidget *region=obsMainWindow->findChild<QWidget*>(DIRECT_AREA_WIDGETS[static_cast<size_t>(encoded-1)]);if(region&&region->isVisible())FocusRegionAndAnnounce(region);},Qt::QueuedConnection);
 }
 
 static void FocusMediaControlsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
@@ -207,7 +227,7 @@ static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
     QListWidgetItem *item=list->currentItem();QString actionId=item?item->data(Qt::UserRole).toString():QString();QAction *action=item?obsMainWindow->findChild<QAction*>(actionId):nullptr;QString result;if(action&&action->isEnabled()){if(actionId==QStringLiteral("actionFitToScreen")){QAbstractItemView *sources=obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources"));pendingFitSource=sources?QPersistentModelIndex(sources->currentIndex()):QPersistentModelIndex();action->trigger();if(!StartFitQualityValidation())FinishFitQualityValidation(false);return;}action->trigger();result=LText(LocalText::Applied).arg(item->text())+QStringLiteral("\n\n")+LText(LocalText::Undo);}else result=item?LText(LocalText::Skipped).arg(item->text()):LText(LocalText::NoActionsApplied);QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.6-test-build-20260727-1";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.6-build-20260727-1";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
     config *cfg=api.profile_config?api.profile_config():nullptr;if(!cfg||!api.config_has_user_value(cfg,"Hotkeys",name)){api.load_bindings(id,nullptr,0);return;}const char *json=api.config_get_string(cfg,"Hotkeys",name);obs_data *data=json&&*json?api.data_create_json(json):nullptr;if(!data){api.load_bindings(id,nullptr,0);return;}obs_data_array *array=api.data_get_array(data,"bindings");if(array){api.hotkey_load(id,array);api.array_release(array);}else api.load_bindings(id,nullptr,0);api.data_release(data);

@@ -21,6 +21,8 @@ Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `Accessi
 - Ctrl+0 a Ctrl+5: lienzo, escenas, fuentes, mezclador de audio, transiciones o controles.
 - Ctrl+` (tecla bajo Escape): abrir la consola de volumen accesible.
 
+Cuando NVDA es el único lector de pantalla detectado en ejecución, el complemento anuncia expresamente el nombre localizado de la región después de cambiar correctamente con F6, Mayús+F6 o Ctrl+0 a Ctrl+5. Este anuncio adicional se suprime con JAWS, Narrador, lectores desconocidos o varios lectores detectados a la vez.
+
 La orden **Accessible OBS Studio: Abrir el editor de métodos abreviados de teclado** abre directamente el mismo editor y no tiene una asignación predeterminada. Su identificador interno no cambia, por lo que se conserva cualquier asignación existente.
 
 De forma predeterminada, Accessible OBS Studio obliga a que todos los métodos abreviados de teclado de OBS funcionen solo mientras OBS sea la aplicación activa. Mantiene **Configuración > Avanzado > Comportamiento del foco de los métodos abreviados** en **Deshabilitar métodos abreviados cuando la ventana principal no tenga el foco** y restaura el valor si cambia. Para devolver el control a OBS, marque y guarde **Permitir que OBS Studio gestione si los métodos abreviados de teclado funcionan fuera de OBS** en el editor. A partir de entonces, el complemento deja de intervenir.
@@ -39,7 +41,7 @@ Al abrirse, la consola toma el control exclusivo de las fuentes, volúmenes, est
 
 Cuando el foco está dentro de los controles multimedia, Izquierda y Derecha retroceden o avanzan 5 segundos. Mayús+Izquierda y Mayús+Derecha retroceden o avanzan 1 minuto; Re Pág retrocede 5 minutos y Av Pág avanza 5 minutos. Fuera de los controles multimedia, estas teclas conservan su función normal.
 
-La consola de volumen se abre con **Solo fuentes activas** marcado y muestra únicamente las fuentes de la salida de programa actual; las fuentes exclusivas de Vista previa quedan excluidas en Modo Estudio. Al desmarcarlo aparecen todas las fuentes del mezclador, con las activas primero.
+La consola de volumen muestra inicialmente solo las fuentes de la salida de programa actual; las fuentes exclusivas de Vista previa quedan excluidas en Modo Estudio. Active con Intro el botón no predeterminado **Mostrar todas las fuentes** para ver todas las fuentes del mezclador, con las activas primero. El mismo botón pasa a llamarse **Mostrar solo las fuentes activas**. Espacio no activa este botón de vista.
 
 Los cambios de emisión, grabación, pausa de grabación, cámara virtual y Modo Estudio se anuncian al lector de pantalla. Alt+F2 muestra **Información de estado**, incluidos «reconectando» y «grabación en pausa». Alt+F7 pausa o reanuda una grabación.
 

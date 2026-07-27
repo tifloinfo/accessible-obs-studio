@@ -21,6 +21,8 @@ Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis 
 - Ctrl+0 à Ctrl+5 : canevas, scènes, sources, mélangeur audio, transitions ou commandes.
 - Ctrl+` (touche sous Échap) : ouvrir la console de volume accessible.
 
+Lorsque NVDA est le seul lecteur d’écran actif détecté, le module annonce explicitement le nom localisé de la zone après un changement réussi avec F6, Maj+F6 ou Ctrl+0 à Ctrl+5. Cette annonce supplémentaire est supprimée avec JAWS, Narrateur, un lecteur inconnu ou plusieurs lecteurs détectés simultanément.
+
 La commande **Accessible OBS Studio : Ouvrir l’éditeur de raccourcis clavier** ouvre directement le même éditeur et n’a pas de raccourci par défaut. Son identifiant interne reste inchangé, ce qui conserve toute attribution existante.
 
 Par défaut, Accessible OBS Studio impose que tous les raccourcis clavier d’OBS ne fonctionnent que lorsque OBS est l’application active. Il maintient **Paramètres > Avancé > Comportement du focus des raccourcis clavier** sur **Désactiver les raccourcis clavier lorsque la fenêtre principale n’a pas le focus** et rétablit cette valeur si elle change. Pour rendre le contrôle à OBS, cochez puis enregistrez **Autoriser OBS Studio à gérer le fonctionnement des raccourcis clavier hors d’OBS** dans l’éditeur. Le module cesse alors d’intervenir.
@@ -39,7 +41,7 @@ Ctrl+3 place le focus sur le mélangeur OBS standard. Le module ne numérote plu
 
 Lorsque le focus se trouve dans les commandes multimédias, Gauche et Droite reculent ou avancent de 5 secondes. Maj+Gauche et Maj+Droite reculent ou avancent d’une minute ; Page précédente recule de 5 minutes et Page suivante avance de 5 minutes. En dehors des commandes multimédias, ces touches conservent leur fonction normale.
 
-La console de volume s’ouvre avec **Sources actives uniquement** coché et n’affiche que les sources de la sortie Programme actuelle ; les sources propres à l’Aperçu sont exclues en mode Studio. Une fois la case décochée, toutes les sources du mélangeur apparaissent, les sources actives en premier.
+La console de volume n’affiche initialement que les sources de la sortie Programme actuelle ; les sources propres à l’Aperçu sont exclues en mode Studio. Activez avec Entrée le bouton non défini par défaut **Afficher toutes les sources** pour afficher toutes les sources du mélangeur, les sources actives en premier. Le même bouton devient ensuite **Afficher uniquement les sources actives**. Espace n’active pas ce bouton d’affichage.
 
 Les changements de diffusion, d’enregistrement, de pause, de caméra virtuelle et de mode Studio sont annoncés au lecteur d’écran. Alt+F2 affiche les **Informations d’état**, notamment « reconnexion » et « enregistrement suspendu ». Alt+F7 suspend ou reprend un enregistrement.
 

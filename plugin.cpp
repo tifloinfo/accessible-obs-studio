@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Tiflo.Info
 
 #include <windows.h>
+#include <tlhelp32.h>
 #include <wincred.h>
 #include <winhttp.h>
 #include <commctrl.h>

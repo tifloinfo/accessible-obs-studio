@@ -11,15 +11,16 @@ static const VolumeText VOLUME_CONSOLE_TITLE={"Accessible Volume Console","Barri
 static const VolumeText VOLUME_CONSOLE_COMMAND={"Accessible OBS Studio: Open Accessible Volume Console","Accessible OBS Studio: Barrierefreie Lautstärkekonsole öffnen","Accessible OBS Studio: Открыть доступную консоль громкости","Accessible OBS Studio: Відкрити доступну консоль гучності","Accessible OBS Studio : Ouvrir la console de volume accessible","Accessible OBS Studio: Abrir la consola de volumen accesible"};
 static const VolumeText NO_AUDIO_SOURCES={"No audio sources are currently available in the OBS Mixer.","Im OBS-Audiomixer sind derzeit keine Audioquellen verfügbar.","Сейчас в микшере OBS нет доступных аудиоисточников.","Зараз в аудіомікшері OBS немає доступних аудіоджерел.","Aucune source audio n’est actuellement disponible dans le mélangeur OBS.","Actualmente no hay fuentes de audio disponibles en el mezclador de OBS."};
 static const VolumeText NO_ACTIVE_AUDIO_SOURCES={"No active audio sources are currently available.","Derzeit sind keine aktiven Audioquellen verfügbar.","Сейчас нет активных аудиоисточников.","Зараз немає активних аудіоджерел.","Aucune source audio active n’est actuellement disponible.","Actualmente no hay fuentes de audio activas disponibles."};
-static const VolumeText ACTIVE_SOURCES_ONLY={"Active Sources Only","Nur aktive Quellen","Только активные источники","Лише активні джерела","Sources actives uniquement","Solo fuentes activas"};
+static const VolumeText SHOW_ALL_SOURCES={"Show All Sources","Alle Quellen anzeigen","Показать все источники","Показати всі джерела","Afficher toutes les sources","Mostrar todas las fuentes"};
+static const VolumeText SHOW_ACTIVE_SOURCES={"Show Active Sources Only","Nur aktive Quellen anzeigen","Показать только активные источники","Показати лише активні джерела","Afficher uniquement les sources actives","Mostrar solo las fuentes activas"};
 static const VolumeText MUTE_OUTPUT_TEXT={"Mute Output","Ausgabe stummschalten","Отключить вывод","Вимкнути вивід","Couper la sortie","Silenciar salida"};
 static const VolumeText UNMUTE_OUTPUT_TEXT={"Unmute Output","Ausgabe einschalten","Включить вывод","Увімкнути вивід","Activer la sortie","Activar salida"};
-static const VolumeText OUTPUT_MUTED_TEXT={"output muted","Ausgabe stummgeschaltet","вывод отключён","вивід вимкнено","sortie coupée","salida silenciada"};
-static const VolumeText OUTPUT_ENABLED_TEXT={"output enabled","Ausgabe aktiv","вывод включён","вивід увімкнено","sortie active","salida activada"};
+static const VolumeText OUTPUT_PARAMETER_TEXT={"Output","Ausgabe","Вывод","Вивід","Sortie","Salida"};
+static const VolumeText MONITORING_PARAMETER_TEXT={"Monitoring","Monitoring","Мониторинг","Моніторинг","Contrôle audio","Monitorización"};
+static const VolumeText ON_TEXT={"On","Ein","Вкл.","Увімк.","Marche","Encendido"};
+static const VolumeText OFF_TEXT={"Off","Aus","Выкл.","Вимк.","Arrêt","Apagado"};
 static const VolumeText ENABLE_MONITORING_TEXT={"Enable Monitoring","Monitoring aktivieren","Включить мониторинг","Увімкнути моніторинг","Activer le contrôle audio","Activar monitorización"};
 static const VolumeText DISABLE_MONITORING_TEXT={"Disable Monitoring","Monitoring deaktivieren","Выключить мониторинг","Вимкнути моніторинг","Désactiver le contrôle audio","Desactivar monitorización"};
-static const VolumeText MONITORING_ENABLED_TEXT={"monitoring enabled","Monitoring aktiviert","мониторинг включён","моніторинг увімкнено","contrôle audio activé","monitorización activada"};
-static const VolumeText MONITORING_OFF_TEXT={"monitoring off","Monitoring aus","мониторинг выключен","моніторинг вимкнено","contrôle audio désactivé","monitorización desactivada"};
 static const VolumeText SILENT_TEXT={"silent","stumm","тишина","тиша","silencieux","silencio"};
 static const VolumeText VOLUME_TEXT={"volume","Lautstärke","громкость","гучність","volume","volumen"};
 static const VolumeText DB_TEXT={"dB","dB","дБ","дБ","dB","dB"};
@@ -66,15 +67,16 @@ class VolumeConsoleDialog final:public QDialog{
 public:
     explicit VolumeConsoleDialog(QWidget *parent):QDialog(parent){
         setWindowTitle(VText(VOLUME_CONSOLE_TITLE));setAccessibleDescription(VText(SLIDER_INSTRUCTIONS));setWindowModality(Qt::ApplicationModal);setModal(true);resize(800,460);setMinimumSize(460,360);
-        auto *outer=new QVBoxLayout(this);activeOnly_=new QCheckBox(VText(ACTIVE_SOURCES_ONLY),this);activeOnly_->setChecked(true);outer->addWidget(activeOnly_);scroll_=new QScrollArea(this);scroll_->setWidgetResizable(true);scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setFocusPolicy(Qt::NoFocus);outer->addWidget(scroll_);
+        auto *outer=new QVBoxLayout(this);sourceViewButton_=new QPushButton(this);sourceViewButton_->setAutoDefault(false);sourceViewButton_->setDefault(false);sourceViewButton_->installEventFilter(this);UpdateSourceViewButton();outer->addWidget(sourceViewButton_);scroll_=new QScrollArea(this);scroll_->setWidgetResizable(true);scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);scroll_->setFocusPolicy(Qt::NoFocus);outer->addWidget(scroll_);
         panel_=new QWidget(scroll_);sourceLayout_=new QHBoxLayout(panel_);sourceLayout_->setAlignment(Qt::AlignLeft);emptyMessage_=new QLabel(VText(NO_AUDIO_SOURCES),panel_);emptyMessage_->setWordWrap(true);sourceLayout_->addWidget(emptyMessage_);sourceLayout_->addStretch(1);scroll_->setWidget(panel_);
         buttons_=new QDialogButtonBox(QDialogButtonBox::Close,this);if(QPushButton *close=buttons_->button(QDialogButtonBox::Close))close->setText(QString::fromWCharArray(Tr(UiText::Close)));connect(buttons_,&QDialogButtonBox::rejected,this,&QDialog::reject);connect(buttons_,&QDialogButtonBox::accepted,this,&QDialog::accept);outer->addWidget(buttons_);
-        connect(activeOnly_,&QCheckBox::toggled,this,[this](bool checked){RebuildSources(checked);activeOnly_->setFocus(Qt::OtherFocusReason);});
-        InitializeSources(CurrentMixerEntries(true));activeOnly_->setFocus(Qt::OtherFocusReason);
+        connect(sourceViewButton_,&QPushButton::clicked,this,[this]{ToggleSourceView();});
+        InitializeSources(CurrentMixerEntries(true));if(!sources_.empty())FocusIndex(0);else sourceViewButton_->setFocus(Qt::OtherFocusReason);
     }
     ~VolumeConsoleDialog() override{ReleaseSources();}
 protected:
     bool eventFilter(QObject *watched,QEvent *event) override{
+        if(watched==sourceViewButton_&&(event->type()==QEvent::KeyPress||event->type()==QEvent::KeyRelease)){auto *keyEvent=static_cast<QKeyEvent*>(event);if(keyEvent->key()==Qt::Key_Space)return true;if(event->type()==QEvent::KeyPress&&(keyEvent->key()==Qt::Key_Return||keyEvent->key()==Qt::Key_Enter)){ToggleSourceView();return true;}}
         if(event->type()!=QEvent::KeyPress)return QDialog::eventFilter(watched,event);auto *keyEvent=static_cast<QKeyEvent*>(event);int index=EntryIndex(watched);if(index<0)return QDialog::eventFilter(watched,event);
         Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;
         if(keyEvent->key()==Qt::Key_Space){
@@ -97,10 +99,12 @@ protected:
     }
 private:
     static int DirectIndex(int key){if(key>=Qt::Key_1&&key<=Qt::Key_9)return key-Qt::Key_1;if(key==Qt::Key_0)return 9;return -1;}
+    void UpdateSourceViewButton(){QString text=VText(activeOnlyState_?SHOW_ALL_SOURCES:SHOW_ACTIVE_SOURCES);sourceViewButton_->setText(text);sourceViewButton_->setAccessibleName(text);}
+    void ToggleSourceView(){activeOnlyState_=!activeOnlyState_;UpdateSourceViewButton();RebuildSources(activeOnlyState_);}
     static bool IndependentMonitoringMute(){uint32_t version=api.get_version();uint32_t major=(version>>24)&0xFF,minor=(version>>16)&0xFF;return major>32||(major==32&&minor>=2);}
     int EntryIndex(QObject *object) const{for(size_t index=0;index<sources_.size();++index)if(object==sources_[index].slider||object==sources_[index].outputButton||object==sources_[index].monitoringButton)return static_cast<int>(index);return -1;}
     int FocusedIndex() const{QWidget *focus=QApplication::focusWidget();return EntryIndex(focus);}
-    QString Announcement(int index) const{const VolumeEntry &entry=sources_[static_cast<size_t>(index)];return QStringLiteral("%1. %2, %3 %4, %5, %6.").arg(index+1).arg(entry.name,VText(VOLUME_TEXT),DbValueText(entry.value),VText(entry.outputEnabled?OUTPUT_ENABLED_TEXT:OUTPUT_MUTED_TEXT),VText(entry.monitoringEnabled?MONITORING_ENABLED_TEXT:MONITORING_OFF_TEXT));}
+    QString Announcement(int index) const{const VolumeEntry &entry=sources_[static_cast<size_t>(index)];return QStringLiteral("%1. %2, %3 %4. %5: %6. %7: %8.").arg(index+1).arg(entry.name).arg(VText(VOLUME_TEXT)).arg(DbValueText(entry.value)).arg(VText(OUTPUT_PARAMETER_TEXT)).arg(VText(entry.outputEnabled?ON_TEXT:OFF_TEXT)).arg(VText(MONITORING_PARAMETER_TEXT)).arg(VText(entry.monitoringEnabled?ON_TEXT:OFF_TEXT));}
     void Announce(int index){if(index<0||index>=static_cast<int>(sources_.size()))return;QAccessibleAnnouncementEvent announcement(this,Announcement(index));announcement.setPoliteness(QAccessible::AnnouncementPoliteness::Assertive);QAccessible::updateAccessibility(&announcement);}
     void UpdateValueVisual(VolumeEntry &entry){QString valueText=DbValueText(entry.value);if(entry.valueLabel&&entry.valueLabel->text()!=valueText)entry.valueLabel->setText(valueText);}
     void UpdateRoutingVisuals(VolumeEntry &entry){
@@ -127,9 +131,9 @@ private:
         connect(entry.outputButton,&QPushButton::clicked,this,[this,source]{auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found!=sources_.end())ToggleOutput(static_cast<int>(std::distance(sources_.begin(),found)));});
         connect(entry.monitoringButton,&QPushButton::clicked,this,[this,source]{auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found!=sources_.end())ToggleMonitoring(static_cast<int>(std::distance(sources_.begin(),found)));});
     }
-    void InitializeSources(std::vector<VolumeEntry> entries){sources_=std::move(entries);emptyMessage_->setText(VText(activeOnly_&&activeOnly_->isChecked()?NO_ACTIVE_AUDIO_SOURCES:NO_AUDIO_SOURCES));emptyMessage_->setVisible(sources_.empty());for(size_t index=0;index<sources_.size();++index){CreateControls(sources_[index],static_cast<int>(index));sourceLayout_->insertWidget(static_cast<int>(index),sources_[index].column);}}
+    void InitializeSources(std::vector<VolumeEntry> entries){sources_=std::move(entries);emptyMessage_->setText(VText(activeOnlyState_?NO_ACTIVE_AUDIO_SOURCES:NO_AUDIO_SOURCES));emptyMessage_->setVisible(sources_.empty());for(size_t index=0;index<sources_.size();++index){CreateControls(sources_[index],static_cast<int>(index));sourceLayout_->insertWidget(static_cast<int>(index),sources_[index].column);}}
     void RebuildSources(bool activeOnly){ReleaseSources();InitializeSources(CurrentMixerEntries(activeOnly));}
-    QCheckBox *activeOnly_{};QScrollArea *scroll_{};QWidget *panel_{};QHBoxLayout *sourceLayout_{};QLabel *emptyMessage_{};QDialogButtonBox *buttons_{};std::vector<VolumeEntry> sources_;
+    bool activeOnlyState_{true};QPushButton *sourceViewButton_{};QScrollArea *scroll_{};QWidget *panel_{};QHBoxLayout *sourceLayout_{};QLabel *emptyMessage_{};QDialogButtonBox *buttons_{};std::vector<VolumeEntry> sources_;
 };
 
 static QPointer<VolumeConsoleDialog> volumeConsoleWindow;

@@ -131,8 +131,8 @@ static void HandleAccessibilityFrontendEvent(int event){
         case 3:streamState=StreamState::Off;reconnectAnnouncementActive=false;ReleaseStreamOutput();AnnounceAccessibility(AText(STREAM_STOPPED));break;
         case 5:AnnounceAccessibility(AText(RECORDING_STARTED));break;
         case 7:++pauseStateGeneration;AnnounceAccessibility(AText(RECORDING_STOPPED));break;
-        case 23:AnnounceAccessibility(AText(STUDIO_MODE_ON));break;
-        case 24:AnnounceAccessibility(AText(STUDIO_MODE_OFF));break;
+        case 22:AnnounceAccessibility(AText(STUDIO_MODE_ON));break;
+        case 23:AnnounceAccessibility(AText(STUDIO_MODE_OFF));break;
         case 28:++pauseStateGeneration;AnnounceAccessibility(AText(RECORDING_PAUSED));break;
         case 29:++pauseStateGeneration;AnnounceAccessibility(AText(RECORDING_RESUMED));break;
         case 32:AnnounceAccessibility(AText(VIRTUAL_CAMERA_STARTED));break;
