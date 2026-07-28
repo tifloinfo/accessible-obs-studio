@@ -25,7 +25,7 @@ Installieren Sie die 64-Bit-Version von OBS Studio 32.0 oder neuer und starten S
 
 Wenn NVDA als einziger laufender Screenreader erkannt wird, kündigt das Plugin nach einem erfolgreichen Bereichswechsel mit F6, Umschalt+F6 oder Strg+0 bis Strg+5 den lokalisierten Namen des Bereichs ausdrücklich an. Bei JAWS, Narrator, unbekannten Screenreadern oder mehreren gleichzeitig erkannten Screenreadern wird diese zusätzliche Ansage unterdrückt.
 
-Der Befehl **Accessible OBS Studio: Tastenkombinations-Editor öffnen** öffnet denselben Editor direkt, besitzt aber keine Standard-Tastenkombination. Seine interne Kennung bleibt unverändert, sodass eine vorhandene Zuweisung erhalten bleibt.
+Der Befehl **.Tastenkombinations-Editor öffnen** öffnet denselben Editor direkt, besitzt aber keine Standard-Tastenkombination. Seine interne Kennung bleibt unverändert, sodass eine vorhandene Zuweisung erhalten bleibt.
 
 Standardmäßig erzwingt Accessible OBS Studio, dass alle OBS-Tastenkombinationen nur funktionieren, solange OBS die aktive Anwendung ist. Der Wert unter **Einstellungen > Erweitert > Hotkey-Fokusverhalten** wird auf **Hotkeys deaktivieren, wenn das Hauptfenster nicht fokussiert ist** gehalten und nach Änderungen wiederhergestellt. Aktivieren und speichern Sie im Tastenkombinations-Editor **OBS Studio verwalten lassen, ob Tastenkombinationen außerhalb von OBS funktionieren**, um die Steuerung an OBS zurückzugeben. Danach greift das Plugin nicht mehr ein.
 

@@ -14,8 +14,10 @@
 #include <atomic>
 #include <cctype>
 #include <cmath>
+#include <chrono>
 #include <cwctype>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -46,20 +48,32 @@
 #include <QCheckBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QCloseEvent>
+#include <QDateTime>
+#include <QDir>
 #include <QEventLoop>
+#include <QFile>
+#include <QFileDialog>
+#include <QFocusEvent>
 #include <QFormLayout>
+#include <QGroupBox>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QPainter>
+#include <QResizeEvent>
+#include <QSaveFile>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSlider>
+#include <QSpinBox>
 #include <QStyledItemDelegate>
 #include <QTimer>
 #include <QHBoxLayout>
@@ -71,6 +85,7 @@ struct obs_hotkey;
 struct obs_hotkey_binding;
 struct obs_data;
 struct obs_data_array;
+struct obs_volmeter;
 struct config;
 struct signal_handler;
 struct calldata;
@@ -95,8 +110,18 @@ struct Api {
     void (*load_bindings)(hotkey_id,key_combo*,size_t){};
     const char *(*key_name)(int){};
     const char *(*source_name)(const void*){};
+    const char *(*source_uuid)(const void*){};
+    const char *(*source_id)(const void*){};
     void (*enum_sources)(bool(*)(void*,void*),void*){};
+    void (*enum_filters)(void*,void(*)(void*,void*,void*),void*){};
     void *(*source_get_ref)(void*){};
+    void *(*source_create)(const char*,const char*,obs_data*,obs_data*){};
+    void (*source_filter_add)(void*,void*){};
+    void *(*source_filter_by_name)(void*,const char*){};
+    void (*source_update)(void*,obs_data*){};
+    obs_data *(*source_settings)(const void*){};
+    bool (*source_enabled)(const void*){};
+    void (*source_set_enabled)(void*,bool){};
     uint32_t (*source_output_flags)(const void*){};
     int64_t (*source_media_duration)(void*){};
     int64_t (*source_media_time)(void*){};
@@ -124,6 +149,14 @@ struct Api {
     void (*data_set_array)(obs_data*,const char*,obs_data_array*){};
     const char *(*data_json)(obs_data*){};
     void (*data_release)(obs_data*){};
+    void (*data_set_string)(obs_data*,const char*,const char*){};
+    void (*data_set_int)(obs_data*,const char*,long long){};
+    void (*data_set_double)(obs_data*,const char*,double){};
+    void (*data_set_bool)(obs_data*,const char*,bool){};
+    const char *(*data_get_string)(obs_data*,const char*){};
+    long long (*data_get_int)(obs_data*,const char*){};
+    double (*data_get_double)(obs_data*,const char*){};
+    bool (*data_get_bool)(obs_data*,const char*){};
     void (*array_release)(obs_data_array*){};
     obs_data *(*save_output)(void*){};
     hotkey_id (*register_frontend)(const char*,const char*,void(*)(void*,hotkey_id,obs_hotkey*,bool),void*){};
@@ -159,6 +192,7 @@ struct Api {
     const char *(*config_get_string)(config*,const char*,const char*){};
     bool (*config_has_user_value)(config*,const char*,const char*){};
     int (*config_save_safe)(config*,const char*,const char*){};
+    uint64_t (*config_get_uint)(config*,const char*,const char*){};
     void (*hotkey_enable_background_press)(bool){};
     bool (*streaming_active)(){};
     bool (*recording_active)(){};
@@ -167,6 +201,14 @@ struct Api {
     bool (*virtualcam_active)(){};
     bool (*studio_mode_active)(){};
     void *(*streaming_output)(){};
+    obs_volmeter *(*volmeter_create)(int){};
+    void (*volmeter_destroy)(obs_volmeter*){};
+    bool (*volmeter_attach)(obs_volmeter*,void*){};
+    void (*volmeter_detach)(obs_volmeter*){};
+    void (*volmeter_set_peak_type)(obs_volmeter*,int){};
+    int (*volmeter_channels)(obs_volmeter*){};
+    void (*volmeter_add_callback)(obs_volmeter*,void(*)(void*,const float*,const float*,const float*),void*){};
+    void (*volmeter_remove_callback)(obs_volmeter*,void(*)(void*,const float*,const float*,const float*),void*){};
 } api;
 
 struct Hotkey { hotkey_id id{}; std::string name, description, context; int type{}; void *registerer{}; std::vector<key_combo> bindings,originalBindings; };
@@ -182,7 +224,7 @@ struct CanvasCapture;
 enum class CanvasMode {Basic,Detailed,ReadText,PeopleBackgrounds,AnalyzeIssues,FitQuality};
 struct CanvasTurn {std::wstring label,text;bool assistant{true};};
 struct CanvasWebAction {std::string id;std::wstring label,accessibleLabel;std::vector<std::string> fixes;CanvasMode mode{CanvasMode::Basic};bool capturesNewFrame{false};bool link{false};std::wstring afterText;};
-static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1),statusInformationHotkey=static_cast<hotkey_id>(-1),pauseRecordingHotkey=static_cast<hotkey_id>(-1);
+static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1),statusInformationHotkey=static_cast<hotkey_id>(-1),pauseRecordingHotkey=static_cast<hotkey_id>(-1),peakGuardHotkey=static_cast<hotkey_id>(-1);
 static std::array<hotkey_id,5> canvasHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::array<hotkey_id,6> directAreaHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::thread openAIThread;
@@ -213,6 +255,7 @@ static constexpr std::array<const char*,5> CANVAS_HOTKEY_NAMES={"accessible_obs_
 static constexpr const char *FOCUS_MEDIA_NAME="accessible_obs_studio.focus_media_controls";
 static constexpr const char *OPEN_ACCESSIBLE_OBS_NAME="accessible_obs_studio.open_accessible_obs_studio";
 static constexpr const char *VOLUME_CONSOLE_NAME="accessible_obs_studio.open_volume_console";
+static constexpr const char *PEAK_GUARD_NAME="accessible_obs_studio.peak_guard";
 static constexpr std::array<const char*,6> DIRECT_AREA_NAMES={"accessible_obs_studio.focus_video_preview","accessible_obs_studio.focus_scenes","accessible_obs_studio.focus_sources","accessible_obs_studio.focus_audio_mixer","accessible_obs_studio.focus_scene_transitions","accessible_obs_studio.focus_controls"};
 static constexpr const wchar_t *CREDENTIAL_NAME=L"AccessibleOBSStudio/OpenAI";
 
@@ -252,8 +295,8 @@ static const wchar_t *Tr(UiText id){
         A{L"Status",L"Status",L"Состояние",L"Стан",L"État",L"Estado"},A{L"OpenAI response",L"OpenAI-Antwort",L"Ответ OpenAI",L"Відповідь OpenAI",L"Réponse OpenAI",L"Respuesta de OpenAI"},A{L"Error",L"Fehler",L"Ошибка",L"Помилка",L"Erreur",L"Error"},A{L"Your question",L"Ihre Frage",L"Ваш вопрос",L"Ваше запитання",L"Votre question",L"Su pregunta"},A{L"Requesting a follow-up response...",L"Anschlussantwort wird angefordert...",L"Запрашивается уточняющий ответ...",L"Запитується уточнювальна відповідь...",L"Demande d’une réponse complémentaire...",L"Solicitando una respuesta de seguimiento..."},
         A{L"OBS has no rendered canvas image available.",L"OBS hat kein gerendertes Canvas-Bild verfügbar.",L"В OBS нет доступного отрисованного изображения холста.",L"В OBS немає доступного відтвореного зображення полотна.",L"OBS ne dispose d’aucune image de canevas rendue.",L"OBS no dispone de una imagen renderizada del lienzo."},A{L"This canvas color format is not supported for description in this build.",L"Dieses Canvas-Farbformat wird in diesem Build nicht unterstützt.",L"Этот цветовой формат холста не поддерживается в данной сборке.",L"Цей колірний формат полотна не підтримується в цій збірці.",L"Ce format de couleur du canevas n’est pas pris en charge.",L"Este formato de color del lienzo no es compatible con esta compilación."},A{L"The OBS canvas has an invalid size.",L"Das OBS-Canvas hat eine ungültige Größe.",L"Холст OBS имеет недопустимый размер.",L"Полотно OBS має неприпустимий розмір.",L"Le canevas OBS a une taille non valide.",L"El lienzo de OBS tiene un tamaño no válido."},A{L"Accessible OBS Studio could not create a canvas capture surface.",L"Accessible OBS Studio konnte keine Canvas-Aufnahmefläche erstellen.",L"Accessible OBS Studio не удалось создать поверхность захвата холста.",L"Accessible OBS Studio не вдалося створити поверхню захоплення полотна.",L"Accessible OBS Studio n’a pas pu créer la surface de capture.",L"Accessible OBS Studio no pudo crear una superficie de captura del lienzo."},A{L"Accessible OBS Studio could not read the rendered canvas.",L"Accessible OBS Studio konnte das gerenderte Canvas nicht lesen.",L"Accessible OBS Studio не удалось прочитать отрисованный холст.",L"Accessible OBS Studio не вдалося прочитати відтворене полотно.",L"Accessible OBS Studio n’a pas pu lire le canevas rendu.",L"Accessible OBS Studio no pudo leer el lienzo renderizado."},
         A{L"Move focus to Video Preview before using Describe current canvas.",L"Setzen Sie den Fokus auf die Videovorschau, bevor Sie das aktuelle Canvas beschreiben.",L"Перед описанием холста переместите фокус на предпросмотр видео.",L"Перед описом полотна перемістіть фокус на попередній перегляд відео.",L"Placez le focus sur l’aperçu vidéo avant de décrire le canevas.",L"Mueva el foco a la vista previa de vídeo antes de describir el lienzo."},A{L"A canvas description request is already in progress.",L"Eine Anfrage zur Canvas-Beschreibung läuft bereits.",L"Запрос описания холста уже выполняется.",L"Запит опису полотна вже виконується.",L"Une demande de description est déjà en cours.",L"Ya hay una solicitud de descripción en curso."},A{L"Enter and save an OpenAI API key before requesting a canvas description.",L"Geben Sie einen OpenAI-API-Schlüssel ein und speichern Sie ihn, bevor Sie eine Beschreibung anfordern.",L"Введите и сохраните API-ключ OpenAI перед запросом описания холста.",L"Введіть і збережіть ключ API OpenAI перед запитом опису полотна.",L"Saisissez et enregistrez une clé API OpenAI avant de demander une description.",L"Introduzca y guarde una clave de API de OpenAI antes de solicitar una descripción."},A{L"Capturing the OBS canvas and requesting a description...",L"OBS-Canvas wird erfasst und Beschreibung angefordert...",L"Захват холста OBS и запрос описания...",L"Захоплення полотна OBS і запит опису...",L"Capture du canevas OBS et demande de description...",L"Capturando el lienzo de OBS y solicitando una descripción..."},
-        A{L"Accessible OBS Studio: Next interface area",L"Accessible OBS Studio: Nächster Oberflächenbereich",L"Accessible OBS Studio: Следующая область интерфейса",L"Accessible OBS Studio: Наступна область інтерфейсу",L"Accessible OBS Studio : Zone d’interface suivante",L"Accessible OBS Studio: Siguiente área de la interfaz"},A{L"Accessible OBS Studio: Previous interface area",L"Accessible OBS Studio: Vorheriger Oberflächenbereich",L"Accessible OBS Studio: Предыдущая область интерфейса",L"Accessible OBS Studio: Попередня область інтерфейсу",L"Accessible OBS Studio : Zone d’interface précédente",L"Accessible OBS Studio: Área anterior de la interfaz"},A{L"Accessible OBS Studio: Describe current canvas",L"Accessible OBS Studio: Aktuelles Canvas beschreiben",L"Accessible OBS Studio: Описать текущий холст",L"Accessible OBS Studio: Описати поточне полотно",L"Accessible OBS Studio : Décrire le canevas actuel",L"Accessible OBS Studio: Describir el lienzo actual"},
-        A{L"Accessible OBS Studio: Focus Video Preview",L"Accessible OBS Studio: Videovorschau fokussieren",L"Accessible OBS Studio: Перейти к предпросмотру видео",L"Accessible OBS Studio: Перейти до попереднього перегляду відео",L"Accessible OBS Studio : Placer le focus sur l’aperçu vidéo",L"Accessible OBS Studio: Enfocar la vista previa de vídeo"},A{L"Accessible OBS Studio: Focus Scenes",L"Accessible OBS Studio: Szenen fokussieren",L"Accessible OBS Studio: Перейти к сценам",L"Accessible OBS Studio: Перейти до сцен",L"Accessible OBS Studio : Placer le focus sur les scènes",L"Accessible OBS Studio: Enfocar las escenas"},A{L"Accessible OBS Studio: Focus Sources",L"Accessible OBS Studio: Quellen fokussieren",L"Accessible OBS Studio: Перейти к источникам",L"Accessible OBS Studio: Перейти до джерел",L"Accessible OBS Studio : Placer le focus sur les sources",L"Accessible OBS Studio: Enfocar las fuentes"},A{L"Accessible OBS Studio: Focus Audio Mixer",L"Accessible OBS Studio: Audiomixer fokussieren",L"Accessible OBS Studio: Перейти к микшеру аудио",L"Accessible OBS Studio: Перейти до аудіомікшера",L"Accessible OBS Studio : Placer le focus sur le mélangeur audio",L"Accessible OBS Studio: Enfocar el mezclador de audio"},A{L"Accessible OBS Studio: Focus Scene Transitions",L"Accessible OBS Studio: Szenenübergänge fokussieren",L"Accessible OBS Studio: Перейти к переходам между сценами",L"Accessible OBS Studio: Перейти до переходів між сценами",L"Accessible OBS Studio : Placer le focus sur les transitions de scènes",L"Accessible OBS Studio: Enfocar las transiciones de escena"},A{L"Accessible OBS Studio: Focus Controls",L"Accessible OBS Studio: Steuerung fokussieren",L"Accessible OBS Studio: Перейти к управлению",L"Accessible OBS Studio: Перейти до елементів керування",L"Accessible OBS Studio : Placer le focus sur les commandes",L"Accessible OBS Studio: Enfocar los controles"},
+        A{L".Next interface area",L".Nächster Oberflächenbereich",L".Следующая область интерфейса",L".Наступна область інтерфейсу",L".Zone d’interface suivante",L".Siguiente área de la interfaz"},A{L".Previous interface area",L".Vorheriger Oberflächenbereich",L".Предыдущая область интерфейса",L".Попередня область інтерфейсу",L".Zone d’interface précédente",L".Área anterior de la interfaz"},A{L".Describe current canvas",L".Aktuelles Canvas beschreiben",L".Описать текущий холст",L".Описати поточне полотно",L".Décrire le canevas actuel",L".Describir el lienzo actual"},
+        A{L".Focus Video Preview",L".Videovorschau fokussieren",L".Перейти к предпросмотру видео",L".Перейти до попереднього перегляду відео",L".Placer le focus sur l’aperçu vidéo",L".Enfocar la vista previa de vídeo"},A{L".Focus Scenes",L".Szenen fokussieren",L".Перейти к сценам",L".Перейти до сцен",L".Placer le focus sur les scènes",L".Enfocar las escenas"},A{L".Focus Sources",L".Quellen fokussieren",L".Перейти к источникам",L".Перейти до джерел",L".Placer le focus sur les sources",L".Enfocar las fuentes"},A{L".Focus Audio Mixer",L".Audiomixer fokussieren",L".Перейти к микшеру аудио",L".Перейти до аудіомікшера",L".Placer le focus sur le mélangeur audio",L".Enfocar el mezclador de audio"},A{L".Focus Scene Transitions",L".Szenenübergänge fokussieren",L".Перейти к переходам между сценами",L".Перейти до переходів між сценами",L".Placer le focus sur les transitions de scènes",L".Enfocar las transiciones de escena"},A{L".Focus Controls",L".Steuerung fokussieren",L".Перейти к управлению",L".Перейти до елементів керування",L".Placer le focus sur les commandes",L".Enfocar los controles"},
         A{L"Video Preview",L"Videovorschau",L"Предпросмотр видео",L"Попередній перегляд відео",L"Aperçu vidéo",L"Vista previa de vídeo"},A{L"OpenAI returned HTTP status %1.",L"OpenAI hat den HTTP-Status %1 zurückgegeben.",L"OpenAI вернул состояние HTTP %1.",L"OpenAI повернув стан HTTP %1.",L"OpenAI a renvoyé l’état HTTP %1.",L"OpenAI devolvió el estado HTTP %1."},A{L"Accessible OBS Studio has not been tested with OBS Studio %1. Continuing may cause missing features, instability, or crashes. Do you want to load the plugin anyway?",L"Accessible OBS Studio wurde nicht mit OBS Studio %1 getestet. Das Fortfahren kann zu fehlenden Funktionen, Instabilität oder Abstürzen führen. Möchten Sie das Plugin trotzdem laden?",L"Accessible OBS Studio не тестировался с OBS Studio %1. Продолжение может привести к отсутствию функций, нестабильности или сбоям. Всё равно загрузить модуль?",L"Accessible OBS Studio не тестувався з OBS Studio %1. Продовження може спричинити відсутність функцій, нестабільність або збої. Усе одно завантажити модуль?",L"Accessible OBS Studio n’a pas été testé avec OBS Studio %1. Continuer peut entraîner des fonctions manquantes, une instabilité ou des plantages. Voulez-vous tout de même charger le module ?",L"Accessible OBS Studio no se ha probado con OBS Studio %1. Continuar puede provocar funciones ausentes, inestabilidad o bloqueos. ¿Desea cargar el complemento de todos modos?"}
     };static_assert(std::size(t)==static_cast<size_t>(UiText::Count));return t[static_cast<size_t>(id)][LanguageIndex()];
 }
@@ -287,6 +330,7 @@ static std::wstring ComboText(key_combo c) {
     s+=FriendlyKey(api.key_name(c.key)); return s;
 }
 static const wchar_t *TypeText(int t) {if(t==0)return L"OBS";if(t==1)return Tr(UiText::SourceScene);if(t==2)return Tr(UiText::Output);if(t==3)return Tr(UiText::Encoder);if(t==4)return Tr(UiText::Service);return Tr(UiText::Other);}
+static bool IsAccessibleObsHotkey(const Hotkey &hotkey){return hotkey.name.rfind("accessible_obs_studio.",0)==0;}
 
 static bool EnumHotkey(void*,hotkey_id id,obs_hotkey *h) {
     Hotkey k; k.id=id; k.name=api.hk_name(h)?api.hk_name(h):""; k.description=api.hk_desc(h)?api.hk_desc(h):k.name;
@@ -303,7 +347,7 @@ static bool EnumBinding(void*,size_t,obs_hotkey_binding *b) {
 }
 static void LoadData() {
     hotkeys.clear(); api.enum_hotkeys(EnumHotkey,nullptr); api.enum_bindings(EnumBinding,nullptr);
-    std::sort(hotkeys.begin(),hotkeys.end(),[](const Hotkey&a,const Hotkey&b){return _stricmp(a.description.c_str(),b.description.c_str())<0;});for(auto &hotkey:hotkeys)hotkey.originalBindings=hotkey.bindings;
+    std::sort(hotkeys.begin(),hotkeys.end(),[](const Hotkey&a,const Hotkey&b){bool aAccessible=IsAccessibleObsHotkey(a),bAccessible=IsAccessibleObsHotkey(b);if(aAccessible!=bAccessible)return aAccessible;return _stricmp(a.description.c_str(),b.description.c_str())<0;});for(auto &hotkey:hotkeys)hotkey.originalBindings=hotkey.bindings;
 }
 static void ShowWindowPreservingState(HWND window){if(!window)return;if(IsIconic(window))ShowWindow(window,SW_RESTORE);else if(!IsWindowVisible(window))ShowWindow(window,IsZoomed(window)?SW_SHOWMAXIMIZED:SW_SHOW);}
 static bool ActivateKeyboardWindow(HWND window,HWND initialFocus=nullptr){
@@ -534,6 +578,10 @@ static void StatusInformationHotkey(void*,hotkey_id,obs_hotkey*,bool);
 static void PauseRecordingHotkey(void*,hotkey_id,obs_hotkey*,bool);
 static std::string StatusInformationCommandLabel();
 static std::string PauseRecordingCommandLabel();
+static void PeakGuardHotkey(void*,hotkey_id,obs_hotkey*,bool);
+static std::string PeakGuardCommandLabel();
+static void ShutdownPeakGuard();
+static void HandlePeakGuardFrontendEvent(int);
 
 #include "src/shortcut_editor.cpp"
 
@@ -544,6 +592,8 @@ static std::string PauseRecordingCommandLabel();
 #include "src/volume_console.cpp"
 
 #include "src/accessibility_alerts.cpp"
+
+#include "src/peak_guard.cpp"
 
 #include "src/canvas_openai.cpp"
 
@@ -558,13 +608,14 @@ static bool LoadApi(){api.obs=GetModuleHandle(L"obs.dll");api.frontend=GetModule
     O(register_frontend,decltype(api.register_frontend),"obs_hotkey_register_frontend");O(unregister_hotkey,decltype(api.unregister_hotkey),"obs_hotkey_unregister");O(key_name,decltype(api.key_name),"obs_key_to_name");O(key_from_name,decltype(api.key_from_name),"obs_key_from_name");O(key_from_virtual_key,decltype(api.key_from_virtual_key),"obs_key_from_virtual_key");O(get_locale,decltype(api.get_locale),"obs_get_locale");O(get_version,decltype(api.get_version),"obs_get_version");O(hotkey_enable_background_press,decltype(api.hotkey_enable_background_press),"obs_hotkey_enable_background_press");
     O(main_texture,decltype(api.main_texture),"obs_get_main_texture");O(add_tick,decltype(api.add_tick),"obs_add_tick_callback");O(remove_tick,decltype(api.remove_tick),"obs_remove_tick_callback");O(enter_graphics,decltype(api.enter_graphics),"obs_enter_graphics");O(leave_graphics,decltype(api.leave_graphics),"obs_leave_graphics");
     O(texture_width,decltype(api.texture_width),"gs_texture_get_width");O(texture_height,decltype(api.texture_height),"gs_texture_get_height");O(texture_format,decltype(api.texture_format),"gs_texture_get_color_format");O(stage_create,decltype(api.stage_create),"gs_stagesurface_create");O(stage_destroy,decltype(api.stage_destroy),"gs_stagesurface_destroy");O(stage_texture,decltype(api.stage_texture),"gs_stage_texture");O(stage_map,decltype(api.stage_map),"gs_stagesurface_map");O(stage_unmap,decltype(api.stage_unmap),"gs_stagesurface_unmap");
-    O(source_name,decltype(api.source_name),"obs_source_get_name");O(enum_sources,decltype(api.enum_sources),"obs_enum_sources");O(source_get_ref,decltype(api.source_get_ref),"obs_source_get_ref");O(source_output_flags,decltype(api.source_output_flags),"obs_source_get_output_flags");O(source_media_duration,decltype(api.source_media_duration),"obs_source_media_get_duration");O(source_media_time,decltype(api.source_media_time),"obs_source_media_get_time");O(source_media_set_time,decltype(api.source_media_set_time),"obs_source_media_set_time");O(source_audio_active,decltype(api.source_audio_active),"obs_source_audio_active");O(source_active,decltype(api.source_active),"obs_source_active");O(source_monitoring_type,decltype(api.source_monitoring_type),"obs_source_get_monitoring_type");O(source_set_monitoring_type,decltype(api.source_set_monitoring_type),"obs_source_set_monitoring_type");O(source_get_volume,decltype(api.source_get_volume),"obs_source_get_volume");O(source_set_volume,decltype(api.source_set_volume),"obs_source_set_volume");O(source_muted,decltype(api.source_muted),"obs_source_muted");O(source_set_muted,decltype(api.source_set_muted),"obs_source_set_muted");O(weak_source_get,decltype(api.weak_source_get),"obs_weak_source_get_source");O(source_release,decltype(api.source_release),"obs_source_release");O(weak_output_get,decltype(api.weak_output_get),"obs_weak_output_get_output");O(output_release,decltype(api.output_release),"obs_output_release");O(output_signal_handler,decltype(api.output_signal_handler),"obs_output_get_signal_handler");O(output_reconnecting,decltype(api.output_reconnecting),"obs_output_reconnecting");O(signal_connect,decltype(api.signal_connect),"signal_handler_connect");O(signal_disconnect,decltype(api.signal_disconnect),"signal_handler_disconnect");
-    O(hotkey_save,decltype(api.hotkey_save),"obs_hotkey_save");O(data_create,decltype(api.data_create),"obs_data_create");O(data_create_json,decltype(api.data_create_json),"obs_data_create_from_json");O(data_get_array,decltype(api.data_get_array),"obs_data_get_array");O(data_set_array,decltype(api.data_set_array),"obs_data_set_array");O(data_json,decltype(api.data_json),"obs_data_get_json");O(data_release,decltype(api.data_release),"obs_data_release");O(array_release,decltype(api.array_release),"obs_data_array_release");O(save_output,decltype(api.save_output),"obs_hotkeys_save_output");
-    O(config_set_string,decltype(api.config_set_string),"config_set_string");O(config_get_string,decltype(api.config_get_string),"config_get_string");O(config_has_user_value,decltype(api.config_has_user_value),"config_has_user_value");O(config_save_safe,decltype(api.config_save_safe),"config_save_safe");
+    O(source_name,decltype(api.source_name),"obs_source_get_name");O(source_uuid,decltype(api.source_uuid),"obs_source_get_uuid");O(source_id,decltype(api.source_id),"obs_source_get_unversioned_id");O(enum_sources,decltype(api.enum_sources),"obs_enum_sources");O(enum_filters,decltype(api.enum_filters),"obs_source_enum_filters");O(source_get_ref,decltype(api.source_get_ref),"obs_source_get_ref");O(source_create,decltype(api.source_create),"obs_source_create");O(source_filter_add,decltype(api.source_filter_add),"obs_source_filter_add");O(source_filter_by_name,decltype(api.source_filter_by_name),"obs_source_get_filter_by_name");O(source_update,decltype(api.source_update),"obs_source_update");O(source_settings,decltype(api.source_settings),"obs_source_get_settings");O(source_enabled,decltype(api.source_enabled),"obs_source_enabled");O(source_set_enabled,decltype(api.source_set_enabled),"obs_source_set_enabled");O(source_output_flags,decltype(api.source_output_flags),"obs_source_get_output_flags");O(source_media_duration,decltype(api.source_media_duration),"obs_source_media_get_duration");O(source_media_time,decltype(api.source_media_time),"obs_source_media_get_time");O(source_media_set_time,decltype(api.source_media_set_time),"obs_source_media_set_time");O(source_audio_active,decltype(api.source_audio_active),"obs_source_audio_active");O(source_active,decltype(api.source_active),"obs_source_active");O(source_monitoring_type,decltype(api.source_monitoring_type),"obs_source_get_monitoring_type");O(source_set_monitoring_type,decltype(api.source_set_monitoring_type),"obs_source_set_monitoring_type");O(source_get_volume,decltype(api.source_get_volume),"obs_source_get_volume");O(source_set_volume,decltype(api.source_set_volume),"obs_source_set_volume");O(source_muted,decltype(api.source_muted),"obs_source_muted");O(source_set_muted,decltype(api.source_set_muted),"obs_source_set_muted");O(weak_source_get,decltype(api.weak_source_get),"obs_weak_source_get_source");O(source_release,decltype(api.source_release),"obs_source_release");O(weak_output_get,decltype(api.weak_output_get),"obs_weak_output_get_output");O(output_release,decltype(api.output_release),"obs_output_release");O(output_signal_handler,decltype(api.output_signal_handler),"obs_output_get_signal_handler");O(output_reconnecting,decltype(api.output_reconnecting),"obs_output_reconnecting");O(signal_connect,decltype(api.signal_connect),"signal_handler_connect");O(signal_disconnect,decltype(api.signal_disconnect),"signal_handler_disconnect");
+    O(hotkey_save,decltype(api.hotkey_save),"obs_hotkey_save");O(data_create,decltype(api.data_create),"obs_data_create");O(data_create_json,decltype(api.data_create_json),"obs_data_create_from_json");O(data_get_array,decltype(api.data_get_array),"obs_data_get_array");O(data_set_array,decltype(api.data_set_array),"obs_data_set_array");O(data_json,decltype(api.data_json),"obs_data_get_json");O(data_release,decltype(api.data_release),"obs_data_release");O(data_set_string,decltype(api.data_set_string),"obs_data_set_string");O(data_set_int,decltype(api.data_set_int),"obs_data_set_int");O(data_set_double,decltype(api.data_set_double),"obs_data_set_double");O(data_set_bool,decltype(api.data_set_bool),"obs_data_set_bool");O(data_get_string,decltype(api.data_get_string),"obs_data_get_string");O(data_get_int,decltype(api.data_get_int),"obs_data_get_int");O(data_get_double,decltype(api.data_get_double),"obs_data_get_double");O(data_get_bool,decltype(api.data_get_bool),"obs_data_get_bool");O(array_release,decltype(api.array_release),"obs_data_array_release");O(save_output,decltype(api.save_output),"obs_hotkeys_save_output");
+    O(config_set_string,decltype(api.config_set_string),"config_set_string");O(config_get_string,decltype(api.config_get_string),"config_get_string");O(config_has_user_value,decltype(api.config_has_user_value),"config_has_user_value");O(config_save_safe,decltype(api.config_save_safe),"config_save_safe");O(config_get_uint,decltype(api.config_get_uint),"config_get_uint");
+    O(volmeter_create,decltype(api.volmeter_create),"obs_volmeter_create");O(volmeter_destroy,decltype(api.volmeter_destroy),"obs_volmeter_destroy");O(volmeter_attach,decltype(api.volmeter_attach),"obs_volmeter_attach_source");O(volmeter_detach,decltype(api.volmeter_detach),"obs_volmeter_detach_source");O(volmeter_set_peak_type,decltype(api.volmeter_set_peak_type),"obs_volmeter_set_peak_meter_type");O(volmeter_channels,decltype(api.volmeter_channels),"obs_volmeter_get_nr_channels");O(volmeter_add_callback,decltype(api.volmeter_add_callback),"obs_volmeter_add_callback");O(volmeter_remove_callback,decltype(api.volmeter_remove_callback),"obs_volmeter_remove_callback");
     F(add_tools,decltype(api.add_tools),"obs_frontend_add_tools_menu_item");F(add_tools_qaction,decltype(api.add_tools_qaction),"obs_frontend_add_tools_menu_qaction");F(main_window,decltype(api.main_window),"obs_frontend_get_main_window");F(main_hwnd,decltype(api.main_hwnd),"obs_frontend_get_main_window_handle");F(profile_config,decltype(api.profile_config),"obs_frontend_get_profile_config");F(global_config,decltype(api.global_config),"obs_frontend_get_global_config");F(add_event_callback,decltype(api.add_event_callback),"obs_frontend_add_event_callback");F(remove_event_callback,decltype(api.remove_event_callback),"obs_frontend_remove_event_callback");F(frontend_save,decltype(api.frontend_save),"obs_frontend_save");F(streaming_active,decltype(api.streaming_active),"obs_frontend_streaming_active");F(recording_active,decltype(api.recording_active),"obs_frontend_recording_active");F(recording_pause,decltype(api.recording_pause),"obs_frontend_recording_pause");F(recording_paused,decltype(api.recording_paused),"obs_frontend_recording_paused");F(virtualcam_active,decltype(api.virtualcam_active),"obs_frontend_virtualcam_active");F(studio_mode_active,decltype(api.studio_mode_active),"obs_frontend_preview_program_mode_active");F(streaming_output,decltype(api.streaming_output),"obs_frontend_get_streaming_output");
 #undef O
 #undef F
-    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.key_from_virtual_key&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.enum_sources&&api.source_get_ref&&api.source_output_flags&&api.source_media_duration&&api.source_media_time&&api.source_media_set_time&&api.source_audio_active&&api.source_active&&api.source_monitoring_type&&api.source_set_monitoring_type&&api.source_get_volume&&api.source_set_volume&&api.source_muted&&api.source_set_muted&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.output_signal_handler&&api.output_reconnecting&&api.signal_connect&&api.signal_disconnect&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.add_tools_qaction&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback&&api.frontend_save&&api.streaming_active&&api.recording_active&&api.recording_pause&&api.recording_paused&&api.virtualcam_active&&api.studio_mode_active&&api.streaming_output;
+    return api.enum_hotkeys&&api.enum_bindings&&api.hk_name&&api.hk_desc&&api.hk_type&&api.hk_registerer&&api.binding_combo&&api.binding_id&&api.load_bindings&&api.hotkey_load&&api.register_frontend&&api.unregister_hotkey&&api.key_name&&api.key_from_name&&api.key_from_virtual_key&&api.get_locale&&api.get_version&&api.main_texture&&api.add_tick&&api.remove_tick&&api.enter_graphics&&api.leave_graphics&&api.texture_width&&api.texture_height&&api.texture_format&&api.stage_create&&api.stage_destroy&&api.stage_texture&&api.stage_map&&api.stage_unmap&&api.source_name&&api.source_uuid&&api.source_id&&api.enum_sources&&api.enum_filters&&api.source_get_ref&&api.source_create&&api.source_filter_add&&api.source_filter_by_name&&api.source_update&&api.source_settings&&api.source_enabled&&api.source_set_enabled&&api.source_output_flags&&api.source_media_duration&&api.source_media_time&&api.source_media_set_time&&api.source_audio_active&&api.source_active&&api.source_monitoring_type&&api.source_set_monitoring_type&&api.source_get_volume&&api.source_set_volume&&api.source_muted&&api.source_set_muted&&api.weak_source_get&&api.source_release&&api.weak_output_get&&api.output_release&&api.output_signal_handler&&api.output_reconnecting&&api.signal_connect&&api.signal_disconnect&&api.hotkey_save&&api.data_create&&api.data_create_json&&api.data_get_array&&api.data_set_array&&api.data_json&&api.data_release&&api.data_set_string&&api.data_set_int&&api.data_set_double&&api.data_set_bool&&api.data_get_string&&api.data_get_int&&api.data_get_double&&api.data_get_bool&&api.array_release&&api.config_set_string&&api.config_get_string&&api.config_has_user_value&&api.config_save_safe&&api.config_get_uint&&api.volmeter_create&&api.volmeter_destroy&&api.volmeter_attach&&api.volmeter_detach&&api.volmeter_set_peak_type&&api.volmeter_channels&&api.volmeter_add_callback&&api.volmeter_remove_callback&&api.add_tools_qaction&&api.main_window&&api.main_hwnd&&api.profile_config&&api.global_config&&api.add_event_callback&&api.remove_event_callback&&api.frontend_save&&api.streaming_active&&api.recording_active&&api.recording_pause&&api.recording_paused&&api.virtualcam_active&&api.studio_mode_active&&api.streaming_output;
 }
 
 extern "C" __declspec(dllexport) void obs_module_set_pointer(void*){}
@@ -579,19 +630,20 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     std::string next=Narrow(Tr(UiText::NextArea)),previous=Narrow(Tr(UiText::PreviousArea));
     nextAreaHotkey=api.register_frontend(NEXT_AREA_NAME,next.c_str(),NavigationHotkey,nullptr);
     previousAreaHotkey=api.register_frontend(PREVIOUS_AREA_NAME,previous.c_str(),NavigationHotkey,reinterpret_cast<void*>(1));
-    for(size_t i=0;i<canvasHotkeys.size();++i){QByteArray label=(QStringLiteral("Accessible OBS Studio: ")+CText(CanvasModeText(static_cast<CanvasMode>(i)))).toUtf8();canvasHotkeys[i]=api.register_frontend(CANVAS_HOTKEY_NAMES[i],label.constData(),CanvasHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i)));}
+    for(size_t i=0;i<canvasHotkeys.size();++i){QByteArray label=(QStringLiteral(".")+CText(CanvasModeText(static_cast<CanvasMode>(i)))).toUtf8();canvasHotkeys[i]=api.register_frontend(CANVAS_HOTKEY_NAMES[i],label.constData(),CanvasHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i)));}
     QByteArray focusMediaLabel=LText(LocalText::FocusMediaCommand).toUtf8();focusMediaHotkey=api.register_frontend(FOCUS_MEDIA_NAME,focusMediaLabel.constData(),FocusMediaControlsHotkey,nullptr);
     QByteArray openAccessibleLabel=LText(LocalText::OpenAccessibleCommand).toUtf8();openAccessibleObsHotkey=api.register_frontend(OPEN_ACCESSIBLE_OBS_NAME,openAccessibleLabel.constData(),OpenAccessibleObsHotkey,nullptr);
     std::string volumeConsoleLabel=VolumeConsoleCommandLabel();volumeConsoleHotkey=api.register_frontend(VOLUME_CONSOLE_NAME,volumeConsoleLabel.c_str(),VolumeConsoleHotkey,nullptr);
     std::string statusInformationLabel=StatusInformationCommandLabel();statusInformationHotkey=api.register_frontend("accessible_obs_studio.status_information",statusInformationLabel.c_str(),StatusInformationHotkey,nullptr);
     std::string pauseRecordingLabel=PauseRecordingCommandLabel();pauseRecordingHotkey=api.register_frontend("accessible_obs_studio.pause_resume_recording",pauseRecordingLabel.c_str(),PauseRecordingHotkey,nullptr);
+    std::string peakGuardLabel=PeakGuardCommandLabel();peakGuardHotkey=api.register_frontend(PEAK_GUARD_NAME,peakGuardLabel.c_str(),PeakGuardHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
     LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();mediaSeekEventFilter=new MediaSeekEventFilter(obsMainWindow);qApp->installEventFilter(mediaSeekEventFilter);hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,obsMainWindow,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(obsMainWindow);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,obsMainWindow,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);InitializeAccessibilityAlerts();if(!InitializeAccessibleToolsAction())return false;return true;
 }
 extern "C" __declspec(dllexport) void obs_module_unload(){
     shuttingDown=true;CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
-    if(openAIThread.joinable())openAIThread.join();ShutdownAccessibilityAlerts();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
+    if(openAIThread.joinable())openAIThread.join();ShutdownPeakGuard();ShutdownAccessibilityAlerts();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
     if(api.unregister_hotkey&&nextAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(nextAreaHotkey);
     if(api.unregister_hotkey&&previousAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(previousAreaHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:canvasHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);
@@ -600,6 +652,7 @@ extern "C" __declspec(dllexport) void obs_module_unload(){
     if(api.unregister_hotkey&&volumeConsoleHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(volumeConsoleHotkey);
     if(api.unregister_hotkey&&statusInformationHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(statusInformationHotkey);
     if(api.unregister_hotkey&&pauseRecordingHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(pauseRecordingHotkey);
+    if(api.unregister_hotkey&&peakGuardHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(peakGuardHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);if(mediaSeekEventFilter){qApp->removeEventFilter(mediaSeekEventFilter);delete mediaSeekEventFilter;mediaSeekEventFilter=nullptr;}QObject::disconnect(hotkeyFocusConnection);if(hotkeyFocusGuardTimer){hotkeyFocusGuardTimer->stop();delete hotkeyFocusGuardTimer;hotkeyFocusGuardTimer=nullptr;}
     if(comInitialized){CoUninitialize();comInitialized=false;}
 }

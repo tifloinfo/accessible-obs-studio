@@ -23,7 +23,7 @@ Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis 
 
 Lorsque NVDA est le seul lecteur d’écran actif détecté, le module annonce explicitement le nom localisé de la zone après un changement réussi avec F6, Maj+F6 ou Ctrl+0 à Ctrl+5. Cette annonce supplémentaire est supprimée avec JAWS, Narrateur, un lecteur inconnu ou plusieurs lecteurs détectés simultanément.
 
-La commande **Accessible OBS Studio : Ouvrir l’éditeur de raccourcis clavier** ouvre directement le même éditeur et n’a pas de raccourci par défaut. Son identifiant interne reste inchangé, ce qui conserve toute attribution existante.
+La commande **.Ouvrir l’éditeur de raccourcis clavier** ouvre directement le même éditeur et n’a pas de raccourci par défaut. Son identifiant interne reste inchangé, ce qui conserve toute attribution existante.
 
 Par défaut, Accessible OBS Studio impose que tous les raccourcis clavier d’OBS ne fonctionnent que lorsque OBS est l’application active. Il maintient **Paramètres > Avancé > Comportement du focus des raccourcis clavier** sur **Désactiver les raccourcis clavier lorsque la fenêtre principale n’a pas le focus** et rétablit cette valeur si elle change. Pour rendre le contrôle à OBS, cochez puis enregistrez **Autoriser OBS Studio à gérer le fonctionnement des raccourcis clavier hors d’OBS** dans l’éditeur. Le module cesse alors d’intervenir.
 

@@ -53,10 +53,11 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - F8: start or stop the Virtual Camera.
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
+- Ctrl+Shift+P: start Peak Guard Sound Check, or stop Emergency Monitoring.
 
 When NVDA is the only detected running screen reader, a successful region change with F6, Shift+F6, or Ctrl+0 through Ctrl+5 explicitly announces the region’s localized name. The extra announcement is suppressed for JAWS, Narrator, unknown readers, and ambiguous multiple-reader sessions.
 
-The command **Accessible OBS Studio: Open Keyboard Shortcut Editor** opens the same editor directly. It is available for assignment but has no default keyboard shortcut. Its internal identifier is unchanged, so an existing assignment is preserved.
+The command **.Open Keyboard Shortcut Editor** opens the same editor directly. It is available for assignment but has no default keyboard shortcut. Its internal identifier is unchanged, so an existing assignment is preserved.
 
 By default, Accessible OBS Studio forces all OBS keyboard shortcuts to work only while OBS is the active application. It keeps **Settings > Advanced > Hotkey Focus Behavior** set to **Disable hotkeys when main window is not in focus** and restores that value if it changes. To return control to OBS, select **Allow OBS Studio to manage whether keyboard shortcuts work outside OBS** in the Keyboard Shortcut Editor and save. When selected, the plugin stops changing the setting and stops overriding OBS hotkey state.
 
@@ -79,6 +80,18 @@ Ctrl+Grave opens the modal **Accessible Volume Console** without changing the co
 The console takes an exclusive snapshot of the available audio sources, volumes, output states, and monitoring states when it opens. Its changes take effect in OBS immediately, but it does not monitor changes made through the native mixer, an external controller, scene switching, or other control methods while it remains open. Do not manipulate the mixer elsewhere during an Accessible Volume Console session; close and reopen the console to load external changes. All initially captured sources remain reachable with Left and Right even when there are more than ten; only direct number-key selection is limited to ten. The console command and its default keyboard shortcut can be changed in the Keyboard Shortcut Editor. On OBS 32.2 and newer, mute and monitoring are independent. On OBS 32.0 and 32.1, the console translates the same controls to the older Monitor Only, Monitor and Output, and muted states.
 
 Ctrl+M focuses the Media Controls only when they are visible. While focus is within those controls, Left and Right move backward or forward by 5 seconds, Shift+Left and Shift+Right move backward or forward by 1 minute, Page Up moves backward by 5 minutes, and Page Down moves forward by 5 minutes. These overrides are confined to the Media Controls; the keys retain their normal behavior everywhere else.
+
+## Peak Guard
+
+Press Ctrl+Shift+P before a stream to start **Peak Guard Sound Check**. Sound Check monitors every audio source currently available to OBS and automatically includes audio sources added while it runs. Exercise the planned scenes, microphones, media, and other sound sources. When dangerous output is sustained, a quiet continuous warning tone sounds and the Accessible Volume Console opens with focus on the most severe affected source. Lower that source until the tone stops; if other sources remain dangerous, focus advances to the next one. Peak conditions are also appended to a read-only, scrollable history control. The tone and automatic volume-console focus are used only during Sound Check. The modeless Sound Check window keeps updating while you work. **Save History** writes a text copy on demand; automatic text and JSON histories are also retained by default.
+
+Activate **Finish Sound Check** to choose one or more sources for silent **Emergency Monitoring**. Peak Guard verifies an enabled OBS Limiter filter for every selected source. It honors an enabled limiter already supplied by the user; otherwise, it creates or re-enables its own limiter with the configured threshold and release time. Peak Guard-owned limiters remain in the source filter chain after monitoring stops or OBS closes. A later Sound Check temporarily bypasses only those Peak Guard-owned limiters so the underlying setup can be tested again, then restores them. Press Ctrl+Shift+P during Emergency Monitoring to stop monitoring without removing any limiter.
+
+Sound Check cannot start while streaming and automatically stops if streaming begins. Emergency Monitoring does not speak peak warnings. If protected output still reaches a dangerous level, Peak Guard silently creates, re-enables, or updates its own fallback limiter and saves the OBS configuration.
+
+The **Settings** button in Sound Check and protection setup opens the accessible Peak Guard Settings editor. Settings are stored in `%APPDATA%\obs-studio\plugin_config\accessible-obs-studio\peak-guard.json`. The same directory contains `peak-guard.defaults.json`, the documented `peak-guard.schema.json`, and the `peak-guard-history` directory. The JSON can be edited directly while Peak Guard is stopped, but the Settings editor validates values and writes the file safely.
+
+OBS exposes both its final meter level and an input level measured before the source volume control but after source filters. Peak Guard uses both. This can identify an overly hot microphone signal entering OBS even when the OBS fader lowers the output, but it cannot prove that clipping occurred inside the microphone, audio interface, or driver before OBS received the samples. An enabled user limiter is deliberately included in the Sound Check signal path; when its output remains safe, Peak Guard does not report an output problem.
 
 ## Output status
 
