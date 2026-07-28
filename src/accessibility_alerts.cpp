@@ -8,8 +8,8 @@ using AlertText=std::array<const char*,6>;
 static QString AText(const AlertText &text){return QString::fromUtf8(text[LanguageIndex()]);}
 
 static const AlertText STATUS_INFORMATION_TITLE={"Status Information","Statusinformationen","Сведения о состоянии","Відомості про стан","Informations d’état","Información de estado"};
-static const AlertText STATUS_INFORMATION_COMMAND={"Accessible OBS Studio: Status Information","Accessible OBS Studio: Statusinformationen","Accessible OBS Studio: Сведения о состоянии","Accessible OBS Studio: Відомості про стан","Accessible OBS Studio : Informations d’état","Accessible OBS Studio: Información de estado"};
-static const AlertText PAUSE_RECORDING_COMMAND={"Accessible OBS Studio: Pause or resume recording","Accessible OBS Studio: Aufnahme pausieren oder fortsetzen","Accessible OBS Studio: Приостановить или возобновить запись","Accessible OBS Studio: Призупинити або продовжити запис","Accessible OBS Studio : Suspendre ou reprendre l’enregistrement","Accessible OBS Studio: Pausar o reanudar la grabación"};
+static const AlertText STATUS_INFORMATION_COMMAND={".Status Information",".Statusinformationen",".Сведения о состоянии",".Відомості про стан",".Informations d’état",".Información de estado"};
+static const AlertText PAUSE_RECORDING_COMMAND={".Pause or resume recording",".Aufnahme pausieren oder fortsetzen",".Приостановить или возобновить запись",".Призупинити або продовжити запис",".Suspendre ou reprendre l’enregistrement",".Pausar o reanudar la grabación"};
 static const AlertText STREAM_OFF={"Streaming off.","Streaming aus.","Трансляция выключена.","Трансляцію вимкнено.","Diffusion désactivée.","Emisión desactivada."};
 static const AlertText STREAM_STARTING={"Streaming starting.","Streaming wird gestartet.","Трансляция запускается.","Трансляція запускається.","Démarrage de la diffusion.","Iniciando la emisión."};
 static const AlertText STREAM_ON={"Streaming on.","Streaming an.","Трансляция включена.","Трансляцію ввімкнено.","Diffusion activée.","Emisión activada."};

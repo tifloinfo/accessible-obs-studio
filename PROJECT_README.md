@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.6
+# Accessible OBS Studio 1.0.7
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -17,7 +17,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleOBSStudio-1.0.6-Setup.exe`.
+   `AccessibleOBSStudio-1.0.7-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -56,7 +56,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 
 When NVDA is the only detected running screen reader, a successful region change with F6, Shift+F6, or Ctrl+0 through Ctrl+5 explicitly announces the region’s localized name. The extra announcement is suppressed for JAWS, Narrator, unknown readers, and ambiguous multiple-reader sessions.
 
-The command **Accessible OBS Studio: Open Keyboard Shortcut Editor** opens the same editor directly. It is available for assignment but has no default keyboard shortcut. Its internal identifier is unchanged, so an existing assignment is preserved.
+The command **.Open Keyboard Shortcut Editor** opens the same editor directly. It is available for assignment but has no default keyboard shortcut. Its internal identifier is unchanged, so an existing assignment is preserved.
 
 By default, Accessible OBS Studio forces all OBS keyboard shortcuts to work only while OBS is the active application. It keeps **Settings > Advanced > Hotkey Focus Behavior** set to **Disable hotkeys when main window is not in focus** and restores that value if it changes. To return control to OBS, select **Allow OBS Studio to manage whether keyboard shortcuts work outside OBS** in the Keyboard Shortcut Editor and save. When selected, the plugin stops changing the setting and stops overriding OBS hotkey state.
 
