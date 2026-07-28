@@ -3,19 +3,19 @@
 
 namespace {
 
-constexpr uint32_t PG_AUDIO_FLAG=1u<<1;
-constexpr int PG_MAX_CHANNELS=8;
-constexpr int PG_FADER_LOG=2;
-constexpr int PG_SAMPLE_PEAK=0;
-constexpr int PG_TRUE_PEAK=1;
-constexpr const char *PG_LIMITER_ID="limiter_filter";
-constexpr const char *PG_LIMITER_NAME="Accessible OBS Studio Peak Guard";
+constexpr uint32_t CG_AUDIO_FLAG=1u<<1;
+constexpr int CG_MAX_CHANNELS=8;
+constexpr int CG_FADER_LOG=2;
+constexpr int CG_SAMPLE_PEAK=0;
+constexpr int CG_TRUE_PEAK=1;
+constexpr const char *CG_LIMITER_ID="limiter_filter";
+constexpr const char *CG_LIMITER_NAME="Accessible OBS Studio ClipGuard";
 
-enum class PeakGuardMode {Idle,SoundCheck,ProtectionSetup,Emergency};
+enum class ClipGuardMode {Idle,SoundCheck};
 enum class PeakCondition {OutputNear,OutputClip,InputNear,InputClip};
 enum class PeakWarningTone {None,Input,Output};
 
-struct PeakGuardConfig {
+struct ClipGuardConfig {
     int version{1};
     double nearClippingDb{-3.0};
     double clippingDb{-0.5};
@@ -27,7 +27,6 @@ struct PeakGuardConfig {
     int limiterReleaseMilliseconds{60};
     bool autoSaveHistory{true};
     int historyRetentionDays{30};
-    QStringList previousSources;
 };
 
 struct PeakHistoryEvent {
@@ -37,7 +36,6 @@ struct PeakHistoryEvent {
     PeakCondition condition{PeakCondition::OutputNear};
     double maximumDb{};
     int durationMilliseconds{};
-    bool emergency{};
 };
 
 struct LevelTracker {
@@ -56,7 +54,7 @@ struct PeakSource {
     QString uuid;
     QString name;
     int channels{2};
-    PeakGuardConfig config;
+    ClipGuardConfig config;
     std::mutex mutex;
     LevelTracker input;
     LevelTracker output;
@@ -73,25 +71,18 @@ struct PeakSource {
 struct PeakSourceSnapshot {
     QString uuid;
     QString name;
-    double maximumInput{-INFINITY};
-    double maximumOutput{-INFINITY};
-    int inputEvents{};
     int outputEvents{};
-    bool exercised{};
-    bool existingLimiter{};
-    bool existingLimiterEnabled{};
 };
 
-static std::atomic<PeakGuardMode> peakGuardMode{PeakGuardMode::Idle};
-static PeakGuardConfig peakGuardConfig;
-static bool peakGuardConfigLoaded{};
-static QString peakGuardConfigError;
+static std::atomic<ClipGuardMode> clipGuardMode{ClipGuardMode::Idle};
+static ClipGuardConfig clipGuardConfig;
+static bool clipGuardConfigLoaded{};
+static QString clipGuardConfigError;
 static std::vector<std::unique_ptr<PeakSource>> peakSources;
 static std::vector<PeakHistoryEvent> peakHistory;
 static QString peakHistoryBasePath;
 static QDateTime peakHistoryStarted;
-static QPointer<QDialog> soundCheckWindow;
-static QPointer<QDialog> protectionSetupWindow;
+static QPointer<QDialog> clipGuardWindow;
 static QTimer *peakSourceRefreshTimer{};
 static QStringList temporarilyDisabledOwnedLimiterSources;
 static QByteArray peakInputWarningSound;
@@ -100,19 +91,19 @@ static PeakWarningTone peakWarningTone{PeakWarningTone::None};
 static QString peakWarningTargetUuid;
 static PeakWarningTone peakWarningTargetTone{PeakWarningTone::None};
 
-static QString PeakGuardConfigDirectory(){
+static QString ClipGuardConfigDirectory(){
     wchar_t appData[32768]{};
     DWORD count=GetEnvironmentVariableW(L"APPDATA",appData,static_cast<DWORD>(std::size(appData)));
     QString root=count>0&&static_cast<size_t>(count)<std::size(appData)?QString::fromWCharArray(appData):QDir::homePath();
     return QDir(root).filePath(QStringLiteral("obs-studio/plugin_config/accessible-obs-studio"));
 }
 
-static QString PeakGuardConfigPath(){return QDir(PeakGuardConfigDirectory()).filePath(QStringLiteral("peak-guard.json"));}
-static QString PeakGuardSchemaPath(){return QDir(PeakGuardConfigDirectory()).filePath(QStringLiteral("peak-guard.schema.json"));}
-static QString PeakGuardDefaultsPath(){return QDir(PeakGuardConfigDirectory()).filePath(QStringLiteral("peak-guard.defaults.json"));}
-static QString PeakGuardLogsDirectory(){return QDir(PeakGuardConfigDirectory()).filePath(QStringLiteral("peak-guard-history"));}
+static QString ClipGuardConfigPath(){return QDir(ClipGuardConfigDirectory()).filePath(QStringLiteral("clip-guard.json"));}
+static QString ClipGuardSchemaPath(){return QDir(ClipGuardConfigDirectory()).filePath(QStringLiteral("clip-guard.schema.json"));}
+static QString ClipGuardDefaultsPath(){return QDir(ClipGuardConfigDirectory()).filePath(QStringLiteral("clip-guard.defaults.json"));}
+static QString ClipGuardLogsDirectory(){return QDir(ClipGuardConfigDirectory()).filePath(QStringLiteral("clip-guard-history"));}
 
-static QJsonObject PeakGuardJson(const PeakGuardConfig &config,bool includeSources=true){
+static QJsonObject ClipGuardJson(const ClipGuardConfig &config){
     QJsonObject analysis{{QStringLiteral("nearClippingDb"),config.nearClippingDb},
                          {QStringLiteral("clippingDb"),config.clippingDb},
                          {QStringLiteral("sustainedMilliseconds"),config.sustainedMilliseconds},
@@ -123,23 +114,18 @@ static QJsonObject PeakGuardJson(const PeakGuardConfig &config,bool includeSourc
                         {QStringLiteral("releaseMilliseconds"),config.limiterReleaseMilliseconds}};
     QJsonObject history{{QStringLiteral("autoSave"),config.autoSaveHistory},
                         {QStringLiteral("retentionDays"),config.historyRetentionDays}};
-    QJsonObject root{{QStringLiteral("$schema"),QStringLiteral("peak-guard.schema.json")},
-                     {QStringLiteral("configurationVersion"),config.version},
-                     {QStringLiteral("analysis"),analysis},
-                     {QStringLiteral("limiter"),limiter},
-                     {QStringLiteral("history"),history}};
-    if(includeSources){
-        QJsonArray previous;for(const QString &uuid:config.previousSources)previous.append(uuid);
-        root.insert(QStringLiteral("previousEmergencySources"),previous);
-    }
-    return root;
+    return {{QStringLiteral("$schema"),QStringLiteral("clip-guard.schema.json")},
+            {QStringLiteral("configurationVersion"),config.version},
+            {QStringLiteral("analysis"),analysis},
+            {QStringLiteral("limiter"),limiter},
+            {QStringLiteral("history"),history}};
 }
 
-static const char *PeakGuardSchemaText(){
+static const char *ClipGuardSchemaText(){
     return R"JSON({
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Accessible OBS Studio Peak Guard configuration",
-  "description": "User-editable settings for Sound Check and Emergency Monitoring. Times are milliseconds and levels are decibels relative to full scale.",
+  "title": "Accessible OBS Studio ClipGuard configuration",
+  "description": "User-editable settings for ClipGuard Sound Check. Times are milliseconds and levels are decibels relative to full scale.",
   "type": "object",
   "additionalProperties": false,
   "required": ["configurationVersion", "analysis", "limiter", "history"],
@@ -164,8 +150,8 @@ static const char *PeakGuardSchemaText(){
       "additionalProperties": false,
       "required": ["thresholdDb", "releaseMilliseconds"],
       "properties": {
-        "thresholdDb": {"type": "number", "minimum": -20, "maximum": -0.5, "description": "Threshold used for Peak Guard-owned OBS limiter filters."},
-        "releaseMilliseconds": {"type": "integer", "minimum": 1, "maximum": 1000, "description": "Release time used for Peak Guard-owned OBS limiter filters."}
+        "thresholdDb": {"type": "number", "minimum": -20, "maximum": -0.5, "description": "Threshold used for ClipGuard-owned OBS limiter filters."},
+        "releaseMilliseconds": {"type": "integer", "minimum": 1, "maximum": 1000, "description": "Release time used for ClipGuard-owned OBS limiter filters."}
       }
     },
     "history": {
@@ -176,12 +162,6 @@ static const char *PeakGuardSchemaText(){
         "autoSave": {"type": "boolean", "description": "Write text and JSON history files throughout each session."},
         "retentionDays": {"type": "integer", "minimum": 1, "maximum": 3650, "description": "Number of days automatic history files are retained."}
       }
-    },
-    "previousEmergencySources": {
-      "type": "array",
-      "description": "Source UUIDs retained from the last accepted Emergency Monitoring selection.",
-      "items": {"type": "string"},
-      "uniqueItems": true
     }
   }
 })JSON";
@@ -193,19 +173,19 @@ static bool WriteBytesAtomically(const QString &path,const QByteArray &bytes){
     return file.commit();
 }
 
-static void EnsurePeakGuardSupportFiles(){
-    QDir().mkpath(PeakGuardConfigDirectory());
-    if(!QFile::exists(PeakGuardSchemaPath()))WriteBytesAtomically(PeakGuardSchemaPath(),QByteArray(PeakGuardSchemaText()));
-    if(!QFile::exists(PeakGuardDefaultsPath()))WriteBytesAtomically(PeakGuardDefaultsPath(),QJsonDocument(PeakGuardJson(PeakGuardConfig{},false)).toJson(QJsonDocument::Indented));
+static void EnsureClipGuardSupportFiles(){
+    QDir().mkpath(ClipGuardConfigDirectory());
+    if(!QFile::exists(ClipGuardSchemaPath()))WriteBytesAtomically(ClipGuardSchemaPath(),QByteArray(ClipGuardSchemaText()));
+    if(!QFile::exists(ClipGuardDefaultsPath()))WriteBytesAtomically(ClipGuardDefaultsPath(),QJsonDocument(ClipGuardJson(ClipGuardConfig{})).toJson(QJsonDocument::Indented));
 }
 
-static bool SavePeakGuardConfig(const PeakGuardConfig &config,QString *error=nullptr){
-    EnsurePeakGuardSupportFiles();
-    if(!WriteBytesAtomically(PeakGuardConfigPath(),QJsonDocument(PeakGuardJson(config)).toJson(QJsonDocument::Indented))){
-        if(error)*error=QStringLiteral("The Peak Guard configuration file could not be saved.");
+static bool SaveClipGuardConfig(const ClipGuardConfig &config,QString *error=nullptr){
+    EnsureClipGuardSupportFiles();
+    if(!WriteBytesAtomically(ClipGuardConfigPath(),QJsonDocument(ClipGuardJson(config)).toJson(QJsonDocument::Indented))){
+        if(error)*error=QStringLiteral("The ClipGuard configuration file could not be saved.");
         return false;
     }
-    peakGuardConfig=config;peakGuardConfigLoaded=true;peakGuardConfigError.clear();return true;
+    clipGuardConfig=config;clipGuardConfigLoaded=true;clipGuardConfigError.clear();return true;
 }
 
 static bool ReadNumber(const QJsonObject &object,const char *name,double minimum,double maximum,double &value,QString &error){
@@ -218,13 +198,13 @@ static bool ReadInteger(const QJsonObject &object,const char *name,int minimum,i
     if(std::floor(number)!=number){error=QStringLiteral("%1 must be a whole number.").arg(QString::fromLatin1(name));return false;}value=static_cast<int>(number);return true;
 }
 
-static bool LoadPeakGuardConfig(QString *reportedError=nullptr){
-    EnsurePeakGuardSupportFiles();PeakGuardConfig loaded;
-    QFile file(PeakGuardConfigPath());
-    if(!file.exists()){QString error;if(!SavePeakGuardConfig(loaded,&error)){peakGuardConfigError=error;if(reportedError)*reportedError=error;return false;}return true;}
-    if(!file.open(QIODevice::ReadOnly)){peakGuardConfigError=QStringLiteral("The Peak Guard configuration file could not be opened.");if(reportedError)*reportedError=peakGuardConfigError;return false;}
+static bool LoadClipGuardConfig(QString *reportedError=nullptr){
+    EnsureClipGuardSupportFiles();ClipGuardConfig loaded;
+    QFile file(ClipGuardConfigPath());
+    if(!file.exists()){QString error;if(!SaveClipGuardConfig(loaded,&error)){clipGuardConfigError=error;if(reportedError)*reportedError=error;return false;}return true;}
+    if(!file.open(QIODevice::ReadOnly)){clipGuardConfigError=QStringLiteral("The ClipGuard configuration file could not be opened.");if(reportedError)*reportedError=clipGuardConfigError;return false;}
     QJsonParseError parse;QJsonDocument document=QJsonDocument::fromJson(file.readAll(),&parse);
-    if(parse.error!=QJsonParseError::NoError||!document.isObject()){peakGuardConfigError=QStringLiteral("Invalid Peak Guard JSON at offset %1: %2").arg(parse.offset).arg(parse.errorString());if(reportedError)*reportedError=peakGuardConfigError;return false;}
+    if(parse.error!=QJsonParseError::NoError||!document.isObject()){clipGuardConfigError=QStringLiteral("Invalid ClipGuard JSON at offset %1: %2").arg(parse.offset).arg(parse.errorString());if(reportedError)*reportedError=clipGuardConfigError;return false;}
     QJsonObject root=document.object();QString error;
     if(root.value(QStringLiteral("configurationVersion")).toInt()!=1)error=QStringLiteral("configurationVersion must be 1.");
     QJsonObject analysis=root.value(QStringLiteral("analysis")).toObject(),limiter=root.value(QStringLiteral("limiter")).toObject(),history=root.value(QStringLiteral("history")).toObject();
@@ -244,9 +224,8 @@ static bool LoadPeakGuardConfig(QString *reportedError=nullptr){
         QJsonValue autoSave=history.value(QStringLiteral("autoSave"));if(!autoSave.isBool())error=QStringLiteral("autoSave must be true or false.");else loaded.autoSaveHistory=autoSave.toBool();
     }
     if(error.isEmpty()&&!ReadInteger(history,"retentionDays",1,3650,loaded.historyRetentionDays,error)){}
-    QJsonArray previous=root.value(QStringLiteral("previousEmergencySources")).toArray();for(const QJsonValue &value:previous)if(value.isString()&&!loaded.previousSources.contains(value.toString()))loaded.previousSources.push_back(value.toString());
-    if(!error.isEmpty()){peakGuardConfigError=error;if(reportedError)*reportedError=error;return false;}
-    peakGuardConfig=loaded;peakGuardConfigLoaded=true;peakGuardConfigError.clear();return true;
+    if(!error.isEmpty()){clipGuardConfigError=error;if(reportedError)*reportedError=error;return false;}
+    clipGuardConfig=loaded;clipGuardConfigLoaded=true;clipGuardConfigError.clear();return true;
 }
 
 static QString PeakConditionText(PeakCondition condition){
@@ -270,17 +249,17 @@ static QJsonObject PeakEventJson(const PeakHistoryEvent &event){
             {QStringLiteral("condition"),PeakConditionText(event.condition)},
             {QStringLiteral("maximumDb"),event.maximumDb},
             {QStringLiteral("durationMilliseconds"),event.durationMilliseconds},
-            {QStringLiteral("mode"),event.emergency?QStringLiteral("emergency"):QStringLiteral("soundCheck")}};
+            {QStringLiteral("mode"),QStringLiteral("soundCheck")}};
 }
 
 static QString PeakHistoryText(){
-    QString result=QStringLiteral("Accessible OBS Studio Peak Guard\nStarted: %1\n\n").arg(peakHistoryStarted.toString(Qt::ISODateWithMs));
+    QString result=QStringLiteral("Accessible OBS Studio ClipGuard\nStarted: %1\n\n").arg(peakHistoryStarted.toString(Qt::ISODateWithMs));
     for(const PeakHistoryEvent &event:peakHistory)result+=PeakEventLine(event)+QLatin1Char('\n');
     return result;
 }
 
 static void SavePeakHistory(){
-    if(peakHistoryBasePath.isEmpty()||!peakGuardConfig.autoSaveHistory)return;
+    if(peakHistoryBasePath.isEmpty()||!clipGuardConfig.autoSaveHistory)return;
     QJsonArray events;for(const PeakHistoryEvent &event:peakHistory)events.append(PeakEventJson(event));
     QJsonObject root{{QStringLiteral("formatVersion"),1},{QStringLiteral("started"),peakHistoryStarted.toString(Qt::ISODateWithMs)},{QStringLiteral("events"),events}};
     WriteBytesAtomically(peakHistoryBasePath+QStringLiteral(".json"),QJsonDocument(root).toJson(QJsonDocument::Indented));
@@ -288,14 +267,14 @@ static void SavePeakHistory(){
 }
 
 static void RemoveExpiredPeakHistory(){
-    QDir directory(PeakGuardLogsDirectory());if(!directory.exists())return;
-    QDateTime cutoff=QDateTime::currentDateTime().addDays(-peakGuardConfig.historyRetentionDays);
+    QDir directory(ClipGuardLogsDirectory());if(!directory.exists())return;
+    QDateTime cutoff=QDateTime::currentDateTime().addDays(-clipGuardConfig.historyRetentionDays);
     for(const QFileInfo &file:directory.entryInfoList({QStringLiteral("*.txt"),QStringLiteral("*.json")},QDir::Files))if(file.lastModified()<cutoff)QFile::remove(file.absoluteFilePath());
 }
 
 static void BeginPeakHistory(){
-    peakHistory.clear();peakHistoryStarted=QDateTime::currentDateTime();QDir().mkpath(PeakGuardLogsDirectory());RemoveExpiredPeakHistory();
-    peakHistoryBasePath=QDir(PeakGuardLogsDirectory()).filePath(QStringLiteral("peak-guard-%1").arg(peakHistoryStarted.toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"))));
+    peakHistory.clear();peakHistoryStarted=QDateTime::currentDateTime();QDir().mkpath(ClipGuardLogsDirectory());RemoveExpiredPeakHistory();
+    peakHistoryBasePath=QDir(ClipGuardLogsDirectory()).filePath(QStringLiteral("clip-guard-%1").arg(peakHistoryStarted.toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"))));
     SavePeakHistory();
 }
 
@@ -332,7 +311,7 @@ static std::vector<ActivePeakWarning> ActivePeakWarnings(){
 }
 
 static void UpdatePeakWarning(){
-    if(peakGuardMode.load()!=PeakGuardMode::SoundCheck){SetPeakWarningSound(PeakWarningTone::None);peakWarningTargetUuid.clear();peakWarningTargetTone=PeakWarningTone::None;return;}
+    if(clipGuardMode.load()!=ClipGuardMode::SoundCheck){SetPeakWarningSound(PeakWarningTone::None);peakWarningTargetUuid.clear();peakWarningTargetTone=PeakWarningTone::None;return;}
     std::vector<ActivePeakWarning> warnings=ActivePeakWarnings();PeakWarningTone tone=std::any_of(warnings.begin(),warnings.end(),[](const ActivePeakWarning &warning){return warning.tone==PeakWarningTone::Input;})?PeakWarningTone::Input:(warnings.empty()?PeakWarningTone::None:PeakWarningTone::Output);SetPeakWarningSound(tone);
     if(warnings.empty()){peakWarningTargetUuid.clear();peakWarningTargetTone=PeakWarningTone::None;return;}
     auto current=std::find_if(warnings.begin(),warnings.end(),[&](const ActivePeakWarning &warning){return warning.uuid==peakWarningTargetUuid&&warning.tone==peakWarningTargetTone&&warning.tone==tone;});if(current!=warnings.end())return;
@@ -385,7 +364,7 @@ private:
 <head>
 <meta charset="utf-8">
 <meta name="color-scheme" content="light dark">
-<title>Peak Guard Sound Check history</title>
+<title>ClipGuard Sound Check history</title>
 <style>
   :root { font: 17px/1.5 system-ui, sans-serif; color: CanvasText; background: Canvas; }
   body { max-width: 70rem; margin: 0 auto; padding: 1rem 1.25rem 3rem; }
@@ -400,7 +379,7 @@ private:
 </head>
 <body>
 <main>
-  <h1>Peak Guard Sound Check history</h1>
+  <h1>ClipGuard Sound Check history</h1>
   <p>New peak events are added below. Use screen-reader heading or list navigation to review them.</p>
   <p id="started"></p>
   <p id="summary">No peak events recorded.</p>
@@ -474,14 +453,14 @@ private:
     std::vector<QJsonObject> pending_;
 };
 
-class SoundCheckDialog;
-static SoundCheckDialog *SoundCheckDialogPointer();
+class ClipGuardWindow;
+static ClipGuardWindow *ClipGuardWindowPointer();
 
 static void RecordPeakEvent(const PeakHistoryEvent &event);
 
 static void QueuePeakEvent(PeakSource *source,bool input,bool clipping,double maximum,int duration){
-    if(!obsMainWindow||shuttingDown)return;QString uuid=source->uuid,name=source->name;PeakGuardMode mode=peakGuardMode.load();
-    PeakHistoryEvent event{QDateTime::currentDateTime(),uuid,name,input?(clipping?PeakCondition::InputClip:PeakCondition::InputNear):(clipping?PeakCondition::OutputClip:PeakCondition::OutputNear),maximum,duration,mode==PeakGuardMode::Emergency};
+    if(!obsMainWindow||shuttingDown)return;QString uuid=source->uuid,name=source->name;
+    PeakHistoryEvent event{QDateTime::currentDateTime(),uuid,name,input?(clipping?PeakCondition::InputClip:PeakCondition::InputNear):(clipping?PeakCondition::OutputClip:PeakCondition::OutputNear),maximum,duration};
     QMetaObject::invokeMethod(obsMainWindow,[event]{RecordPeakEvent(event);},Qt::QueuedConnection);
 }
 
@@ -505,27 +484,27 @@ static void ProcessPeakLevel(PeakSource *source,LevelTracker &tracker,double val
 }
 
 static void PeakMeterCallback(void *parameter,const float*,const float *peak,const float *inputPeak){
-    auto *source=static_cast<PeakSource*>(parameter);if(!source||!peak||!inputPeak)return;PeakGuardMode mode=peakGuardMode.load();if(mode!=PeakGuardMode::SoundCheck&&mode!=PeakGuardMode::Emergency)return;
-    double output=-INFINITY,input=-INFINITY;for(int channel=0;channel<std::clamp(source->channels,1,PG_MAX_CHANNELS);++channel){if(std::isfinite(peak[channel]))output=std::max(output,static_cast<double>(peak[channel]));if(std::isfinite(inputPeak[channel]))input=std::max(input,static_cast<double>(inputPeak[channel]));}
+    auto *source=static_cast<PeakSource*>(parameter);if(!source||!peak||!inputPeak||clipGuardMode.load()!=ClipGuardMode::SoundCheck)return;
+    double output=-INFINITY,input=-INFINITY;for(int channel=0;channel<std::clamp(source->channels,1,CG_MAX_CHANNELS);++channel){if(std::isfinite(peak[channel]))output=std::max(output,static_cast<double>(peak[channel]));if(std::isfinite(inputPeak[channel]))input=std::max(input,static_cast<double>(inputPeak[channel]));}
     if(!std::isfinite(output)&&!std::isfinite(input))return;auto now=std::chrono::steady_clock::now();std::lock_guard<std::mutex> lock(source->mutex);source->exercised=true;source->maximumOutput=std::max(source->maximumOutput,output);source->maximumInput=std::max(source->maximumInput,input);source->warningInputDb=input;source->warningOutputDb=output;source->warningUpdated=now;
     ProcessPeakLevel(source,source->input,input,true,now);ProcessPeakLevel(source,source->output,output,false,now);
 }
 
 static int CurrentPeakMeterType(){
-    config *profile=api.profile_config?api.profile_config():nullptr;return profile&&api.config_get_uint(profile,"Audio","PeakMeterType")!=0?PG_TRUE_PEAK:PG_SAMPLE_PEAK;
+    config *profile=api.profile_config?api.profile_config():nullptr;return profile&&api.config_get_uint(profile,"Audio","PeakMeterType")!=0?CG_TRUE_PEAK:CG_SAMPLE_PEAK;
 }
 
 static bool AddPeakSource(void *enumerated){
-    if(!enumerated||(api.source_output_flags(enumerated)&PG_AUDIO_FLAG)==0)return true;const char *uuidRaw=api.source_uuid(enumerated);QString uuid=QString::fromUtf8(uuidRaw?uuidRaw:"");if(uuid.isEmpty())return true;
+    if(!enumerated||(api.source_output_flags(enumerated)&CG_AUDIO_FLAG)==0)return true;const char *uuidRaw=api.source_uuid(enumerated);QString uuid=QString::fromUtf8(uuidRaw?uuidRaw:"");if(uuid.isEmpty())return true;
     if(std::any_of(peakSources.begin(),peakSources.end(),[&](const auto &item){return item->uuid==uuid;}))return true;
-    void *reference=api.source_get_ref(enumerated);if(!reference)return true;auto source=std::make_unique<PeakSource>();source->source=reference;source->uuid=uuid;source->name=QString::fromUtf8(api.source_name(reference)?api.source_name(reference):"Audio source");source->config=peakGuardConfig;source->meter=api.volmeter_create(PG_FADER_LOG);
-    if(!source->meter){api.source_release(reference);return true;}api.volmeter_set_peak_type(source->meter,CurrentPeakMeterType());api.volmeter_add_callback(source->meter,PeakMeterCallback,source.get());if(!api.volmeter_attach(source->meter,reference)){api.volmeter_remove_callback(source->meter,PeakMeterCallback,source.get());api.volmeter_destroy(source->meter);api.source_release(reference);return true;}source->channels=std::clamp(api.volmeter_channels(source->meter),1,PG_MAX_CHANNELS);peakSources.push_back(std::move(source));return true;
+    void *reference=api.source_get_ref(enumerated);if(!reference)return true;auto source=std::make_unique<PeakSource>();source->source=reference;source->uuid=uuid;source->name=QString::fromUtf8(api.source_name(reference)?api.source_name(reference):"Audio source");source->config=clipGuardConfig;source->meter=api.volmeter_create(CG_FADER_LOG);
+    if(!source->meter){api.source_release(reference);return true;}api.volmeter_set_peak_type(source->meter,CurrentPeakMeterType());api.volmeter_add_callback(source->meter,PeakMeterCallback,source.get());if(!api.volmeter_attach(source->meter,reference)){api.volmeter_remove_callback(source->meter,PeakMeterCallback,source.get());api.volmeter_destroy(source->meter);api.source_release(reference);return true;}source->channels=std::clamp(api.volmeter_channels(source->meter),1,CG_MAX_CHANNELS);peakSources.push_back(std::move(source));return true;
 }
 
 static bool CollectPeakSource(void*,void *source){return AddPeakSource(source);}
 
 static void RefreshPeakSources(){
-    if(peakGuardMode.load()!=PeakGuardMode::SoundCheck)return;api.enum_sources(CollectPeakSource,nullptr);
+    if(clipGuardMode.load()!=ClipGuardMode::SoundCheck)return;api.enum_sources(CollectPeakSource,nullptr);
 }
 
 static void StopPeakMeters(){
@@ -539,22 +518,24 @@ static void StartAllPeakSources(){
 }
 
 struct FilterScan {
-    bool limiter{};
-    bool enabled{};
-    bool enabledUserLimiter{};
     bool owned{};
     void *ownedFilter{};
+    void *lastFilter{};
+    void *enabledUserLimiter{};
+    double enabledUserLimiterThreshold{};
 };
 
 static void ScanFilter(void*,void *filter,void *parameter){
-    auto *scan=static_cast<FilterScan*>(parameter);const char *id=api.source_id(filter);if(!id||strcmp(id,PG_LIMITER_ID)!=0)return;scan->limiter=true;bool enabled=api.source_enabled(filter);scan->enabled|=enabled;const char *name=api.source_name(filter);obs_data *settings=api.source_settings(filter);bool owned=(name&&strcmp(name,PG_LIMITER_NAME)==0)||(settings&&api.data_get_bool(settings,"peak_guard_managed"));if(settings)api.data_release(settings);if(owned){scan->owned=true;scan->ownedFilter=filter;}else scan->enabledUserLimiter|=enabled;
+    auto *scan=static_cast<FilterScan*>(parameter);scan->lastFilter=filter;const char *id=api.source_id(filter);if(!id||strcmp(id,CG_LIMITER_ID)!=0)return;const char *name=api.source_name(filter);obs_data *settings=api.source_settings(filter);bool owned=(name&&strcmp(name,CG_LIMITER_NAME)==0)||(settings&&api.data_get_bool(settings,"clip_guard_managed"));
+    if(owned){scan->owned=true;scan->ownedFilter=filter;}else if(api.source_enabled(filter)){scan->enabledUserLimiter=filter;scan->enabledUserLimiterThreshold=settings?api.data_get_double(settings,"threshold"):0.0;}
+    if(settings)api.data_release(settings);
 }
 
 static FilterScan SourceLimiterStatus(void *source){FilterScan scan;api.enum_filters(source,ScanFilter,&scan);return scan;}
 
 static std::vector<PeakSourceSnapshot> PeakSnapshots(){
     std::vector<PeakSourceSnapshot> snapshots;snapshots.reserve(peakSources.size());
-    for(const auto &source:peakSources){std::lock_guard<std::mutex> lock(source->mutex);FilterScan limiter=SourceLimiterStatus(source->source);bool enabled=limiter.enabled||temporarilyDisabledOwnedLimiterSources.contains(source->uuid);snapshots.push_back({source->uuid,source->name,source->maximumInput,source->maximumOutput,source->inputEvents,source->outputEvents,source->exercised,limiter.limiter,enabled});}
+    for(const auto &source:peakSources){std::lock_guard<std::mutex> lock(source->mutex);snapshots.push_back({source->uuid,source->name,source->outputEvents});}
     std::sort(snapshots.begin(),snapshots.end(),[](const auto &left,const auto &right){return left.name.compare(right.name,Qt::CaseInsensitive)<0;});return snapshots;
 }
 
@@ -581,134 +562,146 @@ static void RestoreTemporarilyDisabledOwnedLimiters(){
     for(const QString &uuid:sources){void *source=FindSource(uuid);if(!source)continue;FilterScan scan=SourceLimiterStatus(source);if(scan.ownedFilter)api.source_set_enabled(scan.ownedFilter,true);api.source_release(source);}
 }
 
-static bool EnsurePeakGuardLimiter(const QString &uuid,QString &error,bool forceOwned=false){
-    void *source=FindSource(uuid);if(!source){error=QStringLiteral("An audio source selected for protection is no longer available.");return false;}FilterScan scan=SourceLimiterStatus(source);
-    if(scan.enabledUserLimiter&&!forceOwned){api.source_release(source);return true;}
-    obs_data *settings=api.data_create();api.data_set_double(settings,"threshold",peakGuardConfig.limiterThresholdDb);api.data_set_int(settings,"release_time",peakGuardConfig.limiterReleaseMilliseconds);api.data_set_bool(settings,"peak_guard_managed",true);api.data_set_int(settings,"peak_guard_version",1);
-    if(scan.ownedFilter){api.source_update(scan.ownedFilter,settings);api.source_set_enabled(scan.ownedFilter,true);api.data_release(settings);api.source_release(source);return true;}
-    void *filter=api.source_create(PG_LIMITER_ID,PG_LIMITER_NAME,settings,nullptr);api.data_release(settings);if(!filter){api.source_release(source);error=QStringLiteral("OBS could not create the Peak Guard limiter filter.");return false;}api.source_filter_add(source,filter);api.source_release(filter);api.source_release(source);return true;
+static double RequiredLimiterThreshold(void *source){
+    double multiplier=std::max(0.000001,static_cast<double>(api.source_get_volume(source)));double gainDb=20.0*std::log10(multiplier);
+    return std::clamp(clipGuardConfig.limiterThresholdDb-std::max(0.0,gainDb),-60.0,-0.5);
 }
 
-class PeakGuardSettingsDialog final:public QDialog {
+struct LimiterPlan {
+    void *source{};
+    void *filter{};
+    void *createdFilter{};
+    double threshold{};
+    bool needsOwned{};
+};
+
+static void ReleaseLimiterPlans(std::vector<LimiterPlan> &plans){
+    for(LimiterPlan &plan:plans){if(plan.createdFilter){api.source_release(plan.createdFilter);plan.createdFilter=nullptr;}if(plan.source){api.source_release(plan.source);plan.source=nullptr;}}
+}
+
+static bool ApplyClipGuardSafeguards(const std::vector<PeakSourceSnapshot> &snapshots,QString &error){
+    std::vector<LimiterPlan> plans;
+    for(const PeakSourceSnapshot &snapshot:snapshots){
+        if(snapshot.outputEvents<=0)continue;void *source=FindSource(snapshot.uuid);if(!source){error=QStringLiteral("The audio source \"%1\" is no longer available. No ClipGuard limiter changes were accepted.").arg(snapshot.name);ReleaseLimiterPlans(plans);return false;}
+        FilterScan scan=SourceLimiterStatus(source);double threshold=RequiredLimiterThreshold(source);bool effectiveUser=scan.enabledUserLimiter&&scan.lastFilter==scan.enabledUserLimiter&&scan.enabledUserLimiterThreshold<=threshold;
+        plans.push_back({source,scan.ownedFilter,nullptr,threshold,scan.ownedFilter||!effectiveUser});
+    }
+    for(LimiterPlan &plan:plans){
+        if(!plan.needsOwned||plan.filter)continue;obs_data *settings=api.data_create();api.data_set_double(settings,"threshold",plan.threshold);api.data_set_int(settings,"release_time",clipGuardConfig.limiterReleaseMilliseconds);api.data_set_bool(settings,"clip_guard_managed",true);api.data_set_int(settings,"clip_guard_version",1);
+        plan.createdFilter=api.source_create(CG_LIMITER_ID,CG_LIMITER_NAME,settings,nullptr);api.data_release(settings);if(!plan.createdFilter){error=QStringLiteral("OBS could not create a ClipGuard limiter. No ClipGuard limiter changes were accepted.");for(LimiterPlan &rollback:plans)if(rollback.createdFilter)api.source_filter_remove(rollback.source,rollback.createdFilter);ReleaseLimiterPlans(plans);return false;}api.source_filter_add(plan.source,plan.createdFilter);plan.filter=plan.createdFilter;
+    }
+    constexpr int MOVE_BOTTOM=3;
+    for(LimiterPlan &plan:plans){
+        if(!plan.needsOwned||!plan.filter)continue;obs_data *settings=api.data_create();api.data_set_double(settings,"threshold",plan.threshold);api.data_set_int(settings,"release_time",clipGuardConfig.limiterReleaseMilliseconds);api.data_set_bool(settings,"clip_guard_managed",true);api.data_set_int(settings,"clip_guard_version",1);api.source_update(plan.filter,settings);api.data_release(settings);api.source_set_enabled(plan.filter,true);api.source_filter_set_order(plan.source,plan.filter,MOVE_BOTTOM);
+    }
+    ReleaseLimiterPlans(plans);return true;
+}
+
+class ClipGuardSettingsDialog final:public QDialog {
 public:
-    explicit PeakGuardSettingsDialog(QWidget *parent):QDialog(parent){
-        setWindowTitle(QStringLiteral("Peak Guard Settings"));setWindowModality(Qt::ApplicationModal);auto *outer=new QVBoxLayout(this);auto *form=new QFormLayout();
-        near_=DoubleBox(-20.0,-0.6,peakGuardConfig.nearClippingDb,QStringLiteral("Near-clipping threshold in decibels."));clip_=DoubleBox(-6.0,0.0,peakGuardConfig.clippingDb,QStringLiteral("Clipping threshold in decibels."));
-        sustained_=IntegerBox(100,10000,peakGuardConfig.sustainedMilliseconds,QStringLiteral("Near-clipping exposure required before Sound Check records an event."));
-        clipExposure_=IntegerBox(20,2000,peakGuardConfig.clippingExposureMilliseconds,QStringLiteral("Clipping exposure required before Sound Check records an event."));
-        recovery_=IntegerBox(250,30000,peakGuardConfig.recoveryMilliseconds,QStringLiteral("Safe time required before another event from the same source."));
-        cooldown_=IntegerBox(1000,120000,peakGuardConfig.eventCooldownMilliseconds,QStringLiteral("Minimum time between repeated source events."));
-        limiter_=DoubleBox(-20.0,-0.5,peakGuardConfig.limiterThresholdDb,QStringLiteral("Threshold for limiters created by Peak Guard."));
-        release_=IntegerBox(1,1000,peakGuardConfig.limiterReleaseMilliseconds,QStringLiteral("Release time for limiters created by Peak Guard."));
-        retention_=IntegerBox(1,3650,peakGuardConfig.historyRetentionDays,QStringLiteral("Days automatic history files are retained."));
-        autoSave_=new QCheckBox(QStringLiteral("Automatically save Sound Check and Emergency Monitoring history"),this);autoSave_->setChecked(peakGuardConfig.autoSaveHistory);
+    explicit ClipGuardSettingsDialog(QWidget *parent):QDialog(parent){
+        setWindowTitle(QStringLiteral("ClipGuard Settings"));setWindowModality(Qt::ApplicationModal);auto *outer=new QVBoxLayout(this);auto *form=new QFormLayout();
+        near_=DoubleBox(-20.0,-0.6,clipGuardConfig.nearClippingDb,QStringLiteral("Near-clipping threshold in decibels."));clip_=DoubleBox(-6.0,0.0,clipGuardConfig.clippingDb,QStringLiteral("Clipping threshold in decibels."));
+        sustained_=IntegerBox(100,10000,clipGuardConfig.sustainedMilliseconds,QStringLiteral("Near-clipping exposure required before Sound Check records an event."));
+        clipExposure_=IntegerBox(20,2000,clipGuardConfig.clippingExposureMilliseconds,QStringLiteral("Clipping exposure required before Sound Check records an event."));
+        recovery_=IntegerBox(250,30000,clipGuardConfig.recoveryMilliseconds,QStringLiteral("Safe time required before another event from the same source."));
+        cooldown_=IntegerBox(1000,120000,clipGuardConfig.eventCooldownMilliseconds,QStringLiteral("Minimum time between repeated source events."));
+        limiter_=DoubleBox(-20.0,-0.5,clipGuardConfig.limiterThresholdDb,QStringLiteral("Threshold for limiters created by ClipGuard."));
+        release_=IntegerBox(1,1000,clipGuardConfig.limiterReleaseMilliseconds,QStringLiteral("Release time for limiters created by ClipGuard."));
+        retention_=IntegerBox(1,3650,clipGuardConfig.historyRetentionDays,QStringLiteral("Days automatic history files are retained."));
+        autoSave_=new QCheckBox(QStringLiteral("Automatically save completed ClipGuard Sound Check history"),this);autoSave_->setChecked(clipGuardConfig.autoSaveHistory);
         form->addRow(QStringLiteral("Near-clipping threshold, dB:"),near_);form->addRow(QStringLiteral("Clipping threshold, dB:"),clip_);form->addRow(QStringLiteral("Sustained exposure, milliseconds:"),sustained_);form->addRow(QStringLiteral("Clipping exposure, milliseconds:"),clipExposure_);form->addRow(QStringLiteral("Recovery time, milliseconds:"),recovery_);form->addRow(QStringLiteral("Event cooldown, milliseconds:"),cooldown_);form->addRow(QStringLiteral("Limiter threshold, dB:"),limiter_);form->addRow(QStringLiteral("Limiter release, milliseconds:"),release_);form->addRow(QStringLiteral("History retention, days:"),retention_);outer->addLayout(form);outer->addWidget(autoSave_);
         auto *buttons=new QDialogButtonBox(this);auto *defaults=buttons->addButton(QStringLiteral("Restore Defaults"),QDialogButtonBox::ResetRole);auto *save=buttons->addButton(QStringLiteral("Save"),QDialogButtonBox::AcceptRole);buttons->addButton(QStringLiteral("Cancel"),QDialogButtonBox::RejectRole);outer->addWidget(buttons);
-        connect(defaults,&QPushButton::clicked,this,[this]{SetValues(PeakGuardConfig{});});connect(save,&QPushButton::clicked,this,[this]{Save();});connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);resize(650,540);
+        connect(defaults,&QPushButton::clicked,this,[this]{SetValues(ClipGuardConfig{});});connect(save,&QPushButton::clicked,this,[this]{Save();});connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);resize(650,540);
     }
 private:
     QDoubleSpinBox *DoubleBox(double minimum,double maximum,double value,const QString &description){auto *box=new QDoubleSpinBox(this);box->setRange(minimum,maximum);box->setDecimals(1);box->setSingleStep(0.1);box->setSuffix(QStringLiteral(" dB"));box->setValue(value);box->setAccessibleDescription(description);return box;}
     QSpinBox *IntegerBox(int minimum,int maximum,int value,const QString &description){auto *box=new QSpinBox(this);box->setRange(minimum,maximum);box->setValue(value);box->setAccessibleDescription(description);return box;}
-    void SetValues(const PeakGuardConfig &config){near_->setValue(config.nearClippingDb);clip_->setValue(config.clippingDb);sustained_->setValue(config.sustainedMilliseconds);clipExposure_->setValue(config.clippingExposureMilliseconds);recovery_->setValue(config.recoveryMilliseconds);cooldown_->setValue(config.eventCooldownMilliseconds);limiter_->setValue(config.limiterThresholdDb);release_->setValue(config.limiterReleaseMilliseconds);retention_->setValue(config.historyRetentionDays);autoSave_->setChecked(config.autoSaveHistory);}
+    void SetValues(const ClipGuardConfig &config){near_->setValue(config.nearClippingDb);clip_->setValue(config.clippingDb);sustained_->setValue(config.sustainedMilliseconds);clipExposure_->setValue(config.clippingExposureMilliseconds);recovery_->setValue(config.recoveryMilliseconds);cooldown_->setValue(config.eventCooldownMilliseconds);limiter_->setValue(config.limiterThresholdDb);release_->setValue(config.limiterReleaseMilliseconds);retention_->setValue(config.historyRetentionDays);autoSave_->setChecked(config.autoSaveHistory);}
     void Save(){
-        if(near_->value()>=clip_->value()){QMessageBox::warning(this,QStringLiteral("Peak Guard Settings"),QStringLiteral("The near-clipping threshold must be lower than the clipping threshold."));near_->setFocus();return;}
-        PeakGuardConfig updated=peakGuardConfig;updated.nearClippingDb=near_->value();updated.clippingDb=clip_->value();updated.sustainedMilliseconds=sustained_->value();updated.clippingExposureMilliseconds=clipExposure_->value();updated.recoveryMilliseconds=recovery_->value();updated.eventCooldownMilliseconds=cooldown_->value();updated.limiterThresholdDb=limiter_->value();updated.limiterReleaseMilliseconds=release_->value();updated.historyRetentionDays=retention_->value();updated.autoSaveHistory=autoSave_->isChecked();QString error;if(!SavePeakGuardConfig(updated,&error)){QMessageBox::critical(this,QStringLiteral("Peak Guard Settings"),error);return;}accept();
+        if(near_->value()>=clip_->value()){QMessageBox::warning(this,QStringLiteral("ClipGuard Settings"),QStringLiteral("The near-clipping threshold must be lower than the clipping threshold."));near_->setFocus();return;}
+        ClipGuardConfig updated=clipGuardConfig;updated.nearClippingDb=near_->value();updated.clippingDb=clip_->value();updated.sustainedMilliseconds=sustained_->value();updated.clippingExposureMilliseconds=clipExposure_->value();updated.recoveryMilliseconds=recovery_->value();updated.eventCooldownMilliseconds=cooldown_->value();updated.limiterThresholdDb=limiter_->value();updated.limiterReleaseMilliseconds=release_->value();updated.historyRetentionDays=retention_->value();updated.autoSaveHistory=autoSave_->isChecked();QString error;if(!SaveClipGuardConfig(updated,&error)){QMessageBox::critical(this,QStringLiteral("ClipGuard Settings"),error);return;}accept();
     }
     QDoubleSpinBox *near_{},*clip_{},*limiter_{};QSpinBox *sustained_{},*clipExposure_{},*recovery_{},*cooldown_{},*release_{},*retention_{};QCheckBox *autoSave_{};
 };
 
-static bool EditPeakGuardSettings(QWidget *parent){
-    PeakGuardConfig before=peakGuardConfig;PeakGuardSettingsDialog dialog(parent);if(dialog.exec()!=QDialog::Accepted)return false;
-    if(peakGuardMode.load()==PeakGuardMode::SoundCheck){StopPeakWarning();StartAllPeakSources();}
-    return PeakGuardJson(before)!=PeakGuardJson(peakGuardConfig);
+static bool EditClipGuardSettings(QWidget *parent){
+    ClipGuardConfig before=clipGuardConfig;ClipGuardSettingsDialog dialog(parent);if(dialog.exec()!=QDialog::Accepted)return false;
+    if(clipGuardMode.load()==ClipGuardMode::SoundCheck){StopPeakWarning();StartAllPeakSources();}
+    return ClipGuardJson(before)!=ClipGuardJson(clipGuardConfig);
 }
 
-class ProtectionSetupDialog final:public QDialog {
+class ClipGuardWindow final:public QDialog {
 public:
-    ProtectionSetupDialog(std::vector<PeakSourceSnapshot> snapshots,QWidget *parent):QDialog(parent),snapshots_(std::move(snapshots)){
-        setWindowTitle(QStringLiteral("Peak Guard Select Sources"));setWindowModality(Qt::ApplicationModal);auto *outer=new QVBoxLayout(this);auto *instructions=new QLabel(QStringLiteral("Select the audio sources to monitor silently. Peak Guard will use a verified enabled OBS limiter or create its own limiter before Emergency Monitoring starts."),this);instructions->setWordWrap(true);outer->addWidget(instructions);
-        sources_=new QListWidget(this);sources_->setAccessibleName(QStringLiteral("Sources for Emergency Monitoring"));sources_->setSelectionMode(QAbstractItemView::SingleSelection);outer->addWidget(sources_);
-        for(const auto &source:snapshots_){QString status=!source.exercised?QStringLiteral("not exercised"):QStringLiteral("maximum output %1 dB").arg(source.maximumOutput,0,'f',1);if(source.existingLimiter)status+=source.existingLimiterEnabled?QStringLiteral(", existing limiter enabled"):QStringLiteral(", existing limiter disabled");auto *item=new QListWidgetItem(QStringLiteral("%1; %2").arg(source.name,status),sources_);item->setData(Qt::UserRole,source.uuid);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState((source.inputEvents+source.outputEvents)>0?Qt::Checked:Qt::Unchecked);}
-        auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this);ok_=buttons->button(QDialogButtonBox::Ok);ok_->setDefault(true);ok_->setAutoDefault(true);outer->addWidget(buttons);
-        connect(buttons,&QDialogButtonBox::accepted,this,[this]{Start();});connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);sources_->installEventFilter(this);setTabOrder(sources_,ok_);setTabOrder(ok_,buttons->button(QDialogButtonBox::Cancel));resize(760,520);if(sources_->count())sources_->setCurrentRow(0);UpdateOk();connect(sources_,&QListWidget::itemChanged,this,[this](QListWidgetItem*){UpdateOk();});sources_->setFocus(Qt::OtherFocusReason);
+    ClipGuardWindow():QDialog(nullptr){
+        setAttribute(Qt::WA_ShowWithoutActivating);setWindowTitle(QStringLiteral("ClipGuard Window"));setWindowModality(Qt::NonModal);setAttribute(Qt::WA_DeleteOnClose);auto *outer=new QVBoxLayout(this);status_=new QLabel(this);status_->setWordWrap(true);outer->addWidget(status_);history_=new PeakHistoryWebView(this);history_->escapeRequested=[this]{CancelSoundCheck();};outer->addWidget(history_);
+        auto *buttons=new QDialogButtonBox(this);auto *settings=buttons->addButton(QStringLiteral("Settings"),QDialogButtonBox::ActionRole);auto *save=buttons->addButton(QStringLiteral("Save History"),QDialogButtonBox::ActionRole);auto *complete=buttons->addButton(QStringLiteral("Complete Sound Check"),QDialogButtonBox::AcceptRole);auto *cancel=buttons->addButton(QStringLiteral("Cancel Sound Check"),QDialogButtonBox::RejectRole);outer->addWidget(buttons);
+        connect(settings,&QPushButton::clicked,this,[this]{EditClipGuardSettings(this);});connect(save,&QPushButton::clicked,this,[this]{SaveHistoryAs();});connect(complete,&QPushButton::clicked,this,[this]{CompleteSoundCheck(false);});connect(cancel,&QPushButton::clicked,this,[this]{CancelSoundCheck();});statusTimer_=new QTimer(this);statusTimer_->setInterval(100);connect(statusTimer_,&QTimer::timeout,this,[this]{UpdatePeakWarning();if(++statusTicks_>=10){statusTicks_=0;UpdateStatus();}});statusTimer_->start();UpdateStatus();resize(850,600);history_->setFocus(Qt::OtherFocusReason);
     }
-    QStringList selected() const{return selected_;}
-protected:
-    bool eventFilter(QObject *watched,QEvent *event) override{
-        if(watched==sources_&&event->type()==QEvent::KeyPress){auto *key=static_cast<QKeyEvent*>(event);if(key->key()==Qt::Key_Return||key->key()==Qt::Key_Enter){if(ok_->isEnabled())ok_->click();return true;}}
-        return QDialog::eventFilter(watched,event);
-    }
-private:
-    void UpdateOk(){bool selected=false;for(int i=0;i<sources_->count();++i)selected|=sources_->item(i)->checkState()==Qt::Checked;ok_->setEnabled(selected);}
-    void Start(){selected_.clear();for(int i=0;i<sources_->count();++i){auto *item=sources_->item(i);if(item->checkState()==Qt::Checked)selected_.push_back(item->data(Qt::UserRole).toString());}if(selected_.isEmpty()){sources_->setFocus();return;}accept();}
-    std::vector<PeakSourceSnapshot> snapshots_;QListWidget *sources_{};QPushButton *ok_{};QStringList selected_;
-};
-
-class SoundCheckDialog final:public QDialog {
-public:
-    SoundCheckDialog():QDialog(nullptr){
-        setAttribute(Qt::WA_ShowWithoutActivating);setWindowTitle(QStringLiteral("Peak Guard Sound Check"));setWindowModality(Qt::NonModal);setAttribute(Qt::WA_DeleteOnClose);auto *outer=new QVBoxLayout(this);status_=new QLabel(this);status_->setWordWrap(true);outer->addWidget(status_);history_=new PeakHistoryWebView(this);history_->escapeRequested=[this]{CancelSoundCheck();};outer->addWidget(history_);
-        auto *buttons=new QDialogButtonBox(this);auto *settings=buttons->addButton(QStringLiteral("Settings"),QDialogButtonBox::ActionRole);auto *save=buttons->addButton(QStringLiteral("Save History"),QDialogButtonBox::ActionRole);auto *finish=buttons->addButton(QStringLiteral("Finish Sound Check"),QDialogButtonBox::AcceptRole);auto *cancel=buttons->addButton(QStringLiteral("Cancel"),QDialogButtonBox::RejectRole);outer->addWidget(buttons);
-        connect(settings,&QPushButton::clicked,this,[this]{EditPeakGuardSettings(this);});connect(save,&QPushButton::clicked,this,[this]{SaveHistoryAs();});connect(finish,&QPushButton::clicked,this,[this]{Finish();});connect(cancel,&QPushButton::clicked,this,[this]{CancelSoundCheck();});statusTimer_=new QTimer(this);statusTimer_->setInterval(100);connect(statusTimer_,&QTimer::timeout,this,[this]{UpdatePeakWarning();if(++statusTicks_>=10){statusTicks_=0;UpdateStatus();}});statusTimer_->start();UpdateStatus();resize(850,600);history_->setFocus(Qt::OtherFocusReason);
-    }
-    void AppendEvent(const PeakHistoryEvent &event){
-        history_->AppendEvent(event);
-    }
+    void AppendEvent(const PeakHistoryEvent &event){history_->AppendEvent(event);}
     void BringForward(){if(isMinimized())showNormal();show();raise();activateWindow();}
-    void FinishFromHotkey(){Finish();}
+    void CancelSoundCheck(){
+        if(transitioning_||NestedDialogOpen())return;transitioning_=true;StopPeakWarning();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();DiscardPeakHistory();clipGuardMode=ClipGuardMode::Idle;allowClose_=true;close();
+    }
+    void CompleteSoundCheck(bool automatic){
+        if(transitioning_)return;
+        if(NestedDialogOpen()){
+            if(!automatic||automaticCompletionQueued_)return;
+            automaticCompletionQueued_=true;QPointer<ClipGuardWindow> self(this);QApplication::activeModalWidget()->close();
+            QTimer::singleShot(0,this,[self]{if(!self)return;self->automaticCompletionQueued_=false;self->CompleteSoundCheck(true);});
+            return;
+        }
+        transitioning_=true;StopPeakWarning();std::vector<PeakSourceSnapshot> snapshots=PeakSnapshots();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();QString error;
+        if(!ApplyClipGuardSafeguards(snapshots,error)){
+            if(automatic){SavePeakHistory();clipGuardMode=ClipGuardMode::Idle;allowClose_=true;close();QMessageBox::warning(obsMainWindow,QStringLiteral("ClipGuard"),error);return;}
+            TemporarilyDisableOwnedLimiters();StartAllPeakSources();transitioning_=false;QMessageBox::critical(this,QStringLiteral("ClipGuard"),error);return;
+        }
+        SavePeakHistory();if(api.frontend_save)api.frontend_save();clipGuardMode=ClipGuardMode::Idle;allowClose_=true;close();
+    }
+    void reject() override{CancelSoundCheck();}
 protected:
     void closeEvent(QCloseEvent *event) override{if(allowClose_){event->accept();return;}event->ignore();CancelSoundCheck();}
 private:
-    void UpdateStatus(){int exercised=0;for(const auto &source:peakSources){std::lock_guard<std::mutex> lock(source->mutex);if(source->exercised)++exercised;}status_->setText(QStringLiteral("Sound Check active. Monitoring %1 audio sources; %2 exercised; %3 events recorded. You may switch back to OBS while this window continues updating.").arg(peakSources.size()).arg(exercised).arg(peakHistory.size()));}
-    void SaveHistoryAs(){QString path=QFileDialog::getSaveFileName(this,QStringLiteral("Save Peak Guard History"),QDir::home().filePath(QStringLiteral("Peak Guard Sound Check.txt")),QStringLiteral("Text files (*.txt);;All files (*.*)"));if(path.isEmpty())return;if(!WriteBytesAtomically(path,PeakHistoryText().toUtf8()))QMessageBox::critical(this,QStringLiteral("Peak Guard"),QStringLiteral("The history file could not be saved."));}
-    void CancelSoundCheck(){if(transitioning_)return;transitioning_=true;StopPeakWarning();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();DiscardPeakHistory();peakGuardMode=PeakGuardMode::Idle;allowClose_=true;close();}
-    void Finish(){
-        if(transitioning_)return;transitioning_=true;StopPeakWarning();std::vector<PeakSourceSnapshot> snapshots=PeakSnapshots();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();peakGuardMode=PeakGuardMode::ProtectionSetup;hide();ProtectionSetupDialog setup(std::move(snapshots),nullptr);protectionSetupWindow=&setup;int result=setup.exec();protectionSetupWindow=nullptr;
-        if(result!=QDialog::Accepted){DiscardPeakHistory();peakGuardMode=PeakGuardMode::Idle;allowClose_=true;close();return;}
-        SavePeakHistory();QStringList selected=setup.selected();QString error;for(const QString &uuid:selected)if(!EnsurePeakGuardLimiter(uuid,error)){QMessageBox::critical(obsMainWindow,QStringLiteral("Peak Guard"),error);peakGuardMode=PeakGuardMode::Idle;allowClose_=true;close();return;}
-        peakGuardConfig.previousSources=selected;if(!SavePeakGuardConfig(peakGuardConfig,&error))QMessageBox::warning(this,QStringLiteral("Peak Guard"),error);if(api.frontend_save)api.frontend_save();BeginPeakHistory();peakGuardMode=PeakGuardMode::Emergency;for(const QString &uuid:selected){void *source=FindSource(uuid);if(source){AddPeakSource(source);api.source_release(source);}}
-        allowClose_=true;close();
-    }
-    QLabel *status_{};PeakHistoryWebView *history_{};QTimer *statusTimer_{};int statusTicks_{};bool allowClose_{},transitioning_{};
+    bool NestedDialogOpen() const{QWidget *modal=QApplication::activeModalWidget();return modal&&modal!=this;}
+    void UpdateStatus(){int exercised=0;for(const auto &source:peakSources){std::lock_guard<std::mutex> lock(source->mutex);if(source->exercised)++exercised;}status_->setText(QStringLiteral("ClipGuard Sound Check active. Monitoring %1 audio sources; %2 exercised; %3 events recorded. Press Ctrl+Shift+P or activate Complete Sound Check to accept the results and safeguards.").arg(peakSources.size()).arg(exercised).arg(peakHistory.size()));}
+    void SaveHistoryAs(){QString path=QFileDialog::getSaveFileName(this,QStringLiteral("Save ClipGuard History"),QDir::home().filePath(QStringLiteral("ClipGuard Sound Check.txt")),QStringLiteral("Text files (*.txt);;All files (*.*)"));if(path.isEmpty())return;if(!WriteBytesAtomically(path,PeakHistoryText().toUtf8()))QMessageBox::critical(this,QStringLiteral("ClipGuard"),QStringLiteral("The history file could not be saved."));}
+    QLabel *status_{};PeakHistoryWebView *history_{};QTimer *statusTimer_{};int statusTicks_{};bool allowClose_{},transitioning_{},automaticCompletionQueued_{};
 };
 
-static SoundCheckDialog *SoundCheckDialogPointer(){return static_cast<SoundCheckDialog*>(soundCheckWindow.data());}
+static ClipGuardWindow *ClipGuardWindowPointer(){return static_cast<ClipGuardWindow*>(clipGuardWindow.data());}
 
 static void RecordPeakEvent(const PeakHistoryEvent &event){
-    PeakGuardMode mode=peakGuardMode.load();if(mode!=PeakGuardMode::SoundCheck&&mode!=PeakGuardMode::Emergency)return;peakHistory.push_back(event);SavePeakHistory();
-    if(mode==PeakGuardMode::SoundCheck){if(auto *window=SoundCheckDialogPointer())window->AppendEvent(event);}
-    else if(event.condition==PeakCondition::OutputNear||event.condition==PeakCondition::OutputClip){QString error;if(EnsurePeakGuardLimiter(event.uuid,error,true)&&api.frontend_save)api.frontend_save();}
+    if(clipGuardMode.load()!=ClipGuardMode::SoundCheck)return;peakHistory.push_back(event);SavePeakHistory();if(auto *window=ClipGuardWindowPointer())window->AppendEvent(event);
 }
 
 static void StartSoundCheck(){
-    if(api.streaming_active&&api.streaming_active()){QMessageBox::information(obsMainWindow,QStringLiteral("Peak Guard"),QStringLiteral("Peak Guard Sound Check is unavailable while streaming."));return;}
-    QString error;if(!LoadPeakGuardConfig(&error)){QMessageBox::critical(obsMainWindow,QStringLiteral("Peak Guard Configuration"),QStringLiteral("%1\n\nPeak Guard will use safe defaults until the file is corrected in Settings.").arg(error));peakGuardConfig=PeakGuardConfig{};peakGuardConfigLoaded=true;}
-    BeginPeakHistory();peakGuardMode=PeakGuardMode::SoundCheck;TemporarilyDisableOwnedLimiters();StartAllPeakSources();auto *window=new SoundCheckDialog();soundCheckWindow=window;QObject::connect(window,&QObject::destroyed,[]{soundCheckWindow=nullptr;});window->setAttribute(Qt::WA_ShowWithoutActivating);window->show();
-}
-
-static void StopEmergencyMonitoring(){
-    StopPeakMeters();SavePeakHistory();peakGuardMode=PeakGuardMode::Idle;
+    if((api.streaming_active&&api.streaming_active())||(api.recording_active&&api.recording_active())){QMessageBox::information(obsMainWindow,QStringLiteral("ClipGuard"),QStringLiteral("ClipGuard Sound Check is unavailable while streaming or recording."));return;}
+    QString error;if(!LoadClipGuardConfig(&error)){QMessageBox::critical(obsMainWindow,QStringLiteral("ClipGuard Configuration"),QStringLiteral("%1\n\nClipGuard will use safe defaults until the file is corrected in Settings.").arg(error));clipGuardConfig=ClipGuardConfig{};clipGuardConfigLoaded=true;}
+    BeginPeakHistory();clipGuardMode=ClipGuardMode::SoundCheck;TemporarilyDisableOwnedLimiters();StartAllPeakSources();auto *window=new ClipGuardWindow();clipGuardWindow=window;QObject::connect(window,&QObject::destroyed,[]{clipGuardWindow=nullptr;});window->showMinimized();
 }
 
 } // namespace
 
-static std::string PeakGuardCommandLabel(){return ".Peak Guard Sound Check and Emergency Monitoring";}
+static std::string ClipGuardCommandLabel(){return ".ClipGuard Sound Check";}
+static std::string CancelClipGuardCommandLabel(){return ".Cancel ClipGuard Sound Check";}
 
-static void PeakGuardHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
+static void ClipGuardHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
     if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{
-        PeakGuardMode mode=peakGuardMode.load();
-        if(mode==PeakGuardMode::Idle){StartSoundCheck();return;}
-        if(mode==PeakGuardMode::Emergency){StopEmergencyMonitoring();return;}
-        if(mode==PeakGuardMode::SoundCheck){if(auto *window=SoundCheckDialogPointer())window->FinishFromHotkey();return;}
-        if(mode==PeakGuardMode::ProtectionSetup&&protectionSetupWindow){protectionSetupWindow->raise();protectionSetupWindow->activateWindow();}
+        if(clipGuardMode.load()==ClipGuardMode::Idle){StartSoundCheck();return;}
+        if(auto *window=ClipGuardWindowPointer())window->CompleteSoundCheck(false);
     },Qt::QueuedConnection);
 }
 
-static void ShutdownPeakGuard(){
-    PeakGuardMode mode=peakGuardMode.load();StopPeakWarning();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();if(mode==PeakGuardMode::SoundCheck||mode==PeakGuardMode::ProtectionSetup)DiscardPeakHistory();else SavePeakHistory();peakGuardMode=PeakGuardMode::Idle;if(soundCheckWindow){delete soundCheckWindow.data();soundCheckWindow=nullptr;}
+static void CancelClipGuardHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
+    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{if(clipGuardMode.load()==ClipGuardMode::SoundCheck)if(auto *window=ClipGuardWindowPointer())window->CancelSoundCheck();},Qt::QueuedConnection);
 }
 
-static void HandlePeakGuardFrontendEvent(int event){
-    constexpr int STREAMING_STARTING=0;if(event!=STREAMING_STARTING||peakGuardMode.load()!=PeakGuardMode::SoundCheck||!obsMainWindow)return;
-    QMetaObject::invokeMethod(obsMainWindow,[]{if(soundCheckWindow)soundCheckWindow->close();},Qt::QueuedConnection);
+static void ShutdownClipGuard(){
+    StopPeakWarning();StopPeakMeters();RestoreTemporarilyDisabledOwnedLimiters();if(clipGuardMode.load()==ClipGuardMode::SoundCheck)DiscardPeakHistory();clipGuardMode=ClipGuardMode::Idle;if(clipGuardWindow){delete clipGuardWindow.data();clipGuardWindow=nullptr;}
+}
+
+static void HandleClipGuardFrontendEvent(int event){
+    constexpr int STREAMING_STARTING=0,RECORDING_STARTING=4,EXIT=17;if(clipGuardMode.load()!=ClipGuardMode::SoundCheck)return;
+    if(event==STREAMING_STARTING||event==RECORDING_STARTING){if(auto *window=ClipGuardWindowPointer())window->CompleteSoundCheck(true);}
+    else if(event==EXIT)ShutdownClipGuard();
 }
