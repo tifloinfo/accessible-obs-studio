@@ -164,7 +164,7 @@ private:
     qint64 lastSeekMs_{};
     bool pending_{};
 };
-static MediaSeekEventFilter *mediaSeekEventFilter{};
+static QPointer<MediaSeekEventFilter> mediaSeekEventFilter;
 
 static void CycleInterfaceArea(bool backwards){
     if(!MainInterfaceActive())return;auto regions=InterfaceRegions();if(regions.empty())return;

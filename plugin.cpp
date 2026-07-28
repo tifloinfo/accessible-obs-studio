@@ -206,7 +206,7 @@ static CanvasCapture *activeCapture{};
 static std::mutex captureMutex;
 static QPointer<QWidget> canvasReturnFocus;
 static QMetaObject::Connection hotkeyFocusConnection;
-static QTimer *hotkeyFocusGuardTimer{};
+static QPointer<QTimer> hotkeyFocusGuardTimer;
 static constexpr const char *NEXT_AREA_NAME="accessible_obs_studio.next_interface_area";
 static constexpr const char *PREVIOUS_AREA_NAME="accessible_obs_studio.previous_interface_area";
 static constexpr std::array<const char*,5> CANVAS_HOTKEY_NAMES={"accessible_obs_studio.describe_canvas","accessible_obs_studio.describe_canvas_detailed","accessible_obs_studio.read_canvas_text","accessible_obs_studio.describe_people_backgrounds","accessible_obs_studio.analyze_canvas_issues"};
@@ -601,7 +601,7 @@ extern "C" __declspec(dllexport) void obs_module_unload(){
     if(api.unregister_hotkey&&volumeConsoleHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(volumeConsoleHotkey);
     if(api.unregister_hotkey&&statusInformationHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(statusInformationHotkey);
     if(api.unregister_hotkey&&pauseRecordingHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(pauseRecordingHotkey);
-    if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);if(mediaSeekEventFilter){qApp->removeEventFilter(mediaSeekEventFilter);delete mediaSeekEventFilter;mediaSeekEventFilter=nullptr;}QObject::disconnect(hotkeyFocusConnection);if(hotkeyFocusGuardTimer){hotkeyFocusGuardTimer->stop();delete hotkeyFocusGuardTimer;hotkeyFocusGuardTimer=nullptr;}
+    if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);if(mediaSeekEventFilter){qApp->removeEventFilter(mediaSeekEventFilter.data());delete mediaSeekEventFilter.data();mediaSeekEventFilter=nullptr;}QObject::disconnect(hotkeyFocusConnection);if(hotkeyFocusGuardTimer){hotkeyFocusGuardTimer->stop();delete hotkeyFocusGuardTimer.data();hotkeyFocusGuardTimer=nullptr;}
     if(comInitialized){CoUninitialize();comInitialized=false;}
 }
 BOOL WINAPI DllMain(HINSTANCE h,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){instance=h;DisableThreadLibraryCalls(h);}return TRUE;}
