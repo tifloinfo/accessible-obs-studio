@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.7
+# Accessible OBS Studio 1.1, test de robustesse ClipGuard
 
 Accessible OBS Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.
 
@@ -58,6 +58,10 @@ Le mode **Personnes et arrière-plans** donne la priorité aux personnes visible
 Lors du choix d’une correction automatique, la liste ne contient que les sources capables de produire de la vidéo ; s’il n’y en a qu’une, elle est sélectionnée automatiquement. Pour un contenu mal positionné, **Ajuster au canevas** est prioritaire. Après approbation, une nouvelle image est capturée uniquement pour vérifier si l’agrandissement a produit un flou, un grain, du bruit ou une pixellisation inutilisables. Si la qualité n’est pas acceptable ou ne peut pas être confirmée, l’ajustement est automatiquement annulé et **Centrer complètement** est appliqué. **Étirer à l’écran** n’est jamais proposé.
 
 La clé API est validée avant l’enregistrement, conservée dans le Gestionnaire d’informations d’identification Windows et jamais affichée. Sa suppression demande confirmation et affiche un message de réussite.
+
+## ClipGuard
+
+Ctrl+Maj+P démarre la vérification sonore ClipGuard ; une seconde pression la termine et accepte l’historique et les limiteurs de protection. La vérification surveille toutes les sources audio, émet une tonalité continue plus aiguë pour une sortie dangereuse et plus grave pour une entrée dangereuse, puis ouvre la console de volume avec le focus sur la source la plus touchée. La fenêtre ClipGuard réduite reste accessible par Alt+Tab. Échap dans cette fenêtre ou la commande non assignée **Annuler la vérification sonore ClipGuard** supprime l’historique et les limiteurs proposés. Le démarrage d’une diffusion ou d’un enregistrement termine automatiquement une vérification active.
 
 ## Confidentialité et licence
 

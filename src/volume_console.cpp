@@ -51,8 +51,8 @@ static int MixerRank(const QString &name,const std::vector<QString> &mixerNames)
 struct AudioSourceCollection{std::vector<VolumeEntry> *entries{};bool activeOnly{};};
 
 static bool CollectAudioSource(void *parameter,void *source){
-    auto *collection=static_cast<AudioSourceCollection*>(parameter);constexpr uint32_t AUDIO_FLAG=1u<<1;if(!source||(api.source_output_flags(source)&AUDIO_FLAG)==0||!api.source_audio_active(source))return true;
-    bool active=api.source_active(source);if(collection->activeOnly&&!active)return true;
+    auto *collection=static_cast<AudioSourceCollection*>(parameter);constexpr uint32_t AUDIO_FLAG=1u<<1;if(!source||(api.source_output_flags(source)&AUDIO_FLAG)==0)return true;
+    bool active=api.source_active(source)&&api.source_audio_active(source);if(collection->activeOnly&&!active)return true;
     void *reference=api.source_get_ref(source);if(!reference)return true;const char *rawUuid=api.source_uuid(reference),*rawName=api.source_name(reference);QString name=QString::fromUtf8(rawName?rawName:"");if(name.isEmpty())name=LText(LocalText::AudioSource);VolumeEntry entry;entry.source=reference;entry.uuid=QString::fromUtf8(rawUuid?rawUuid:"");entry.name=std::move(name);entry.active=active;collection->entries->push_back(std::move(entry));return true;
 }
 
@@ -73,7 +73,7 @@ public:
         panel_=new QWidget(scroll_);sourceLayout_=new QHBoxLayout(panel_);sourceLayout_->setAlignment(Qt::AlignLeft);emptyMessage_=new QLabel(VText(NO_AUDIO_SOURCES),panel_);emptyMessage_->setWordWrap(true);sourceLayout_->addWidget(emptyMessage_);sourceLayout_->addStretch(1);scroll_->setWidget(panel_);
         buttons_=new QDialogButtonBox(QDialogButtonBox::Close,this);if(QPushButton *close=buttons_->button(QDialogButtonBox::Close))close->setText(QString::fromWCharArray(Tr(UiText::Close)));connect(buttons_,&QDialogButtonBox::rejected,this,&QDialog::reject);connect(buttons_,&QDialogButtonBox::accepted,this,&QDialog::accept);outer->addWidget(buttons_);
         connect(sourceViewButton_,&QPushButton::clicked,this,[this]{ToggleSourceView();});
-        InitializeSources(CurrentMixerEntries(true));if(!initialSourceUuid.isEmpty()&&FocusSource(initialSourceUuid)){}else if(!sources_.empty())FocusIndex(0);else sourceViewButton_->setFocus(Qt::OtherFocusReason);
+        InitializeSources(CurrentMixerEntries(true));refreshTimer_=new QTimer(this);refreshTimer_->setInterval(500);connect(refreshTimer_,&QTimer::timeout,this,[this]{RefreshFromObs();});refreshTimer_->start();if(!initialSourceUuid.isEmpty()&&FocusSource(initialSourceUuid)){}else if(!sources_.empty())FocusIndex(0);else sourceViewButton_->setFocus(Qt::OtherFocusReason);
     }
     ~VolumeConsoleDialog() override{ReleaseSources();}
     bool FocusSource(const QString &uuid){
@@ -139,8 +139,32 @@ private:
         connect(entry.monitoringButton,&QPushButton::clicked,this,[this,source]{auto found=std::find_if(sources_.begin(),sources_.end(),[source](const VolumeEntry &candidate){return candidate.source==source;});if(found!=sources_.end())ToggleMonitoring(static_cast<int>(std::distance(sources_.begin(),found)));});
     }
     void InitializeSources(std::vector<VolumeEntry> entries){sources_=std::move(entries);emptyMessage_->setText(VText(activeOnlyState_?NO_ACTIVE_AUDIO_SOURCES:NO_AUDIO_SOURCES));emptyMessage_->setVisible(sources_.empty());for(size_t index=0;index<sources_.size();++index){CreateControls(sources_[index],static_cast<int>(index));sourceLayout_->insertWidget(static_cast<int>(index),sources_[index].column);}}
-    void RebuildSources(bool activeOnly){ReleaseSources();InitializeSources(CurrentMixerEntries(activeOnly));}
-    bool activeOnlyState_{true};QPushButton *sourceViewButton_{};QScrollArea *scroll_{};QWidget *panel_{};QHBoxLayout *sourceLayout_{};QLabel *emptyMessage_{};QDialogButtonBox *buttons_{};std::vector<VolumeEntry> sources_;
+    void RebuildSources(bool activeOnly){
+        QString focusedUuid;int focused=FocusedIndex();if(focused>=0)focusedUuid=sources_[static_cast<size_t>(focused)].uuid;
+        ReleaseSources();InitializeSources(CurrentMixerEntries(activeOnly));
+        int replacement=-1;for(size_t index=0;index<sources_.size();++index)if(sources_[index].uuid==focusedUuid){replacement=static_cast<int>(index);break;}
+        if(replacement>=0)FocusIndex(replacement);else if(!sources_.empty())FocusIndex(0);else sourceViewButton_->setFocus(Qt::OtherFocusReason);
+    }
+    void RefreshFromObs(){
+        std::vector<VolumeEntry> current=CurrentMixerEntries(activeOnlyState_);
+        bool changed=current.size()!=sources_.size();
+        if(!changed)for(size_t index=0;index<current.size();++index)if(current[index].uuid!=sources_[index].uuid){changed=true;break;}
+        if(changed){
+            for(VolumeEntry &entry:current)if(entry.source)api.source_release(entry.source);
+            RebuildSources(activeOnlyState_);
+            return;
+        }
+        for(VolumeEntry &entry:current)if(entry.source)api.source_release(entry.source);
+        for(VolumeEntry &entry:sources_){
+            int value=VolumeToDb(api.source_get_volume(entry.source));int maximum=std::max({0,entry.maximumValue,value});
+            if(entry.slider&&(entry.value!=value||entry.maximumValue!=maximum)){
+                QSignalBlocker blocker(entry.slider);entry.maximumValue=maximum;entry.value=value;entry.slider->setMaximum(maximum);entry.slider->setValue(value);UpdateValueVisual(entry);
+            }
+            const int monitorType=api.source_monitoring_type(entry.source);const bool monitoring=monitorType!=0;const bool output=!api.source_muted(entry.source)&&monitorType!=1;
+            if(entry.monitoringEnabled!=monitoring||entry.outputEnabled!=output){entry.monitoringEnabled=monitoring;entry.outputEnabled=output;UpdateRoutingVisuals(entry);}
+        }
+    }
+    bool activeOnlyState_{true};QPushButton *sourceViewButton_{};QScrollArea *scroll_{};QWidget *panel_{};QHBoxLayout *sourceLayout_{};QLabel *emptyMessage_{};QDialogButtonBox *buttons_{};QTimer *refreshTimer_{};std::vector<VolumeEntry> sources_;
 };
 
 static QPointer<VolumeConsoleDialog> volumeConsoleWindow;
@@ -158,7 +182,7 @@ static void OpenVolumeConsoleForSource(const QString &sourceUuid,bool automatic)
 }
 
 static void VolumeConsoleHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow||shuttingDown)return;QMetaObject::invokeMethod(obsMainWindow,[]{OpenVolumeConsoleForSource({},false);},Qt::QueuedConnection);
+    if(!pressed||!PluginEventTarget()||shuttingDown)return;QMetaObject::invokeMethod(PluginEventTarget(),[]{OpenVolumeConsoleForSource({},false);},Qt::QueuedConnection);
 }
 
 static void ShutdownVolumeConsole(){

@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.7
+# Accessible OBS Studio 1.1, prueba de robustez de ClipGuard
 
 Accessible OBS Studio es un complemento de accesibilidad para OBS Studio 32 de 64 bits en Windows 10 y 11. Está pensado para usuarios ciegos de teclado y lector de pantalla, y se ha probado con JAWS y NVDA. La clave de API de OpenAI e Internet solo son necesarios para las funciones de OpenAI.
 
@@ -58,6 +58,10 @@ El modo **Personas y fondos** da prioridad a las personas visibles y después de
 Al elegir una corrección automática, la lista solo contiene fuentes con capacidad de vídeo; si solo hay una, se selecciona automáticamente. Para contenido mal colocado se da prioridad a **Ajustar al lienzo**. Tras la aprobación se captura una imagen nueva y se comprueba únicamente si la ampliación produjo desenfoque, grano, ruido o pixelación inutilizables. Si la calidad no es aceptable o no se puede confirmar, el ajuste se deshace automáticamente y se aplica **Centrar por completo**. **Estirar a la pantalla** nunca se ofrece.
 
 La clave de API se valida antes de guardarla, se almacena en el Administrador de credenciales de Windows y nunca se muestra. Para eliminarla se pide confirmación y se anuncia el resultado correcto.
+
+## ClipGuard
+
+Ctrl+Mayús+P inicia la comprobación de sonido de ClipGuard; una segunda pulsación la completa y acepta el historial y los limitadores de protección. La comprobación supervisa todas las fuentes de audio, emite un tono continuo más agudo para niveles de salida peligrosos y uno más grave para niveles de entrada peligrosos, y abre la Consola de volumen con el foco en la fuente más afectada. La ventana minimizada de ClipGuard está disponible con Alt+Tab. Escape en esa ventana o el comando sin asignar **Cancelar la comprobación de sonido de ClipGuard** descarta el historial y los limitadores propuestos. Iniciar una emisión o grabación completa automáticamente una comprobación activa.
 
 ## Privacidad y licencia
 

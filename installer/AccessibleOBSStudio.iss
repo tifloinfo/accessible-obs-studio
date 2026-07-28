@@ -1,5 +1,5 @@
 #define AppName "Accessible OBS Studio"
-#define AppVersion "1.0.7"
+#define AppVersion "1.1.0-test.1"
 #define Publisher "Tiflo.Info"
 #define Website "https://tiflo.info"
 #define ObsWebsite "https://obsproject.com/download"
@@ -20,7 +20,7 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE.txt
 OutputDir=..\..\outputs
-OutputBaseFilename=AccessibleOBSStudio-1.0.7-Setup
+OutputBaseFilename=AccessibleOBSStudio-1.1.0-ClipGuard-Hardening-Test-Setup
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
@@ -33,9 +33,9 @@ SetupIconFile=
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayName={#AppName} {#AppVersion}
-VersionInfoVersion=1.0.7.0
+VersionInfoVersion=1.1.0.1
 VersionInfoCompany={#Publisher}
-VersionInfoDescription={#AppName} installer
+VersionInfoDescription={#AppName} ClipGuard hardening test installer
 VersionInfoCopyright=Copyright (C) 2026 {#Publisher}
 
 [Languages]
@@ -60,6 +60,7 @@ english.VCRuntimeDownloadError=The Microsoft Visual C++ Runtime is required, but
 english.VCRuntimeInstallError=The Microsoft Visual C++ Runtime could not be installed. Error code:
 english.WebView2DownloadError=Microsoft Edge WebView2 Runtime is required, but it could not be downloaded. Check the Internet connection and try again.
 english.WebView2InstallError=Microsoft Edge WebView2 Runtime could not be installed. Error code:
+english.MicrosoftSignatureError=Setup refused to run a downloaded prerequisite because its valid Microsoft digital signature could not be verified.
 english.ObsNotInstalled=Setup could not find an installed 64-bit copy of OBS Studio. OBS Studio 32.0 or later is required. Setup will close without changing your system.%n%nWould you like to open the official OBS Studio download page now?%n
 english.ObsRegistrationBroken=Setup found an OBS Studio registration, but could not locate or validate the OBS Studio program file. The installation may be incomplete or damaged. Reinstall or repair OBS Studio, then run this setup again. Setup will close without making changes.%n%nWould you like to open the official OBS Studio download page now?%n
 english.ObsTooOld=This version of Accessible OBS Studio requires OBS Studio 32.0 or later. Setup found: %1.%n%nUpdate OBS Studio by using Help > Check for Updates in OBS Studio, or download it from the official website. Setup will close without making changes.%n%nWould you like to open the official OBS Studio download page now?%n
@@ -83,6 +84,7 @@ german.VCRuntimeDownloadError=Microsoft Visual C++ Runtime ist erforderlich, kon
 german.VCRuntimeInstallError=Microsoft Visual C++ Runtime konnte nicht installiert werden. Fehlercode:
 german.WebView2DownloadError=Microsoft Edge WebView2 Runtime ist erforderlich, konnte aber nicht heruntergeladen werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.
 german.WebView2InstallError=Microsoft Edge WebView2 Runtime konnte nicht installiert werden. Fehlercode:
+german.MicrosoftSignatureError=Setup hat die Ausführung einer heruntergeladenen Komponente verweigert, weil ihre gültige digitale Microsoft-Signatur nicht überprüft werden konnte.
 german.ObsNotInstalled=Setup konnte keine installierte 64-Bit-Version von OBS Studio finden. OBS Studio 32.0 oder neuer ist erforderlich. Setup wird beendet, ohne Ihr System zu ändern.%n%nMöchten Sie jetzt die offizielle Download-Seite von OBS Studio öffnen?%n
 german.ObsRegistrationBroken=Setup hat eine OBS-Studio-Registrierung gefunden, konnte die Programmdatei jedoch nicht finden oder prüfen. Die Installation ist möglicherweise unvollständig oder beschädigt. Reparieren oder installieren Sie OBS Studio neu und starten Sie dieses Setup erneut. Setup wird ohne Änderungen beendet.%n%nMöchten Sie jetzt die offizielle Download-Seite öffnen?%n
 german.ObsTooOld=Diese Version von Accessible OBS Studio benötigt OBS Studio 32.0 oder neuer. Gefunden wurde: %1.%n%nAktualisieren Sie OBS Studio über Hilfe > Nach Updates suchen oder laden Sie es von der offiziellen Website herunter. Setup wird ohne Änderungen beendet.%n%nMöchten Sie jetzt die offizielle Download-Seite öffnen?%n
@@ -106,6 +108,7 @@ spanish.VCRuntimeDownloadError=Microsoft Visual C++ Runtime es necesario, pero n
 spanish.VCRuntimeInstallError=No se pudo instalar Microsoft Visual C++ Runtime. Código de error:
 spanish.WebView2DownloadError=Microsoft Edge WebView2 Runtime es necesario, pero no se pudo descargar. Compruebe la conexión a Internet e inténtelo de nuevo.
 spanish.WebView2InstallError=No se pudo instalar Microsoft Edge WebView2 Runtime. Código de error:
+spanish.MicrosoftSignatureError=El instalador se negó a ejecutar un componente descargado porque no se pudo verificar su firma digital válida de Microsoft.
 spanish.ObsNotInstalled=El instalador no encontró una copia de 64 bits instalada de OBS Studio. Se requiere OBS Studio 32.0 o posterior. El instalador se cerrará sin modificar el sistema.%n%n¿Desea abrir ahora la página oficial de descarga de OBS Studio?%n
 spanish.ObsRegistrationBroken=El instalador encontró un registro de OBS Studio, pero no pudo localizar o validar el archivo del programa. La instalación puede estar incompleta o dañada. Repare o reinstale OBS Studio y vuelva a ejecutar este instalador. Se cerrará sin realizar cambios.%n%n¿Desea abrir ahora la página oficial de descarga?%n
 spanish.ObsTooOld=Esta versión de Accessible OBS Studio requiere OBS Studio 32.0 o posterior. Se encontró: %1.%n%nActualice OBS Studio mediante Ayuda > Buscar actualizaciones, o descárguelo del sitio web oficial. El instalador se cerrará sin realizar cambios.%n%n¿Desea abrir ahora la página oficial de descarga?%n
@@ -129,6 +132,7 @@ french.VCRuntimeDownloadError=Microsoft Visual C++ Runtime est requis, mais n’
 french.VCRuntimeInstallError=Microsoft Visual C++ Runtime n’a pas pu être installé. Code d’erreur :
 french.WebView2DownloadError=Microsoft Edge WebView2 Runtime est requis, mais n’a pas pu être téléchargé. Vérifiez la connexion Internet et réessayez.
 french.WebView2InstallError=Microsoft Edge WebView2 Runtime n’a pas pu être installé. Code d’erreur :
+french.MicrosoftSignatureError=Le programme d’installation a refusé d’exécuter un composant téléchargé, car sa signature numérique Microsoft valide n’a pas pu être vérifiée.
 french.ObsNotInstalled=Le programme d’installation n’a trouvé aucune copie 64 bits installée d’OBS Studio. OBS Studio 32.0 ou version ultérieure est requis. Le programme va se fermer sans modifier le système.%n%nVoulez-vous ouvrir maintenant la page officielle de téléchargement d’OBS Studio ?%n
 french.ObsRegistrationBroken=Le programme d’installation a trouvé une inscription d’OBS Studio, mais n’a pas pu localiser ou valider le fichier du programme. L’installation est peut-être incomplète ou endommagée. Réparez ou réinstallez OBS Studio, puis relancez ce programme. Il va se fermer sans apporter de modifications.%n%nVoulez-vous ouvrir maintenant la page officielle de téléchargement ?%n
 french.ObsTooOld=Cette version d’Accessible OBS Studio nécessite OBS Studio 32.0 ou version ultérieure. Version trouvée : %1.%n%nMettez OBS Studio à jour avec Aide > Rechercher des mises à jour, ou téléchargez-le depuis le site officiel. Le programme va se fermer sans apporter de modifications.%n%nVoulez-vous ouvrir maintenant la page officielle de téléchargement ?%n
@@ -152,6 +156,7 @@ russian.VCRuntimeDownloadError=Требуется Microsoft Visual C++ Runtime, 
 russian.VCRuntimeInstallError=Не удалось установить Microsoft Visual C++ Runtime. Код ошибки:
 russian.WebView2DownloadError=Требуется Microsoft Edge WebView2 Runtime, но его не удалось загрузить. Проверьте подключение к Интернету и повторите попытку.
 russian.WebView2InstallError=Не удалось установить Microsoft Edge WebView2 Runtime. Код ошибки:
+russian.MicrosoftSignatureError=Программа установки отказалась запускать загруженный компонент, поскольку не удалось проверить его действительную цифровую подпись Microsoft.
 russian.ObsNotInstalled=Программа установки не нашла установленную 64-разрядную версию OBS Studio. Требуется OBS Studio 32.0 или новее. Программа завершит работу, не изменяя систему.%n%nОткрыть официальную страницу загрузки OBS Studio?%n
 russian.ObsRegistrationBroken=Программа установки нашла регистрацию OBS Studio, но не смогла найти или проверить файл программы. Установка может быть неполной или поврежденной. Восстановите или переустановите OBS Studio, затем снова запустите эту программу установки. Она завершит работу без изменений.%n%nОткрыть официальную страницу загрузки?%n
 russian.ObsTooOld=Для этой версии Accessible OBS Studio требуется OBS Studio 32.0 или новее. Обнаружено: %1.%n%nОбновите OBS Studio с помощью команды «Справка > Проверить обновления» или загрузите его с официального сайта. Программа установки завершит работу без изменений.%n%nОткрыть официальную страницу загрузки?%n
@@ -175,6 +180,7 @@ ukrainian.VCRuntimeDownloadError=Потрібен Microsoft Visual C++ Runtime, 
 ukrainian.VCRuntimeInstallError=Не вдалося встановити Microsoft Visual C++ Runtime. Код помилки:
 ukrainian.WebView2DownloadError=Потрібен Microsoft Edge WebView2 Runtime, але його не вдалося завантажити. Перевірте підключення до Інтернету й повторіть спробу.
 ukrainian.WebView2InstallError=Не вдалося встановити Microsoft Edge WebView2 Runtime. Код помилки:
+ukrainian.MicrosoftSignatureError=Програма встановлення відмовилася запускати завантажений компонент, оскільки не вдалося перевірити його дійсний цифровий підпис Microsoft.
 ukrainian.ObsNotInstalled=Програма встановлення не знайшла встановлену 64-розрядну версію OBS Studio. Потрібна OBS Studio 32.0 або новіша. Програма завершить роботу, не змінюючи систему.%n%nВідкрити офіційну сторінку завантаження OBS Studio?%n
 ukrainian.ObsRegistrationBroken=Програма встановлення знайшла реєстрацію OBS Studio, але не змогла знайти або перевірити файл програми. Встановлення може бути неповним або пошкодженим. Відновіть або перевстановіть OBS Studio, а потім знову запустіть цю програму встановлення. Вона завершить роботу без змін.%n%nВідкрити офіційну сторінку завантаження?%n
 ukrainian.ObsTooOld=Для цієї версії Accessible OBS Studio потрібна OBS Studio 32.0 або новіша. Виявлено: %1.%n%nОновіть OBS Studio командою «Довідка > Перевірити оновлення» або завантажте її з офіційного сайту. Програма встановлення завершить роботу без змін.%n%nВідкрити офіційну сторінку завантаження?%n
@@ -238,6 +244,25 @@ function Process32Next(hSnapshot: THandle;
   external 'Process32NextW@kernel32.dll stdcall';
 function CloseSnapshotHandle(hObject: THandle): Boolean;
   external 'CloseHandle@kernel32.dll stdcall';
+
+function HasValidMicrosoftSignature(const FileName: String): Boolean;
+var
+  ResultCode: Integer;
+  Parameters, EscapedFileName: String;
+begin
+  EscapedFileName := FileName;
+  StringChangeEx(EscapedFileName, '''', '''''', True);
+  Parameters :=
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ' +
+    '"$s=Get-AuthenticodeSignature -LiteralPath ''' +
+    EscapedFileName +
+    '''; if($s.Status -eq ''Valid'' -and ' +
+    '$s.SignerCertificate.Subject -match ''Microsoft''){exit 0}else{exit 1}"';
+  Result := Exec(
+    ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and
+    (ResultCode = 0);
+end;
 
 var
   InstallProgressPage: TOutputProgressWizardPage;
@@ -667,6 +692,12 @@ begin
           GetExceptionMessage;
         Exit;
       end;
+      if not HasValidMicrosoftSignature(
+        ExpandConstant('{tmp}\vc_redist.x64.exe')) then
+      begin
+        Result := CustomMessage('MicrosoftSignatureError');
+        Exit;
+      end;
       InstallProgressPage.SetText(CustomMessage('InstallingVCRuntime'), '');
       InstallProgressPage.SetProgress(45, 100);
       if not Exec(ExpandConstant('{tmp}\vc_redist.x64.exe'),
@@ -693,6 +724,12 @@ begin
       except
         Result := CustomMessage('WebView2DownloadError') + ' ' +
           GetExceptionMessage;
+        Exit;
+      end;
+      if not HasValidMicrosoftSignature(
+        ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe')) then
+      begin
+        Result := CustomMessage('MicrosoftSignatureError');
         Exit;
       end;
       InstallProgressPage.SetText(CustomMessage('InstallingWebView2'),

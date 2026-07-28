@@ -51,14 +51,14 @@ static void AnnounceAccessibility(const QString &message,QObject *source=nullptr
 }
 
 static void StreamReconnectSignal(void*,calldata*){
-    if(!obsMainWindow||shuttingDown)return;QMetaObject::invokeMethod(obsMainWindow,[]{
+    if(!PluginEventTarget()||shuttingDown)return;QMetaObject::invokeMethod(PluginEventTarget(),[]{
         streamState=StreamState::Reconnecting;
         if(!reconnectAnnouncementActive){reconnectAnnouncementActive=true;AnnounceAccessibility(AText(STREAM_DISCONNECTED));}
     },Qt::QueuedConnection);
 }
 
 static void StreamReconnectSuccessSignal(void*,calldata*){
-    if(!obsMainWindow||shuttingDown)return;QMetaObject::invokeMethod(obsMainWindow,[]{
+    if(!PluginEventTarget()||shuttingDown)return;QMetaObject::invokeMethod(PluginEventTarget(),[]{
         streamState=StreamState::On;
         if(reconnectAnnouncementActive)AnnounceAccessibility(AText(STREAM_RECONNECTED));
         reconnectAnnouncementActive=false;
@@ -101,14 +101,14 @@ static std::string StatusInformationCommandLabel(){QByteArray text=AText(STATUS_
 static std::string PauseRecordingCommandLabel(){QByteArray text=AText(PAUSE_RECORDING_COMMAND).toUtf8();return {text.constData(),static_cast<size_t>(text.size())};}
 
 static void StatusInformationHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,ShowStatusInformation,Qt::QueuedConnection);
+    if(!pressed||!PluginEventTarget())return;QMetaObject::invokeMethod(PluginEventTarget(),ShowStatusInformation,Qt::QueuedConnection);
 }
 
 static void PauseRecordingHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{
+    if(!pressed||!PluginEventTarget())return;QMetaObject::invokeMethod(PluginEventTarget(),[]{
         if(!api.recording_active()){AnnounceAccessibility(AText(RECORDING_NOT_RUNNING));return;}
         const bool wasPaused=api.recording_paused();const uint64_t generation=pauseStateGeneration;api.recording_pause(!wasPaused);
-        QTimer::singleShot(500,obsMainWindow,[wasPaused,generation]{
+        QTimer::singleShot(500,PluginEventTarget(),[wasPaused,generation]{
             if(!api.recording_active()||generation!=pauseStateGeneration||api.recording_paused()!=wasPaused)return;
             AnnounceAccessibility(AText(wasPaused?RECORDING_CANNOT_RESUME:RECORDING_CANNOT_PAUSE));
         });
@@ -124,7 +124,7 @@ static void ShutdownAccessibilityAlerts(){
 }
 
 static void HandleAccessibilityFrontendEvent(int event){
-    if(!obsMainWindow||shuttingDown)return;QMetaObject::invokeMethod(obsMainWindow,[event]{
+    if(!PluginEventTarget()||shuttingDown)return;QMetaObject::invokeMethod(PluginEventTarget(),[event]{
         switch(event){
         case 0:streamState=StreamState::Starting;break;
         case 1:streamState=StreamState::On;reconnectAnnouncementActive=false;AttachStreamOutput();AnnounceAccessibility(AText(STREAM_STARTED));break;

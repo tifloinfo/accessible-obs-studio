@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.0.7
+# Accessible OBS Studio 1.1 ClipGuard-Härtungstest
 
 Accessible OBS Studio ist ein Windows-Zugänglichkeits-Plugin für die 64-Bit-Version von OBS Studio 32. Es richtet sich an blinde Tastatur- und Screenreader-Nutzer und wurde für JAWS und NVDA entwickelt. Windows 10 oder 11 wird benötigt. Ein OpenAI-API-Schlüssel und Internetzugang sind nur für OpenAI-Funktionen erforderlich.
 
@@ -60,6 +60,10 @@ Die Kurzbeschreibung ist zugleich ein Ausgangspunkt. **Detaillierte Beschreibung
 Bei der Auswahl einer automatischen Korrektur enthält die Quellenliste nur videofähige Quellen; ist nur eine vorhanden, wird sie automatisch ausgewählt. Bei nicht korrekt positionierten Inhalten hat **An Canvas anpassen** Vorrang. Nach der Zustimmung wird ein neues Bild ausschließlich auf unbrauchbare Unschärfe, Körnung, Rauschen oder Pixelbildung geprüft. Wenn die Qualität nicht akzeptabel ist oder nicht bestätigt werden kann, wird die Anpassung automatisch rückgängig gemacht und stattdessen vollständig zentriert. **Auf Bildschirm strecken** wird niemals angeboten.
 
 Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüsselt gespeichert und niemals angezeigt. Format und OpenAI-Authentifizierung werden vor dem Speichern geprüft. **Ich habe noch keinen Schlüssel** erscheint nur ohne gespeicherten Schlüssel; **Schlüssel entfernen** nur mit einem gespeicherten Schlüssel. Das Entfernen benötigt eine Bestätigung und meldet den Erfolg.
+
+## ClipGuard
+
+Strg+Umschalt+P startet den ClipGuard-Soundcheck; ein zweiter Druck schließt ihn ab und übernimmt Verlauf und Schutzbegrenzer. Der Soundcheck überwacht alle Audioquellen, spielt bei gefährlichem Ausgangspegel einen höheren und bei gefährlichem Eingangspegel einen tieferen Dauerton und öffnet die Lautstärkekonsole mit Fokus auf der stärksten betroffenen Quelle. Das minimierte ClipGuard-Fenster ist über Alt+Tab erreichbar. Escape im fokussierten Fenster oder der nicht belegte Befehl **ClipGuard-Soundcheck abbrechen** verwirft Verlauf und vorgeschlagene Begrenzer. Start von Stream oder Aufnahme schließt einen laufenden Soundcheck automatisch ab.
 
 ## Datenschutz und Lizenz
 

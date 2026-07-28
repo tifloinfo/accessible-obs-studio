@@ -172,18 +172,18 @@ static void CycleInterfaceArea(bool backwards){
     const int count=static_cast<int>(regions.size());for(int step=1;step<=count;++step){int index=backwards?(current-step+count*2)%count:(current+step)%count;if(FocusRegionAndAnnounce(regions[static_cast<size_t>(index)]))return;}
 }
 
-static void NavigationHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&obsMainWindow){bool backwards=data!=nullptr;QMetaObject::invokeMethod(obsMainWindow,[backwards]{CycleInterfaceArea(backwards);},Qt::QueuedConnection);}}
+static void NavigationHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&PluginEventTarget()){bool backwards=data!=nullptr;QMetaObject::invokeMethod(PluginEventTarget(),[backwards]{CycleInterfaceArea(backwards);},Qt::QueuedConnection);}}
 
 static constexpr std::array<const char*,6> DIRECT_AREA_WIDGETS={"previewContainer","scenesDock","sourcesDock","mixerDock","transitionsDock","controlsDock"};
 
 static void DirectAreaHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;const intptr_t encoded=reinterpret_cast<intptr_t>(data);QMetaObject::invokeMethod(obsMainWindow,[encoded]{if(!MainInterfaceActive()||encoded<1||encoded>static_cast<intptr_t>(DIRECT_AREA_WIDGETS.size()))return;QWidget *region=obsMainWindow->findChild<QWidget*>(DIRECT_AREA_WIDGETS[static_cast<size_t>(encoded-1)]);if(region&&region->isVisible())FocusRegionAndAnnounce(region);},Qt::QueuedConnection);
+    if(!pressed||!PluginEventTarget())return;const intptr_t encoded=reinterpret_cast<intptr_t>(data);QMetaObject::invokeMethod(PluginEventTarget(),[encoded]{if(!MainInterfaceActive()||encoded<1||encoded>static_cast<intptr_t>(DIRECT_AREA_WIDGETS.size()))return;QWidget *region=obsMainWindow->findChild<QWidget*>(DIRECT_AREA_WIDGETS[static_cast<size_t>(encoded-1)]);if(region&&region->isVisible())FocusRegionAndAnnounce(region);},Qt::QueuedConnection);
 }
 
 static void FocusMediaControlsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
-    if(!pressed||!obsMainWindow)return;QMetaObject::invokeMethod(obsMainWindow,[]{
+    if(!pressed||!PluginEventTarget())return;QMetaObject::invokeMethod(PluginEventTarget(),[]{
         if(!MainInterfaceActive())return;if(FocusVisibleMediaControls())return;if(!SelectMediaSourceForControls()){MessageBeep(MB_ICONINFORMATION);return;}
-        QTimer::singleShot(0,obsMainWindow,[]{if(!FocusVisibleMediaControls())MessageBeep(MB_ICONINFORMATION);});
+        QTimer::singleShot(0,PluginEventTarget(),[]{if(!FocusVisibleMediaControls())MessageBeep(MB_ICONINFORMATION);});
     },Qt::QueuedConnection);
 }
 
@@ -227,7 +227,7 @@ static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
     QListWidgetItem *item=list->currentItem();QString actionId=item?item->data(Qt::UserRole).toString():QString();QAction *action=item?obsMainWindow->findChild<QAction*>(actionId):nullptr;QString result;if(action&&action->isEnabled()){if(actionId==QStringLiteral("actionFitToScreen")){QAbstractItemView *sources=obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources"));pendingFitSource=sources?QPersistentModelIndex(sources->currentIndex()):QPersistentModelIndex();action->trigger();if(!StartFitQualityValidation())FinishFitQualityValidation(false);return;}action->trigger();result=LText(LocalText::Applied).arg(item->text())+QStringLiteral("\n\n")+LText(LocalText::Undo);}else result=item?LText(LocalText::Skipped).arg(item->text()):LText(LocalText::NoActionsApplied);QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.0.7-clip-guard-test-build-20260728-3";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.1.0-clip-guard-hardening-test-20260728-1";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
     config *cfg=api.profile_config?api.profile_config():nullptr;if(!cfg||!api.config_has_user_value(cfg,"Hotkeys",name)){api.load_bindings(id,nullptr,0);return;}const char *json=api.config_get_string(cfg,"Hotkeys",name);obs_data *data=json&&*json?api.data_create_json(json):nullptr;if(!data){api.load_bindings(id,nullptr,0);return;}obs_data_array *array=api.data_get_array(data,"bindings");if(array){api.hotkey_load(id,array);api.array_release(array);}else api.load_bindings(id,nullptr,0);api.data_release(data);
@@ -265,5 +265,5 @@ static void ReviewKeyboardShortcutConflicts(){
 }
 
 static bool profileReviewQueued{};
-static void QueueProfileReview(){if(profileReviewQueued||!obsMainWindow)return;profileReviewQueued=true;QMetaObject::invokeMethod(obsMainWindow,[]{profileReviewQueued=false;EnsureSafeHotkeyFocusDefault();ReviewKeyboardShortcutConflicts();},Qt::QueuedConnection);}
+static void QueueProfileReview(){if(profileReviewQueued||!PluginEventTarget())return;profileReviewQueued=true;QMetaObject::invokeMethod(PluginEventTarget(),[]{profileReviewQueued=false;EnsureSafeHotkeyFocusDefault();ReviewKeyboardShortcutConflicts();},Qt::QueuedConnection);}
 static void FrontendEvent(int event,void*){constexpr int PROFILE_CHANGED=15,FINISHED_LOADING=26;if(event==PROFILE_CHANGED||event==FINISHED_LOADING)QueueProfileReview();HandleAccessibilityFrontendEvent(event);HandleClipGuardFrontendEvent(event);}

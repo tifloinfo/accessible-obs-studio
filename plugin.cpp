@@ -49,6 +49,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QElapsedTimer>
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QDir>
@@ -71,11 +72,14 @@
 #include <QResizeEvent>
 #include <QSaveFile>
 #include <QScrollArea>
+#include <QSignalBlocker>
+#include <QSignalBlocker>
 #include <QScrollBar>
 #include <QSlider>
 #include <QSpinBox>
 #include <QStyledItemDelegate>
 #include <QTimer>
+#include <QTreeWidget>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -220,6 +224,8 @@ static bool apiKeyPromptDeclined{};
 static bool settingsValidationRunning{};
 static HINSTANCE instance{};
 static QMainWindow *obsMainWindow{};
+static QPointer<QObject> pluginEventContext;
+static QObject *PluginEventTarget(){return pluginEventContext.data();}
 static QPointer<QDialog> qtHotkeyEditor;
 static QPointer<QAction> accessibleToolsAction;
 struct CanvasCapture;
@@ -231,8 +237,26 @@ static std::array<hotkey_id,5> canvasHotkeys={static_cast<hotkey_id>(-1),static_
 static std::array<hotkey_id,6> directAreaHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::thread openAIThread;
 static std::atomic_bool requestRunning{false},shuttingDown{false};
+static std::mutex networkRequestMutex;
+static std::vector<HINTERNET> activeNetworkRequests;
+static void TrackNetworkRequest(HINTERNET request){
+    if(!request)return;
+    std::lock_guard<std::mutex> lock(networkRequestMutex);
+    if(shuttingDown){WinHttpCloseHandle(request);return;}
+    activeNetworkRequests.push_back(request);
+}
+static void CloseTrackedNetworkRequest(HINTERNET request){
+    if(!request)return;bool owned=false;
+    {std::lock_guard<std::mutex> lock(networkRequestMutex);auto found=std::find(activeNetworkRequests.begin(),activeNetworkRequests.end(),request);if(found!=activeNetworkRequests.end()){activeNetworkRequests.erase(found);owned=true;}}
+    if(owned)WinHttpCloseHandle(request);
+}
+static void CancelNetworkRequests(){
+    std::vector<HINTERNET> requests;{std::lock_guard<std::mutex> lock(networkRequestMutex);requests.swap(activeNetworkRequests);}
+    for(HINTERNET request:requests)WinHttpCloseHandle(request);
+}
 static Microsoft::WRL::ComPtr<ICoreWebView2Controller> descriptionController;
 static Microsoft::WRL::ComPtr<ICoreWebView2> descriptionWebView;
+static std::atomic_int pendingDescriptionWebViewInitializations{};
 static std::vector<CanvasTurn> descriptionTurns;
 static std::vector<CanvasWebAction> canvasWebActions;
 static CanvasMode activeCanvasMode{CanvasMode::Basic};
@@ -395,8 +419,8 @@ static bool ValidApiKeyFormat(const std::string &key){
 
 enum class ApiKeyValidation{Valid,Invalid,ConnectionFailed};
 static ApiKeyValidation ValidateApiKeyOnline(const std::string &key){
-    HINTERNET session=WinHttpOpen(L"Accessible OBS Studio/1.0.7",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);if(!session)return ApiKeyValidation::ConnectionFailed;WinHttpSetTimeouts(session,10000,10000,10000,15000);
-    HINTERNET connection=WinHttpConnect(session,L"api.openai.com",INTERNET_DEFAULT_HTTPS_PORT,0);HINTERNET request=connection?WinHttpOpenRequest(connection,L"GET",L"/v1/models",nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE):nullptr;DisableRequestRedirects(request);SecureWideText authorization=AuthorizationHeader(key,false);BOOL sent=request?WinHttpSendRequest(request,authorization.value.c_str(),static_cast<DWORD>(authorization.value.size()),WINHTTP_NO_REQUEST_DATA,0,0,0):FALSE;if(!authorization.value.empty())SecureZeroMemory(authorization.value.data(),authorization.value.size()*sizeof(wchar_t));BOOL received=sent?WinHttpReceiveResponse(request,nullptr):FALSE;DWORD status=0,size=sizeof(status);if(received)WinHttpQueryHeaders(request,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&size,WINHTTP_NO_HEADER_INDEX);if(request)WinHttpCloseHandle(request);if(connection)WinHttpCloseHandle(connection);WinHttpCloseHandle(session);if(!received)return ApiKeyValidation::ConnectionFailed;if((status>=200&&status<300)||status==403||status==429)return ApiKeyValidation::Valid;if(status==401)return ApiKeyValidation::Invalid;return ApiKeyValidation::ConnectionFailed;
+    HINTERNET session=WinHttpOpen(L"Accessible OBS Studio/1.1-test",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);if(!session)return ApiKeyValidation::ConnectionFailed;WinHttpSetTimeouts(session,10000,10000,10000,15000);
+    HINTERNET connection=WinHttpConnect(session,L"api.openai.com",INTERNET_DEFAULT_HTTPS_PORT,0);HINTERNET request=connection?WinHttpOpenRequest(connection,L"GET",L"/v1/models",nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE):nullptr;DisableRequestRedirects(request);TrackNetworkRequest(request);SecureWideText authorization=AuthorizationHeader(key,false);BOOL sent=request?WinHttpSendRequest(request,authorization.value.c_str(),static_cast<DWORD>(authorization.value.size()),WINHTTP_NO_REQUEST_DATA,0,0,0):FALSE;if(!authorization.value.empty())SecureZeroMemory(authorization.value.data(),authorization.value.size()*sizeof(wchar_t));BOOL received=sent?WinHttpReceiveResponse(request,nullptr):FALSE;DWORD status=0,size=sizeof(status);if(received)WinHttpQueryHeaders(request,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&size,WINHTTP_NO_HEADER_INDEX);CloseTrackedNetworkRequest(request);if(connection)WinHttpCloseHandle(connection);WinHttpCloseHandle(session);if(!received)return ApiKeyValidation::ConnectionFailed;if((status>=200&&status<300)||status==403||status==429)return ApiKeyValidation::Valid;if(status==401)return ApiKeyValidation::Invalid;return ApiKeyValidation::ConnectionFailed;
 }
 
 static void SetWindowTextIfChanged(HWND control,const wchar_t *text){if(!control)return;int length=GetWindowTextLengthW(control);std::wstring current(static_cast<size_t>(length)+1,L'\0');GetWindowTextW(control,current.data(),length+1);current.resize(static_cast<size_t>(length));if(current!=text)SetWindowTextW(control,text);}
@@ -503,17 +527,28 @@ static void QueueDescriptionWebViewFailure(HWND parent){if(parent&&IsWindow(pare
 static void InitializeDescriptionWebView(HWND parent){
     wchar_t localAppData[MAX_PATH]{};GetEnvironmentVariable(L"LOCALAPPDATA",localAppData,MAX_PATH);std::wstring userData=std::wstring(localAppData)+L"\\AccessibleOBSStudio\\WebView2";
     using Microsoft::WRL::Callback;
+    ++pendingDescriptionWebViewInitializations;
     HRESULT createResult=CreateCoreWebView2EnvironmentWithOptions(nullptr,userData.c_str(),nullptr,Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>([parent](HRESULT result,ICoreWebView2Environment *environment)->HRESULT{
-        if(FAILED(result)||!environment){QueueDescriptionWebViewFailure(parent);return result;}
+        if(shuttingDown||!IsWindow(parent)){--pendingDescriptionWebViewInitializations;return E_ABORT;}
+        if(FAILED(result)||!environment){QueueDescriptionWebViewFailure(parent);--pendingDescriptionWebViewInitializations;return result;}
         HRESULT controllerCreateResult=environment->CreateCoreWebView2Controller(parent,Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>([parent](HRESULT controllerResult,ICoreWebView2Controller *controller)->HRESULT{
+            --pendingDescriptionWebViewInitializations;if(shuttingDown||!IsWindow(parent))return E_ABORT;
             if(FAILED(controllerResult)||!controller){QueueDescriptionWebViewFailure(parent);return controllerResult;}descriptionController=controller;HRESULT webViewResult=controller->get_CoreWebView2(&descriptionWebView);if(FAILED(webViewResult)||!descriptionWebView){QueueDescriptionWebViewFailure(parent);return FAILED(webViewResult)?webViewResult:E_FAIL;}ResizeDescriptionWebView();
             Microsoft::WRL::ComPtr<ICoreWebView2Settings> settings;if(SUCCEEDED(descriptionWebView->get_Settings(&settings))){settings->put_AreDefaultContextMenusEnabled(FALSE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->put_IsWebMessageEnabled(TRUE);}
             descriptionWebView->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>([](ICoreWebView2*,ICoreWebView2WebMessageReceivedEventArgs *args)->HRESULT{LPWSTR message=nullptr;if(SUCCEEDED(args->TryGetWebMessageAsString(&message))&&message){std::wstring value=message;CoTaskMemFree(message);constexpr wchar_t followupPrefix[]=L"followup:",actionPrefix[]=L"action:";if(value.rfind(followupPrefix,0)==0)SendFollowup(value.substr(std::size(followupPrefix)-1));else if(value.rfind(actionPrefix,0)==0)HandleCanvasAction(Narrow(value.substr(std::size(actionPrefix)-1)));}return S_OK;}).Get(),&descriptionMessageToken);
             descriptionWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>([](ICoreWebView2*,ICoreWebView2NavigationCompletedEventArgs *args)->HRESULT{BOOL success=FALSE;if(!args||FAILED(args->get_IsSuccess(&success))||!success){QueueDescriptionWebViewFailure(descriptionWindow);return S_OK;}if(compatibilityReportMode){if(activateDescriptionAfterNavigation&&descriptionController){activateDescriptionAfterNavigation=false;if(ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);}return S_OK;}canvasDocumentReady=true;canvasNavigationPending=false;bool shouldActivate=pendingDescriptionActivate,shouldAnnounce=pendingDescriptionAnnouncement;pendingDescriptionActivate=pendingDescriptionAnnouncement=false;if(shouldActivate&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);PushDescriptionState(shouldAnnounce);return S_OK;}).Get(),&descriptionNavigationToken);
             descriptionController->add_AcceleratorKeyPressed(Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>([](ICoreWebView2Controller*,ICoreWebView2AcceleratorKeyPressedEventArgs *args)->HRESULT{UINT key=0;COREWEBVIEW2_KEY_EVENT_KIND kind{};if(SUCCEEDED(args->get_VirtualKey(&key))&&SUCCEEDED(args->get_KeyEventKind(&kind))&&key==VK_ESCAPE&&(kind==COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN||kind==COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)){args->put_Handled(TRUE);if(descriptionWindow)PostMessage(descriptionWindow,WM_CLOSE,0,0);}return S_OK;}).Get(),&descriptionAcceleratorToken);
             bool activate=IsWindowVisible(parent)&&(compatibilityReportMode||!descriptionUserClosed);RenderDescription(activate,activate&&!compatibilityReportMode&&!descriptionTurns.empty());return S_OK;
-        }).Get());if(FAILED(controllerCreateResult))QueueDescriptionWebViewFailure(parent);return controllerCreateResult;
-    }).Get());if(FAILED(createResult))QueueDescriptionWebViewFailure(parent);
+        }).Get());if(FAILED(controllerCreateResult)){QueueDescriptionWebViewFailure(parent);--pendingDescriptionWebViewInitializations;}return controllerCreateResult;
+    }).Get());if(FAILED(createResult)){QueueDescriptionWebViewFailure(parent);--pendingDescriptionWebViewInitializations;}
+}
+
+static void DrainDescriptionWebViewInitialization(){
+    QElapsedTimer elapsed;elapsed.start();
+    while(pendingDescriptionWebViewInitializations.load()>0&&elapsed.elapsed()<10000){
+        QCoreApplication::processEvents(QEventLoop::AllEvents,50);
+        MsgWaitForMultipleObjects(0,nullptr,FALSE,10,QS_ALLINPUT);
+    }
 }
 
 static LRESULT CALLBACK DescriptionProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
@@ -632,6 +667,8 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     HRESULT comResult=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);comInitialized=SUCCEEDED(comResult);
     if(!LoadApi()){if(comInitialized){CoUninitialize();comInitialized=false;}return false;}uiLanguageIndex=DetectLanguage();obsMainWindow=static_cast<QMainWindow*>(api.main_window());if(!obsMainWindow){if(comInitialized){CoUninitialize();comInitialized=false;}return false;}uint32_t obsVersion=api.get_version();uint32_t major=(obsVersion>>24)&0xFF,minor=(obsVersion>>16)&0xFF,patch=obsVersion&0xFFFF;
     if(major!=32){std::wstring version=std::to_wstring(major)+L"."+std::to_wstring(minor)+L"."+std::to_wstring(patch);if(!ConfirmUntestedObs(version)){if(comInitialized){CoUninitialize();comInitialized=false;}return false;}}
+    pluginEventContext=new QObject;
+    if(!InitializeAccessibleToolsAction()){delete pluginEventContext.data();pluginEventContext=nullptr;if(comInitialized){CoUninitialize();comInitialized=false;}return false;}
     std::string next=Narrow(Tr(UiText::NextArea)),previous=Narrow(Tr(UiText::PreviousArea));
     nextAreaHotkey=api.register_frontend(NEXT_AREA_NAME,next.c_str(),NavigationHotkey,nullptr);
     previousAreaHotkey=api.register_frontend(PREVIOUS_AREA_NAME,previous.c_str(),NavigationHotkey,reinterpret_cast<void*>(1));
@@ -645,11 +682,11 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     std::string cancelClipGuardLabel=CancelClipGuardCommandLabel();cancelClipGuardHotkey=api.register_frontend(CANCEL_CLIP_GUARD_NAME,cancelClipGuardLabel.c_str(),CancelClipGuardHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
-    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();mediaSeekEventFilter=new MediaSeekEventFilter(obsMainWindow);qApp->installEventFilter(mediaSeekEventFilter);hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,obsMainWindow,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(obsMainWindow);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,obsMainWindow,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);InitializeAccessibilityAlerts();if(!InitializeAccessibleToolsAction())return false;return true;
+    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();mediaSeekEventFilter=new MediaSeekEventFilter(obsMainWindow);qApp->installEventFilter(mediaSeekEventFilter);hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,pluginEventContext,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(pluginEventContext);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,pluginEventContext,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);InitializeAccessibilityAlerts();return true;
 }
 extern "C" __declspec(dllexport) void obs_module_unload(){
-    shuttingDown=true;ShutdownClipGuard();ShutdownVolumeConsole();CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
-    if(openAIThread.joinable())openAIThread.join();ShutdownAccessibilityAlerts();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
+    shuttingDown=true;CancelNetworkRequests();ShutdownClipGuard();ShutdownVolumeConsole();CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
+    if(openAIThread.joinable())openAIThread.join();ShutdownAccessibilityAlerts();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);DrainDescriptionWebViewInitialization();if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
     if(api.unregister_hotkey&&nextAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(nextAreaHotkey);
     if(api.unregister_hotkey&&previousAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(previousAreaHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:canvasHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);
@@ -661,6 +698,7 @@ extern "C" __declspec(dllexport) void obs_module_unload(){
     if(api.unregister_hotkey&&clipGuardHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(clipGuardHotkey);
     if(api.unregister_hotkey&&cancelClipGuardHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(cancelClipGuardHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);if(mediaSeekEventFilter){qApp->removeEventFilter(mediaSeekEventFilter.data());delete mediaSeekEventFilter.data();mediaSeekEventFilter=nullptr;}QObject::disconnect(hotkeyFocusConnection);if(hotkeyFocusGuardTimer){hotkeyFocusGuardTimer->stop();delete hotkeyFocusGuardTimer.data();hotkeyFocusGuardTimer=nullptr;}
+    if(pluginEventContext){delete pluginEventContext.data();pluginEventContext=nullptr;}
     if(comInitialized){CoUninitialize();comInitialized=false;}
 }
 BOOL WINAPI DllMain(HINSTANCE h,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){instance=h;DisableThreadLibraryCalls(h);}return TRUE;}
