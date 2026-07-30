@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.1, test de robustesse ClipGuard
+# Accessible OBS Studio 1.1, test d’Audible Meter
 
 Accessible OBS Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.
 
@@ -59,9 +59,11 @@ Lors du choix d’une correction automatique, la liste ne contient que les sourc
 
 La clé API est validée avant l’enregistrement, conservée dans le Gestionnaire d’informations d’identification Windows et jamais affichée. Sa suppression demande confirmation et affiche un message de réussite.
 
-## ClipGuard
+## Audible Meter
 
-Ctrl+Maj+P démarre la vérification sonore ClipGuard ; une seconde pression la termine et accepte l’historique et les limiteurs de protection. La vérification surveille toutes les sources audio, émet une tonalité continue plus aiguë pour une sortie dangereuse et plus grave pour une entrée dangereuse, puis ouvre la console de volume avec le focus sur la source la plus touchée. La fenêtre ClipGuard réduite reste accessible par Alt+Tab. Échap dans cette fenêtre ou la commande non assignée **Annuler la vérification sonore ClipGuard** supprime l’historique et les limiteurs proposés. Le démarrage d’une diffusion ou d’un enregistrement termine automatiquement une vérification active.
+Ctrl+I démarre ou arrête Audible Meter ; les avertissements automatiques sont activés au départ. I active ou désactive ensemble les avertissements automatiques d’entrée et de sortie. H annonce le niveau actuel de la dernière source focalisée dans la console, J la source actuellement la plus forte et son niveau, K le niveau actif typique de la source sélectionnée et L la source au niveau actif typique le plus élevé. I, H, J, K et L ne sont jamais interceptées pendant la saisie.
+
+Les tonalités automatiques sont des avertissements, pas des mesures. Pour une mesure sonore directe, ouvrez la console de volume accessible. La tonalité grave indique une entrée avant curseur, telle que le gain du microphone, restée dans le rouge. La tonalité moyenne indique la zone de sortie jaune de la source focalisée. La tonalité aiguë indique une source focalisée dans le rouge ou un avertissement automatique de sortie. Le silence indique le vert, l’absence de signal ou de source focalisée. I contrôle les deux avertissements automatiques, pas les tonalités jaune et rouge de la console. Aucun historique ni rapport n’est enregistré.
 
 ## Confidentialité et licence
 

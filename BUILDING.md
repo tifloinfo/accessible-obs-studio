@@ -19,9 +19,9 @@ and the Visual C++ Runtime directly from Microsoft's permanent download links,
 then verifies a valid Microsoft Authenticode signature before executing either
 download.
 
-Run `tools/test-hardening.ps1` before packaging. It checks the shutdown-lifetime,
-ClipGuard history, real-time volume, canvas-memory, prerequisite-verification,
-and test-build identity invariants that are easy to regress during development.
+Run `tools/test-hardening.ps1` before packaging. It checks the shutdown lifetime,
+Audible Meter, real-time volume, canvas-memory, prerequisite-verification, and
+test-build identity invariants that are easy to regress during development.
 
 After changing any localized Markdown ReadMe, install Node.js dependencies once
 with `npm install`, then run `npm run docs:html`. This regenerates the six

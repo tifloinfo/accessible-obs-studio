@@ -33,6 +33,7 @@
 #include <QAccessible>
 #include <QBuffer>
 #include <QByteArray>
+#include <QColor>
 #include <QDockWidget>
 #include <QElapsedTimer>
 #include <QImage>
@@ -69,6 +70,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QPainter>
+#include <QPalette>
 #include <QResizeEvent>
 #include <QSaveFile>
 #include <QScrollArea>
@@ -232,7 +234,7 @@ struct CanvasCapture;
 enum class CanvasMode {Basic,Detailed,ReadText,PeopleBackgrounds,AnalyzeIssues,FitQuality};
 struct CanvasTurn {std::wstring label,text;bool assistant{true};};
 struct CanvasWebAction {std::string id;std::wstring label,accessibleLabel;std::vector<std::string> fixes;CanvasMode mode{CanvasMode::Basic};bool capturesNewFrame{false};bool link{false};std::wstring afterText;};
-static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1),statusInformationHotkey=static_cast<hotkey_id>(-1),pauseRecordingHotkey=static_cast<hotkey_id>(-1),clipGuardHotkey=static_cast<hotkey_id>(-1),cancelClipGuardHotkey=static_cast<hotkey_id>(-1);
+static hotkey_id nextAreaHotkey=static_cast<hotkey_id>(-1),previousAreaHotkey=static_cast<hotkey_id>(-1),focusMediaHotkey=static_cast<hotkey_id>(-1),openAccessibleObsHotkey=static_cast<hotkey_id>(-1),volumeConsoleHotkey=static_cast<hotkey_id>(-1),statusInformationHotkey=static_cast<hotkey_id>(-1),pauseRecordingHotkey=static_cast<hotkey_id>(-1),audibleMeterHotkey=static_cast<hotkey_id>(-1);
 static std::array<hotkey_id,5> canvasHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::array<hotkey_id,6> directAreaHotkeys={static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1),static_cast<hotkey_id>(-1)};
 static std::thread openAIThread;
@@ -281,8 +283,7 @@ static constexpr std::array<const char*,5> CANVAS_HOTKEY_NAMES={"accessible_obs_
 static constexpr const char *FOCUS_MEDIA_NAME="accessible_obs_studio.focus_media_controls";
 static constexpr const char *OPEN_ACCESSIBLE_OBS_NAME="accessible_obs_studio.open_accessible_obs_studio";
 static constexpr const char *VOLUME_CONSOLE_NAME="accessible_obs_studio.open_volume_console";
-static constexpr const char *CLIP_GUARD_NAME="accessible_obs_studio.clip_guard";
-static constexpr const char *CANCEL_CLIP_GUARD_NAME="accessible_obs_studio.cancel_clip_guard";
+static constexpr const char *AUDIBLE_METER_NAME="accessible_obs_studio.audible_meter";
 static constexpr std::array<const char*,6> DIRECT_AREA_NAMES={"accessible_obs_studio.focus_video_preview","accessible_obs_studio.focus_scenes","accessible_obs_studio.focus_sources","accessible_obs_studio.focus_audio_mixer","accessible_obs_studio.focus_scene_transitions","accessible_obs_studio.focus_controls"};
 static constexpr const wchar_t *CREDENTIAL_NAME=L"AccessibleOBSStudio/OpenAI";
 
@@ -501,10 +502,69 @@ static std::wstring HtmlEscape(const std::wstring &text){
     for(wchar_t c:text){if(c==L'&')escaped+=L"&amp;";else if(c==L'<')escaped+=L"&lt;";else if(c==L'>')escaped+=L"&gt;";else if(c==L'\"')escaped+=L"&quot;";else escaped+=c;}return escaped;
 }
 
+static QColor DescriptionPaletteColor(QPalette::ColorRole role,QPalette::ColorGroup group=QPalette::Active){
+    const QPalette palette=obsMainWindow?obsMainWindow->palette():QApplication::palette();
+    return palette.color(group,role);
+}
+
+static std::wstring DescriptionThemeDeclarations(){
+    auto cssColor=[](const QColor &color){return color.name(QColor::HexRgb).toStdWString();};
+    const QColor window=DescriptionPaletteColor(QPalette::Window);
+    std::wstring theme=window.lightness()<128?L"dark":L"light";
+    return L"color-scheme:"+theme+
+        L";--obs-window:"+cssColor(window)+
+        L";--obs-window-text:"+cssColor(DescriptionPaletteColor(QPalette::WindowText))+
+        L";--obs-base:"+cssColor(DescriptionPaletteColor(QPalette::Base))+
+        L";--obs-text:"+cssColor(DescriptionPaletteColor(QPalette::Text))+
+        L";--obs-button:"+cssColor(DescriptionPaletteColor(QPalette::Button))+
+        L";--obs-button-text:"+cssColor(DescriptionPaletteColor(QPalette::ButtonText))+
+        L";--obs-border:"+cssColor(DescriptionPaletteColor(QPalette::Mid))+
+        L";--obs-link:"+cssColor(DescriptionPaletteColor(QPalette::Link))+
+        L";--obs-disabled-text:"+cssColor(DescriptionPaletteColor(QPalette::Text,QPalette::Disabled))+
+        L";--obs-highlight:"+cssColor(DescriptionPaletteColor(QPalette::Highlight))+
+        L";--obs-highlight-text:"+cssColor(DescriptionPaletteColor(QPalette::HighlightedText));
+}
+
+static std::wstring DescriptionThemeCss(){
+    return L":root{"+DescriptionThemeDeclarations()+
+        L"}html,body{background:var(--obs-window);color:var(--obs-window-text)}"
+        L"body{font-family:Segoe UI,sans-serif;font-size:1rem}"
+        L"a{color:var(--obs-link)}"
+        L"::selection{background:var(--obs-highlight);color:var(--obs-highlight-text)}"
+        L":focus-visible{outline:2px solid var(--obs-highlight);outline-offset:2px}"
+        L"*{scrollbar-color:var(--obs-border) var(--obs-window)}";
+}
+
+static void ApplyDescriptionTheme(){
+    QColor background=DescriptionPaletteColor(QPalette::Window);
+    if(descriptionController){
+        Microsoft::WRL::ComPtr<ICoreWebView2Controller2> controller2;
+        if(SUCCEEDED(descriptionController.As(&controller2))){
+            COREWEBVIEW2_COLOR color{static_cast<BYTE>(background.alpha()),static_cast<BYTE>(background.red()),static_cast<BYTE>(background.green()),static_cast<BYTE>(background.blue())};
+            controller2->put_DefaultBackgroundColor(color);
+        }
+    }
+    if(!descriptionWebView)return;
+    QJsonArray value{QString::fromStdWString(DescriptionThemeDeclarations())};
+    QString script=QStringLiteral("document.documentElement.style.cssText=")+QString::fromUtf8(QJsonDocument(value).toJson(QJsonDocument::Compact))+QStringLiteral("[0];");
+    descriptionWebView->ExecuteScript(script.toStdWString().c_str(),nullptr);
+}
+
+class DescriptionThemeEventFilter final:public QObject {
+public:
+    using QObject::QObject;
+protected:
+    bool eventFilter(QObject *watched,QEvent *event) override{
+        if(event->type()==QEvent::ApplicationPaletteChange)QTimer::singleShot(0,this,[]{ApplyDescriptionTheme();});
+        return QObject::eventFilter(watched,event);
+    }
+};
+
 static std::wstring DescriptionHtml(){
     std::wstring locale=HtmlEscape(Wide(api.get_locale?api.get_locale():"en-US"));
-    if(compatibilityReportMode){std::wstring compatibilityTitle=LWide(LocalText::CompatibilityAnalysis);std::wstring html=L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(compatibilityTitle)+L"</title><style>body{font-family:Segoe UI,sans-serif;font-size:1rem;line-height:1.55;margin:1.25rem;max-width:75rem}.report{white-space:pre-wrap}h1{font-size:1.6rem}</style></head><body><main><h1 id=\"page-title\" tabindex=\"-1\">"+HtmlEscape(compatibilityTitle)+L"</h1><div class=\"report\">"+HtmlEscape(compatibilityReportText)+L"</div></main></body></html>";return html;}
-    return L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(CWText(CanvasModeText(activeCanvasMode)))+L"</title><style>:root{color-scheme:light dark}body{font-family:Segoe UI,sans-serif;font-size:1rem;line-height:1.5;margin:1.25rem;max-width:70rem;background:Canvas;color:CanvasText}main{display:block}section{border-bottom:1px solid GrayText;padding-bottom:.75rem;margin-bottom:1rem}.text{white-space:pre-wrap}.response-block{margin-bottom:1rem}.issue-action{margin:-.5rem 0 1rem}.actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:.75rem 0 1rem}.actions a,.issue-action a{color:LinkText;text-decoration:underline;text-underline-offset:.15em}.actions a[aria-disabled=true],.issue-action a[aria-disabled=true]{color:GrayText}form{position:sticky;bottom:0;background:Canvas;padding:1rem 0;border-top:2px solid CanvasText}label{display:block;font-weight:600;margin-bottom:.35rem}input{box-sizing:border-box;font:inherit;width:calc(100% - 7rem);padding:.45rem;background:Field;color:FieldText;border:1px solid GrayText}button{font:inherit;padding:.45rem 1rem;background:ButtonFace;color:ButtonText;border:1px solid ButtonBorder;margin:0}.hint{font-size:.9rem}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style></head><body><div id=\"answer-announcer\" class=\"sr-only\" role=\"alert\" aria-live=\"assertive\" aria-atomic=\"true\"></div><main id=\"canvas-results\" tabindex=\"-1\"><h1 id=\"page-title\">"+HtmlEscape(CWText(CanvasModeText(activeCanvasMode)))+L"</h1><div id=\"conversation\"></div><div id=\"actions\" class=\"actions\"></div><form id=\"follow-up-form\"><label for=\"follow-up\">"+HtmlEscape(Tr(UiText::AskFollowup))+L"</label><input id=\"follow-up\" name=\"follow-up\" type=\"text\" maxlength=\"500\" autocomplete=\"off\" disabled><button id=\"send-follow-up\" type=\"submit\" disabled>"+HtmlEscape(Tr(UiText::Send))+L"</button><p class=\"hint\">"+HtmlEscape(Tr(UiText::FollowupHint))+L"</p></form></main><script>const conversation=document.getElementById('conversation'),actions=document.getElementById('actions'),input=document.getElementById('follow-up'),send=document.getElementById('send-follow-up'),announcer=document.getElementById('answer-announcer');let announcementGeneration=0;document.getElementById('follow-up-form').addEventListener('submit',function(e){e.preventDefault();const q=input.value.trim();if(q){input.value='';window.chrome.webview.postMessage('followup:'+q);}});window.chrome.webview.addEventListener('message',function(e){const data=e.data;if(!data||data.type!=='render')return;const generation=++announcementGeneration;let announcement='';while(conversation.children.length>data.turns.length)conversation.lastElementChild.remove();data.turns.forEach(function(turn,index){let section=conversation.children[index],heading,body;if(!section){section=document.createElement('section');heading=document.createElement('h2');body=document.createElement('div');body.className='text';section.append(heading,body);conversation.appendChild(section);}else{heading=section.children[0];body=section.children[1];}heading.hidden=!turn.label;if(turn.label&&heading.textContent!==turn.label)heading.textContent=turn.label;if(index===data.announceIndex&&turn.kind==='assistant')announcement=turn.text;if(body.dataset.sourceText!==turn.text){body.replaceChildren();turn.text.split('\\n\\n').forEach(function(text){const block=document.createElement('div');block.className='response-block';block.textContent=text;body.appendChild(block);});body.dataset.sourceText=turn.text;}section.id=index===data.turns.length-1?'latest-response':'';});if(announcement){announcer.textContent='';setTimeout(function(){if(generation===announcementGeneration)announcer.textContent=announcement;},50);}conversation.querySelectorAll('.issue-action').forEach(function(item){item.remove();});actions.replaceChildren();data.actions.forEach(function(action){const control=document.createElement(action.link?'a':'button');if(action.link)control.href='#';else control.type='button';control.textContent=action.label;if(action.accessibleLabel)control.setAttribute('aria-label',action.accessibleLabel);if(data.disabled){if(action.link){control.setAttribute('aria-disabled','true');control.tabIndex=-1;}else control.disabled=true;}control.addEventListener('click',function(e){if(action.link)e.preventDefault();if(!data.disabled)window.chrome.webview.postMessage('action:'+action.id);});let destination=actions;if(action.afterText){const sections=Array.from(conversation.querySelectorAll('section')).reverse();for(const section of sections){const block=Array.from(section.querySelectorAll('.response-block')).find(function(candidate){return candidate.textContent===action.afterText;});if(block){destination=document.createElement('div');destination.className='issue-action';block.after(destination);break;}}}destination.appendChild(control);});input.disabled=!!data.disabled;send.disabled=!!data.disabled;const latest=document.getElementById('latest-response');if(latest)latest.scrollIntoView({block:'start'});});</script></body></html>";
+    std::wstring theme=DescriptionThemeCss();
+    if(compatibilityReportMode){std::wstring compatibilityTitle=LWide(LocalText::CompatibilityAnalysis);std::wstring html=L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(compatibilityTitle)+L"</title><style>"+theme+L"body{line-height:1.55;margin:1.25rem;max-width:75rem}.report{white-space:pre-wrap}h1{font-size:1.6rem}</style></head><body><main><h1 id=\"page-title\" tabindex=\"-1\">"+HtmlEscape(compatibilityTitle)+L"</h1><div class=\"report\">"+HtmlEscape(compatibilityReportText)+L"</div></main></body></html>";return html;}
+    return L"<!doctype html><html lang=\""+locale+L"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Accessible OBS Studio - "+HtmlEscape(CWText(CanvasModeText(activeCanvasMode)))+L"</title><style>"+theme+L"body{line-height:1.5;margin:1.25rem;max-width:70rem}main{display:block}section{border-bottom:1px solid var(--obs-border);padding-bottom:.75rem;margin-bottom:1rem}.text{white-space:pre-wrap}.response-block{margin-bottom:1rem}.issue-action{margin:-.5rem 0 1rem}.actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:.75rem 0 1rem}.actions a,.issue-action a{color:var(--obs-link);text-decoration:underline;text-underline-offset:.15em}.actions a[aria-disabled=true],.issue-action a[aria-disabled=true]{color:var(--obs-disabled-text)}form{position:sticky;bottom:0;background:var(--obs-window);padding:1rem 0;border-top:2px solid var(--obs-window-text)}label{display:block;font-weight:600;margin-bottom:.35rem}input{box-sizing:border-box;font:inherit;width:calc(100% - 7rem);padding:.45rem;background:var(--obs-base);color:var(--obs-text);border:1px solid var(--obs-border)}button{font:inherit;padding:.45rem 1rem;background:var(--obs-button);color:var(--obs-button-text);border:1px solid var(--obs-border);margin:0}button:disabled,input:disabled{color:var(--obs-disabled-text)}.hint{font-size:.9rem}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style></head><body><div id=\"answer-announcer\" class=\"sr-only\" role=\"alert\" aria-live=\"assertive\" aria-atomic=\"true\"></div><main id=\"canvas-results\" tabindex=\"-1\"><h1 id=\"page-title\">"+HtmlEscape(CWText(CanvasModeText(activeCanvasMode)))+L"</h1><div id=\"conversation\"></div><div id=\"actions\" class=\"actions\"></div><form id=\"follow-up-form\"><label for=\"follow-up\">"+HtmlEscape(Tr(UiText::AskFollowup))+L"</label><input id=\"follow-up\" name=\"follow-up\" type=\"text\" maxlength=\"500\" autocomplete=\"off\" disabled><button id=\"send-follow-up\" type=\"submit\" disabled>"+HtmlEscape(Tr(UiText::Send))+L"</button><p class=\"hint\">"+HtmlEscape(Tr(UiText::FollowupHint))+L"</p></form></main><script>const conversation=document.getElementById('conversation'),actions=document.getElementById('actions'),input=document.getElementById('follow-up'),send=document.getElementById('send-follow-up'),announcer=document.getElementById('answer-announcer');let announcementGeneration=0;document.getElementById('follow-up-form').addEventListener('submit',function(e){e.preventDefault();const q=input.value.trim();if(q){input.value='';window.chrome.webview.postMessage('followup:'+q);}});window.chrome.webview.addEventListener('message',function(e){const data=e.data;if(!data||data.type!=='render')return;const generation=++announcementGeneration;let announcement='';while(conversation.children.length>data.turns.length)conversation.lastElementChild.remove();data.turns.forEach(function(turn,index){let section=conversation.children[index],heading,body;if(!section){section=document.createElement('section');heading=document.createElement('h2');body=document.createElement('div');body.className='text';section.append(heading,body);conversation.appendChild(section);}else{heading=section.children[0];body=section.children[1];}heading.hidden=!turn.label;if(turn.label&&heading.textContent!==turn.label)heading.textContent=turn.label;if(index===data.announceIndex&&turn.kind==='assistant')announcement=turn.text;if(body.dataset.sourceText!==turn.text){body.replaceChildren();turn.text.split('\\n\\n').forEach(function(text){const block=document.createElement('div');block.className='response-block';block.textContent=text;body.appendChild(block);});body.dataset.sourceText=turn.text;}section.id=index===data.turns.length-1?'latest-response':'';});if(announcement){announcer.textContent='';setTimeout(function(){if(generation===announcementGeneration)announcer.textContent=announcement;},50);}conversation.querySelectorAll('.issue-action').forEach(function(item){item.remove();});actions.replaceChildren();data.actions.forEach(function(action){const control=document.createElement(action.link?'a':'button');if(action.link)control.href='#';else control.type='button';control.textContent=action.label;if(action.accessibleLabel)control.setAttribute('aria-label',action.accessibleLabel);if(data.disabled){if(action.link){control.setAttribute('aria-disabled','true');control.tabIndex=-1;}else control.disabled=true;}control.addEventListener('click',function(e){if(action.link)e.preventDefault();if(!data.disabled)window.chrome.webview.postMessage('action:'+action.id);});let destination=actions;if(action.afterText){const sections=Array.from(conversation.querySelectorAll('section')).reverse();for(const section of sections){const block=Array.from(section.querySelectorAll('.response-block')).find(function(candidate){return candidate.textContent===action.afterText;});if(block){destination=document.createElement('div');destination.className='issue-action';block.after(destination);break;}}}destination.appendChild(control);});input.disabled=!!data.disabled;send.disabled=!!data.disabled;const latest=document.getElementById('latest-response');if(latest)latest.scrollIntoView({block:'start'});});</script></body></html>";
 }
 
 static void PushDescriptionState(bool announceLatest){
@@ -533,10 +593,10 @@ static void InitializeDescriptionWebView(HWND parent){
         if(FAILED(result)||!environment){QueueDescriptionWebViewFailure(parent);--pendingDescriptionWebViewInitializations;return result;}
         HRESULT controllerCreateResult=environment->CreateCoreWebView2Controller(parent,Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>([parent](HRESULT controllerResult,ICoreWebView2Controller *controller)->HRESULT{
             --pendingDescriptionWebViewInitializations;if(shuttingDown||!IsWindow(parent))return E_ABORT;
-            if(FAILED(controllerResult)||!controller){QueueDescriptionWebViewFailure(parent);return controllerResult;}descriptionController=controller;HRESULT webViewResult=controller->get_CoreWebView2(&descriptionWebView);if(FAILED(webViewResult)||!descriptionWebView){QueueDescriptionWebViewFailure(parent);return FAILED(webViewResult)?webViewResult:E_FAIL;}ResizeDescriptionWebView();
+            if(FAILED(controllerResult)||!controller){QueueDescriptionWebViewFailure(parent);return controllerResult;}descriptionController=controller;descriptionController->put_IsVisible(FALSE);HRESULT webViewResult=controller->get_CoreWebView2(&descriptionWebView);if(FAILED(webViewResult)||!descriptionWebView){QueueDescriptionWebViewFailure(parent);return FAILED(webViewResult)?webViewResult:E_FAIL;}ApplyDescriptionTheme();ResizeDescriptionWebView();
             Microsoft::WRL::ComPtr<ICoreWebView2Settings> settings;if(SUCCEEDED(descriptionWebView->get_Settings(&settings))){settings->put_AreDefaultContextMenusEnabled(FALSE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->put_IsWebMessageEnabled(TRUE);}
             descriptionWebView->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>([](ICoreWebView2*,ICoreWebView2WebMessageReceivedEventArgs *args)->HRESULT{LPWSTR message=nullptr;if(SUCCEEDED(args->TryGetWebMessageAsString(&message))&&message){std::wstring value=message;CoTaskMemFree(message);constexpr wchar_t followupPrefix[]=L"followup:",actionPrefix[]=L"action:";if(value.rfind(followupPrefix,0)==0)SendFollowup(value.substr(std::size(followupPrefix)-1));else if(value.rfind(actionPrefix,0)==0)HandleCanvasAction(Narrow(value.substr(std::size(actionPrefix)-1)));}return S_OK;}).Get(),&descriptionMessageToken);
-            descriptionWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>([](ICoreWebView2*,ICoreWebView2NavigationCompletedEventArgs *args)->HRESULT{BOOL success=FALSE;if(!args||FAILED(args->get_IsSuccess(&success))||!success){QueueDescriptionWebViewFailure(descriptionWindow);return S_OK;}if(compatibilityReportMode){if(activateDescriptionAfterNavigation&&descriptionController){activateDescriptionAfterNavigation=false;if(ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);}return S_OK;}canvasDocumentReady=true;canvasNavigationPending=false;bool shouldActivate=pendingDescriptionActivate,shouldAnnounce=pendingDescriptionAnnouncement;pendingDescriptionActivate=pendingDescriptionAnnouncement=false;if(shouldActivate&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);PushDescriptionState(shouldAnnounce);return S_OK;}).Get(),&descriptionNavigationToken);
+            descriptionWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>([](ICoreWebView2*,ICoreWebView2NavigationCompletedEventArgs *args)->HRESULT{BOOL success=FALSE;if(!args||FAILED(args->get_IsSuccess(&success))||!success){QueueDescriptionWebViewFailure(descriptionWindow);return S_OK;}if(descriptionController)descriptionController->put_IsVisible(TRUE);if(compatibilityReportMode){if(activateDescriptionAfterNavigation&&descriptionController){activateDescriptionAfterNavigation=false;if(ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);}return S_OK;}canvasDocumentReady=true;canvasNavigationPending=false;bool shouldActivate=pendingDescriptionActivate,shouldAnnounce=pendingDescriptionAnnouncement;pendingDescriptionActivate=pendingDescriptionAnnouncement=false;if(shouldActivate&&descriptionController&&ActivateKeyboardWindow(descriptionWindow))descriptionController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);PushDescriptionState(shouldAnnounce);return S_OK;}).Get(),&descriptionNavigationToken);
             descriptionController->add_AcceleratorKeyPressed(Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>([](ICoreWebView2Controller*,ICoreWebView2AcceleratorKeyPressedEventArgs *args)->HRESULT{UINT key=0;COREWEBVIEW2_KEY_EVENT_KIND kind{};if(SUCCEEDED(args->get_VirtualKey(&key))&&SUCCEEDED(args->get_KeyEventKind(&kind))&&key==VK_ESCAPE&&(kind==COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN||kind==COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)){args->put_Handled(TRUE);if(descriptionWindow)PostMessage(descriptionWindow,WM_CLOSE,0,0);}return S_OK;}).Get(),&descriptionAcceleratorToken);
             bool activate=IsWindowVisible(parent)&&(compatibilityReportMode||!descriptionUserClosed);RenderDescription(activate,activate&&!compatibilityReportMode&&!descriptionTurns.empty());return S_OK;
         }).Get());if(FAILED(controllerCreateResult)){QueueDescriptionWebViewFailure(parent);--pendingDescriptionWebViewInitializations;}return controllerCreateResult;
@@ -552,7 +612,7 @@ static void DrainDescriptionWebViewInitialization(){
 }
 
 static LRESULT CALLBACK DescriptionProc(HWND w,UINT m,WPARAM wp,LPARAM lp){
-    if(m==WM_CREATE){InitializeDescriptionWebView(w);return 0;}if(m==WM_SIZE){ResizeDescriptionWebView();return 0;}if(m==WM_KEYDOWN&&wp==VK_ESCAPE){PostMessage(w,WM_CLOSE,0,0);return 0;}
+    if(m==WM_CREATE){InitializeDescriptionWebView(w);return 0;}if(m==WM_ERASEBKGND){QColor background=DescriptionPaletteColor(QPalette::Window);HBRUSH brush=CreateSolidBrush(RGB(background.red(),background.green(),background.blue()));if(brush){RECT bounds{};GetClientRect(w,&bounds);FillRect(reinterpret_cast<HDC>(wp),&bounds,brush);DeleteObject(brush);return TRUE;}}if(m==WM_SIZE){ResizeDescriptionWebView();return 0;}if(m==WM_KEYDOWN&&wp==VK_ESCAPE){PostMessage(w,WM_CLOSE,0,0);return 0;}
     if(m==WM_DESCRIPTION_WEBVIEW_FAILED){if(IsWindowVisible(w)){std::wstring message=LWide(LocalText::WebViewFailure);MessageBox(w,message.c_str(),L"Accessible OBS Studio",MB_OK|MB_ICONERROR);}DestroyWindow(w);return 0;}
     if(m==WM_CLOSE){HWND foreground=GetForegroundWindow(),owner=api.main_hwnd?api.main_hwnd():nullptr;bool restore=foreground&&(GetAncestor(foreground,GA_ROOT)==w);if(compatibilityReportMode&&owner)EnableWindow(owner,TRUE);if(!compatibilityReportMode){descriptionUserClosed=true;++canvasConversationGeneration;}ShowWindow(w,SW_HIDE);currentResponseId.clear();descriptionTurns.clear();canvasWebActions.clear();pendingCanvasActionId.clear();pendingDescriptionActivate=pendingDescriptionAnnouncement=false;activateDescriptionAfterNavigation=false;if(restore&&obsMainWindow&&!compatibilityReportMode){if(ActivateKeyboardWindow(owner)&&canvasReturnFocus&&QApplication::focusWidget()!=canvasReturnFocus)canvasReturnFocus->setFocus(Qt::OtherFocusReason);}if(!compatibilityReportMode)canvasReturnFocus.clear();return 0;}if(m==WM_DESTROY){if(descriptionWebView){descriptionWebView->remove_WebMessageReceived(descriptionMessageToken);descriptionWebView->remove_NavigationCompleted(descriptionNavigationToken);}descriptionWebView.Reset();if(descriptionController){descriptionController->remove_AcceleratorKeyPressed(descriptionAcceleratorToken);descriptionController->Close();descriptionController.Reset();}descriptionWindow=nullptr;canvasDocumentReady=canvasNavigationPending=pendingDescriptionActivate=pendingDescriptionAnnouncement=false;return 0;}return DefWindowProc(w,m,wp,lp);
 }
@@ -616,12 +676,16 @@ static void StatusInformationHotkey(void*,hotkey_id,obs_hotkey*,bool);
 static void PauseRecordingHotkey(void*,hotkey_id,obs_hotkey*,bool);
 static std::string StatusInformationCommandLabel();
 static std::string PauseRecordingCommandLabel();
-static void ClipGuardHotkey(void*,hotkey_id,obs_hotkey*,bool);
-static void CancelClipGuardHotkey(void*,hotkey_id,obs_hotkey*,bool);
-static std::string ClipGuardCommandLabel();
-static std::string CancelClipGuardCommandLabel();
-static void ShutdownClipGuard();
-static void HandleClipGuardFrontendEvent(int);
+static void AudibleMeterHotkey(void*,hotkey_id,obs_hotkey*,bool);
+static std::string AudibleMeterCommandLabel();
+static void InitializeAudibleMeter();
+static void ShutdownAudibleMeter();
+static void HandleAudibleMeterFrontendEvent(int);
+static void AudibleMeterConsoleOpened();
+static void AudibleMeterConsoleClosed();
+static void AudibleMeterConsoleFocusSource(const QString&);
+static QString AudibleMeterPreferredConsoleSource();
+static QString AudibleMeterStatusText();
 
 #include "src/shortcut_editor.cpp"
 
@@ -633,7 +697,7 @@ static void HandleClipGuardFrontendEvent(int);
 
 #include "src/accessibility_alerts.cpp"
 
-#include "src/clip_guard.cpp"
+#include "src/audible_meter.cpp"
 
 #include "src/canvas_openai.cpp"
 
@@ -678,14 +742,13 @@ extern "C" __declspec(dllexport) bool obs_module_load(){
     std::string volumeConsoleLabel=VolumeConsoleCommandLabel();volumeConsoleHotkey=api.register_frontend(VOLUME_CONSOLE_NAME,volumeConsoleLabel.c_str(),VolumeConsoleHotkey,nullptr);
     std::string statusInformationLabel=StatusInformationCommandLabel();statusInformationHotkey=api.register_frontend("accessible_obs_studio.status_information",statusInformationLabel.c_str(),StatusInformationHotkey,nullptr);
     std::string pauseRecordingLabel=PauseRecordingCommandLabel();pauseRecordingHotkey=api.register_frontend("accessible_obs_studio.pause_resume_recording",pauseRecordingLabel.c_str(),PauseRecordingHotkey,nullptr);
-    std::string clipGuardLabel=ClipGuardCommandLabel();clipGuardHotkey=api.register_frontend(CLIP_GUARD_NAME,clipGuardLabel.c_str(),ClipGuardHotkey,nullptr);
-    std::string cancelClipGuardLabel=CancelClipGuardCommandLabel();cancelClipGuardHotkey=api.register_frontend(CANCEL_CLIP_GUARD_NAME,cancelClipGuardLabel.c_str(),CancelClipGuardHotkey,nullptr);
+    std::string audibleMeterLabel=AudibleMeterCommandLabel();audibleMeterHotkey=api.register_frontend(AUDIBLE_METER_NAME,audibleMeterLabel.c_str(),AudibleMeterHotkey,nullptr);
     static constexpr std::array<UiText,6> directAreaText={UiText::FocusVideoPreview,UiText::FocusScenes,UiText::FocusSources,UiText::FocusAudioMixer,UiText::FocusSceneTransitions,UiText::FocusControls};
     for(size_t i=0;i<directAreaHotkeys.size();++i){std::string label=Narrow(Tr(directAreaText[i]));directAreaHotkeys[i]=api.register_frontend(DIRECT_AREA_NAMES[i],label.c_str(),DirectAreaHotkey,reinterpret_cast<void*>(static_cast<intptr_t>(i+1)));}
-    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();mediaSeekEventFilter=new MediaSeekEventFilter(obsMainWindow);qApp->installEventFilter(mediaSeekEventFilter);hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,pluginEventContext,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(pluginEventContext);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,pluginEventContext,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);InitializeAccessibilityAlerts();return true;
+    LoadAccessibilityBindings();EnsureSafeHotkeyFocusDefault();mediaSeekEventFilter=new MediaSeekEventFilter(obsMainWindow);qApp->installEventFilter(mediaSeekEventFilter);qApp->installEventFilter(new DescriptionThemeEventFilter(pluginEventContext));InitializeAudibleMeter();hotkeyFocusConnection=QObject::connect(qApp,&QGuiApplication::applicationStateChanged,pluginEventContext,[](Qt::ApplicationState){EnsureSafeHotkeyFocusDefault();},Qt::DirectConnection);hotkeyFocusGuardTimer=new QTimer(pluginEventContext);hotkeyFocusGuardTimer->setInterval(250);QObject::connect(hotkeyFocusGuardTimer,&QTimer::timeout,pluginEventContext,[]{EnsureSafeHotkeyFocusDefault();});hotkeyFocusGuardTimer->start();api.add_event_callback(FrontendEvent,nullptr);InitializeAccessibilityAlerts();return true;
 }
 extern "C" __declspec(dllexport) void obs_module_unload(){
-    shuttingDown=true;CancelNetworkRequests();ShutdownClipGuard();ShutdownVolumeConsole();CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
+    shuttingDown=true;CancelNetworkRequests();ShutdownAudibleMeter();ShutdownVolumeConsole();CanvasCapture *capture=nullptr;{std::lock_guard<std::mutex> lock(captureMutex);capture=activeCapture;}if(capture){api.remove_tick(CanvasTick,capture);std::lock_guard<std::mutex> lock(captureMutex);if(activeCapture==capture){if(capture->surface){api.enter_graphics();api.stage_destroy(capture->surface);api.leave_graphics();}if(!capture->apiKey.empty())SecureZeroMemory(capture->apiKey.data(),capture->apiKey.size());delete capture;activeCapture=nullptr;}}
     if(openAIThread.joinable())openAIThread.join();ShutdownAccessibilityAlerts();if(qtHotkeyEditor){delete qtHotkeyEditor.data();qtHotkeyEditor=nullptr;}if(accessibleToolsAction){delete accessibleToolsAction.data();accessibleToolsAction=nullptr;}if(settingsWindow)DestroyWindow(settingsWindow);if(descriptionWindow)DestroyWindow(descriptionWindow);DrainDescriptionWebViewInitialization();if(api.remove_event_callback)api.remove_event_callback(FrontendEvent,nullptr);
     if(api.unregister_hotkey&&nextAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(nextAreaHotkey);
     if(api.unregister_hotkey&&previousAreaHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(previousAreaHotkey);
@@ -695,8 +758,7 @@ extern "C" __declspec(dllexport) void obs_module_unload(){
     if(api.unregister_hotkey&&volumeConsoleHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(volumeConsoleHotkey);
     if(api.unregister_hotkey&&statusInformationHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(statusInformationHotkey);
     if(api.unregister_hotkey&&pauseRecordingHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(pauseRecordingHotkey);
-    if(api.unregister_hotkey&&clipGuardHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(clipGuardHotkey);
-    if(api.unregister_hotkey&&cancelClipGuardHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(cancelClipGuardHotkey);
+    if(api.unregister_hotkey&&audibleMeterHotkey!=static_cast<hotkey_id>(-1))api.unregister_hotkey(audibleMeterHotkey);
     if(api.unregister_hotkey)for(hotkey_id id:directAreaHotkeys)if(id!=static_cast<hotkey_id>(-1))api.unregister_hotkey(id);if(mediaSeekEventFilter){qApp->removeEventFilter(mediaSeekEventFilter.data());delete mediaSeekEventFilter.data();mediaSeekEventFilter=nullptr;}QObject::disconnect(hotkeyFocusConnection);if(hotkeyFocusGuardTimer){hotkeyFocusGuardTimer->stop();delete hotkeyFocusGuardTimer.data();hotkeyFocusGuardTimer=nullptr;}
     if(pluginEventContext){delete pluginEventContext.data();pluginEventContext=nullptr;}
     if(comInitialized){CoUninitialize();comInitialized=false;}

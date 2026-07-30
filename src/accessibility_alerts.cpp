@@ -91,7 +91,7 @@ static QString CurrentRecordingStatus(){
 }
 
 static void ShowStatusInformation(){
-    if(!obsMainWindow)return;QString text=QStringLiteral("%1\n%2\n%3\n%4").arg(CurrentStreamingStatus(),CurrentRecordingStatus(),api.virtualcam_active()?AText(VIRTUAL_CAMERA_ON):AText(VIRTUAL_CAMERA_OFF),api.studio_mode_active()?AText(STUDIO_MODE_ON):AText(STUDIO_MODE_OFF));
+    if(!obsMainWindow)return;QString text=QStringLiteral("%1\n%2\n%3\n%4\n%5").arg(CurrentStreamingStatus(),CurrentRecordingStatus(),api.virtualcam_active()?AText(VIRTUAL_CAMERA_ON):AText(VIRTUAL_CAMERA_OFF),api.studio_mode_active()?AText(STUDIO_MODE_ON):AText(STUDIO_MODE_OFF),AudibleMeterStatusText());
     QMessageBox box(QMessageBox::Information,AText(STATUS_INFORMATION_TITLE),text,QMessageBox::Ok,obsMainWindow);box.setDefaultButton(QMessageBox::Ok);box.setEscapeButton(QMessageBox::Ok);box.exec();
 }
 

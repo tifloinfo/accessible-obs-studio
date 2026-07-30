@@ -20,7 +20,7 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE.txt
 OutputDir=..\..\outputs
-OutputBaseFilename=AccessibleOBSStudio-1.1.0-ClipGuard-Hardening-Test-Setup
+OutputBaseFilename=AccessibleOBSStudio-1.1.0-Audible-Meter-Test-Setup
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
@@ -35,7 +35,7 @@ RestartApplications=no
 UninstallDisplayName={#AppName} {#AppVersion}
 VersionInfoVersion=1.1.0.1
 VersionInfoCompany={#Publisher}
-VersionInfoDescription={#AppName} ClipGuard hardening test installer
+VersionInfoDescription={#AppName} Audible Meter test installer
 VersionInfoCopyright=Copyright (C) 2026 {#Publisher}
 
 [Languages]

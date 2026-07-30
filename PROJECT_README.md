@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.1 ClipGuard Hardening Test
+# Accessible OBS Studio 1.1 Audible Meter Test
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -17,7 +17,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleOBSStudio-1.1.0-ClipGuard-Hardening-Test-Setup.exe`.
+   `AccessibleOBSStudio-1.1.0-Audible-Meter-Test-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -53,7 +53,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - F8: start or stop the Virtual Camera.
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
-- Ctrl+Shift+P: start or complete ClipGuard Sound Check.
+- Ctrl+I: start or stop Audible Meter.
 
 When NVDA is the only detected running screen reader, a successful region change with F6, Shift+F6, or Ctrl+0 through Ctrl+5 explicitly announces the region’s localized name. The extra announcement is suppressed for JAWS, Narrator, unknown readers, and ambiguous multiple-reader sessions.
 
@@ -81,17 +81,24 @@ The console takes an exclusive snapshot of the available audio sources, volumes,
 
 Ctrl+M focuses the Media Controls only when they are visible. While focus is within those controls, Left and Right move backward or forward by 5 seconds, Shift+Left and Shift+Right move backward or forward by 1 minute, Page Up moves backward by 5 minutes, and Page Down moves forward by 5 minutes. These overrides are confined to the Media Controls; the keys retain their normal behavior everywhere else.
 
-## ClipGuard
+## Audible Meter
 
-Press Ctrl+Shift+P before a stream or recording to start **ClipGuard Sound Check**. The minimized **ClipGuard Window** is available through Alt+Tab while focus remains in OBS. Sound Check monitors every audio source currently available to OBS and automatically includes audio sources added while it runs. Exercise the planned scenes, microphones, media, and other sound sources. A quiet continuous higher tone warns about dangerous output, while a lower tone warns about dangerous input before the OBS source fader. Input warnings take priority when both conditions occur. The Accessible Volume Console opens with focus on the most severe affected source. Lower that source until the tone stops; if other sources remain dangerous, focus advances to the next one. Peak conditions are appended to the ClipGuard Window history. **Save History** writes a text copy on demand.
+Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh 1.5 seconds of red exposure has accumulated. The Console never opens automatically.
 
-Press Ctrl+Shift+P again, or activate **Complete Sound Check** in the ClipGuard Window, to accept the results. ClipGuard applies safeguards to sources where output danger was detected, commits the automatic history, saves the OBS configuration, and ends Sound Check. An effective enabled user limiter that is last in the filter chain is respected. Otherwise, ClipGuard creates or updates its own limiter, places it last, and adjusts its threshold for any positive OBS source-fader gain. ClipGuard-owned limiters remain active after Sound Check and when OBS closes.
+The automatic warning tones are warnings, not measurements. A warning means that a source has spent enough actual time in OBS's red zone to deserve attention; it does not state a precise level. For direct audible measurement that agrees with the visible OBS color zones, open the Accessible Volume Console. Focus begins on the loudest active source, and moving among a source's volume, output, and monitoring controls makes that source the audible target.
 
-Starting streaming or recording while Sound Check is active automatically completes it and accepts its safeguards and history. Sound Check cannot be started while streaming or recording is already active. **Cancel Sound Check** or Escape in the focused ClipGuard Window stops Sound Check, restores pre-existing ClipGuard-owned limiters, discards proposed limiter changes, and deletes the current automatic history. Volume changes made by the user are not undone. The unassigned **Cancel ClipGuard Sound Check** keyboard function provides cancellation without opening the ClipGuard Window.
+The tones mean:
 
-The **Settings** button in the ClipGuard Window opens the accessible ClipGuard Settings editor. Settings are stored in `%APPDATA%\obs-studio\plugin_config\accessible-obs-studio\clip-guard.json`. The same directory contains `clip-guard.defaults.json`, the documented `clip-guard.schema.json`, and the `clip-guard-history` directory. The JSON can be edited directly while ClipGuard is stopped, but the Settings editor validates values and writes the file safely. Automatic history writes are batched to avoid repeated full-file writes during heavy activity, and a session retains at most 10,000 detailed events while continuing to preserve safeguard decisions.
+- Lower tone: the incoming, pre-fader signal—such as microphone or device input gain—has remained in red. Lower the gain at the microphone, interface, or device. I disables or enables this automatic tone together with the output warning.
+- Middle tone: the source currently focused in the Accessible Volume Console is in OBS's yellow output zone.
+- Higher tone: either the focused Console source is in OBS's red output zone, or an automatic output warning is active because a source has remained sufficiently in red.
+- Silence: the focused Console source is green, silent, unavailable, or no source control is focused.
 
-OBS exposes both its final meter level and an input level measured before the source volume control but after source filters. ClipGuard uses both. This can identify an overly hot microphone signal entering OBS even when the OBS fader lowers the output, but it cannot prove that clipping occurred inside the microphone, audio interface, or driver before OBS received the samples. Input-only problems are recorded but do not cause a limiter to be added because an OBS limiter cannot repair clipping that occurred upstream.
+The I warning toggle affects the two automatic warnings and their announcements. It does not disable the Console's deliberate yellow and red measurement tones.
+
+While Audible Meter is active, H reports the current level of the source most recently focused in the Console; J reports the name and current level of the loudest source; K reports the selected source's typical active level for the session; and L reports the source with the loudest typical active level. I, H, J, K, and L are intercepted only while Audible Meter is active and never while typing in an editable control. If no source has been selected, H and K announce “No Source Selected”.
+
+Audible Meter does not create, change, enable, disable, or remove filters. It continues operating before, during, and after streaming or recording. Session measurements use fixed-size memory; no history or report files are written.
 
 ## Output status
 

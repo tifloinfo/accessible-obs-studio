@@ -1,4 +1,4 @@
-# Accessible OBS Studio 1.1 ClipGuard-Härtungstest
+# Accessible OBS Studio 1.1 Audible-Meter-Test
 
 Accessible OBS Studio ist ein Windows-Zugänglichkeits-Plugin für die 64-Bit-Version von OBS Studio 32. Es richtet sich an blinde Tastatur- und Screenreader-Nutzer und wurde für JAWS und NVDA entwickelt. Windows 10 oder 11 wird benötigt. Ein OpenAI-API-Schlüssel und Internetzugang sind nur für OpenAI-Funktionen erforderlich.
 
@@ -61,9 +61,11 @@ Bei der Auswahl einer automatischen Korrektur enthält die Quellenliste nur vide
 
 Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüsselt gespeichert und niemals angezeigt. Format und OpenAI-Authentifizierung werden vor dem Speichern geprüft. **Ich habe noch keinen Schlüssel** erscheint nur ohne gespeicherten Schlüssel; **Schlüssel entfernen** nur mit einem gespeicherten Schlüssel. Das Entfernen benötigt eine Bestätigung und meldet den Erfolg.
 
-## ClipGuard
+## Audible Meter
 
-Strg+Umschalt+P startet den ClipGuard-Soundcheck; ein zweiter Druck schließt ihn ab und übernimmt Verlauf und Schutzbegrenzer. Der Soundcheck überwacht alle Audioquellen, spielt bei gefährlichem Ausgangspegel einen höheren und bei gefährlichem Eingangspegel einen tieferen Dauerton und öffnet die Lautstärkekonsole mit Fokus auf der stärksten betroffenen Quelle. Das minimierte ClipGuard-Fenster ist über Alt+Tab erreichbar. Escape im fokussierten Fenster oder der nicht belegte Befehl **ClipGuard-Soundcheck abbrechen** verwirft Verlauf und vorgeschlagene Begrenzer. Start von Stream oder Aufnahme schließt einen laufenden Soundcheck automatisch ab.
+Strg+I startet oder beendet Audible Meter; automatische Warnungen sind zunächst eingeschaltet. I schaltet die automatischen Eingangs- und Ausgangswarnungen gemeinsam aus oder ein. H meldet den aktuellen Pegel der zuletzt in der Konsole fokussierten Quelle, J die aktuell lauteste Quelle und ihren Pegel, K den typischen aktiven Pegel der ausgewählten Quelle und L die Quelle mit dem höchsten typischen aktiven Pegel. I, H, J, K und L werden in Eingabefeldern nie abgefangen.
+
+Die automatischen Töne sind Warnungen, keine Messungen. Für eine direkte hörbare Messung öffnen Sie die barrierefreie Lautstärkekonsole. Tief bedeutet: Eingangssignal vor dem Regler, etwa Mikrofonverstärkung, anhaltend rot. Mittel bedeutet: fokussierte Quelle im gelben Ausgangsbereich. Hoch bedeutet: fokussierte Quelle rot oder automatische Ausgangswarnung. Stille bedeutet grün, kein Signal oder keine fokussierte Quelle. I steuert beide automatischen Warntöne, nicht die gelben und roten Konsolentöne. Es werden weder Verlauf noch Berichtsdateien gespeichert.
 
 ## Datenschutz und Lizenz
 
