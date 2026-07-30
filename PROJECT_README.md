@@ -61,7 +61,7 @@ The command **.Open Keyboard Shortcut Editor** opens the same editor directly. I
 
 By default, Accessible OBS Studio forces all OBS keyboard shortcuts to work only while OBS is the active application. It keeps **Settings > Advanced > Hotkey Focus Behavior** set to **Disable hotkeys when main window is not in focus** and restores that value if it changes. To return control to OBS, select **Allow OBS Studio to manage whether keyboard shortcuts work outside OBS** in the Keyboard Shortcut Editor and save. When selected, the plugin stops changing the setting and stops overriding OBS hotkey state.
 
-On first run and after a profile change, the plugin checks planned defaults against existing assignments. A modal, screen-reader-accessible dialog appears only when real conflicts exist. You can remove only the conflicting combinations and use the Accessibility defaults, or keep the existing assignments and leave the conflicting Accessibility defaults unassigned. “Do not ask again” remembers the chosen policy for this plugin build across profiles; a later build asks again when conflicts exist.
+On first run and after a profile change, the plugin checks planned defaults against existing assignments. A one-time shortcut-schema migration repairs missing or accidentally empty defaults in each profile without replacing nonempty custom assignments; later deliberate removals remain removed. A modal, screen-reader-accessible dialog appears only when real conflicts exist. You can remove only the conflicting combinations and use the Accessibility defaults, or keep the existing assignments and leave the conflicting Accessibility defaults unassigned. “Do not ask again” remembers the chosen policy for this plugin build across profiles; a later build asks again when conflicts exist.
 
 ## Keyboard Shortcut Editor
 
@@ -83,9 +83,9 @@ Ctrl+M focuses the Media Controls only when they are visible. While focus is wit
 
 ## Audible Meter
 
-Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh 1.5 seconds of red exposure has accumulated. The Console never opens automatically.
+Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh 1 second of red exposure has accumulated. The Console never opens automatically.
 
-The automatic warning tones are warnings, not measurements. A warning means that a source has spent enough actual time in OBS's red zone to deserve attention; it does not state a precise level. For direct audible measurement that agrees with the visible OBS color zones, open the Accessible Volume Console. Focus begins on the loudest active source, and moving among a source's volume, output, and monitoring controls makes that source the audible target.
+The automatic warning tones are warnings, not measurements. A warning means that a source has spent enough actual time in OBS's red zone to deserve attention; it does not state a precise level. Automatic warning volume rises within a capped comfortable range when the monitored output is louder; deliberate Console measurement tones remain gentler. For direct audible measurement that agrees with the visible OBS color zones, open the Accessible Volume Console. Focus begins on the loudest active source, and moving among a source's volume, output, and monitoring controls makes that source the audible target.
 
 The tones mean:
 

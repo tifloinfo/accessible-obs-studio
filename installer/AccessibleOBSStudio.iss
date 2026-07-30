@@ -1,5 +1,5 @@
 #define AppName "Accessible OBS Studio"
-#define AppVersion "1.1.0-test.1"
+#define AppVersion "1.1.0-test.2"
 #define Publisher "Tiflo.Info"
 #define Website "https://tiflo.info"
 #define ObsWebsite "https://obsproject.com/download"
@@ -33,7 +33,7 @@ SetupIconFile=
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayName={#AppName} {#AppVersion}
-VersionInfoVersion=1.1.0.1
+VersionInfoVersion=1.1.0.2
 VersionInfoCompany={#Publisher}
 VersionInfoDescription={#AppName} Audible Meter test installer
 VersionInfoCopyright=Copyright (C) 2026 {#Publisher}
