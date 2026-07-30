@@ -180,6 +180,23 @@ static void DirectAreaHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
     if(!pressed||!PluginEventTarget())return;const intptr_t encoded=reinterpret_cast<intptr_t>(data);QMetaObject::invokeMethod(PluginEventTarget(),[encoded]{if(!MainInterfaceActive()||encoded<1||encoded>static_cast<intptr_t>(DIRECT_AREA_WIDGETS.size()))return;QWidget *region=obsMainWindow->findChild<QWidget*>(DIRECT_AREA_WIDGETS[static_cast<size_t>(encoded-1)]);if(region&&region->isVisible())FocusRegionAndAnnounce(region);},Qt::QueuedConnection);
 }
 
+static QString NumberedSceneLabel(size_t index){
+    static constexpr std::array<const char*,6> formats={".Switch to Scene %1",".Zu Szene %1 wechseln",".Переключиться на сцену %1",".Перемкнутися на сцену %1",".Passer à la scène %1",".Cambiar a la escena %1"};
+    return QString::fromUtf8(formats[LanguageIndex()]).arg(index+1);
+}
+
+static void SwitchToNumberedScene(size_t index){
+    if(!MainInterfaceActive())return;FrontendSourceList scenes{};api.frontend_scenes(&scenes);QString name;void *target=index<scenes.sources.num?scenes.sources.array[index]:nullptr;
+    if(target){const char *raw=api.source_name(target);name=QString::fromUtf8(raw?raw:"");api.frontend_set_scene(target);}
+    for(size_t i=0;i<scenes.sources.num;++i)if(scenes.sources.array[i])api.source_release(scenes.sources.array[i]);
+    api.memory_free(scenes.sources.array);
+    if(!target){MessageBeep(MB_ICONINFORMATION);return;}if(!name.isEmpty())AnnounceAccessibility(name,nullptr);
+}
+
+static void NumberedSceneHotkey(void *data,hotkey_id,obs_hotkey*,bool pressed){
+    if(!pressed||!PluginEventTarget())return;intptr_t encoded=reinterpret_cast<intptr_t>(data);if(encoded<1||encoded>10)return;size_t index=static_cast<size_t>(encoded-1);QMetaObject::invokeMethod(PluginEventTarget(),[index]{SwitchToNumberedScene(index);},Qt::QueuedConnection);
+}
+
 static void FocusMediaControlsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){
     if(!pressed||!PluginEventTarget())return;QMetaObject::invokeMethod(PluginEventTarget(),[]{
         if(!MainInterfaceActive())return;if(FocusVisibleMediaControls())return;if(!SelectMediaSourceForControls()){MessageBeep(MB_ICONINFORMATION);return;}
@@ -227,15 +244,15 @@ static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
     QListWidgetItem *item=list->currentItem();QString actionId=item?item->data(Qt::UserRole).toString():QString();QAction *action=item?obsMainWindow->findChild<QAction*>(actionId):nullptr;QString result;if(action&&action->isEnabled()){if(actionId==QStringLiteral("actionFitToScreen")){QAbstractItemView *sources=obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources"));pendingFitSource=sources?QPersistentModelIndex(sources->currentIndex()):QPersistentModelIndex();action->trigger();if(!StartFitQualityValidation())FinishFitQualityValidation(false);return;}action->trigger();result=LText(LocalText::Applied).arg(item->text())+QStringLiteral("\n\n")+LText(LocalText::Undo);}else result=item?LText(LocalText::Skipped).arg(item->text()):LText(LocalText::NoActionsApplied);QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.1.0-audible-meter-test-20260730-2";
-static constexpr const char *SHORTCUT_DEFAULTS_SCHEMA="2";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.1.0-audible-meter-test-20260730-3";
+static constexpr const char *SHORTCUT_DEFAULTS_SCHEMA="3";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
     config *cfg=api.profile_config?api.profile_config():nullptr;if(!cfg||!api.config_has_user_value(cfg,"Hotkeys",name)){api.load_bindings(id,nullptr,0);return;}const char *json=api.config_get_string(cfg,"Hotkeys",name);obs_data *data=json&&*json?api.data_create_json(json):nullptr;if(!data){api.load_bindings(id,nullptr,0);return;}obs_data_array *array=api.data_get_array(data,"bindings");if(array){api.hotkey_load(id,array);api.array_release(array);}else api.load_bindings(id,nullptr,0);api.data_release(data);
 }
 
 static void LoadAccessibilityBindings(){
-    LoadSavedBinding(nextAreaHotkey,NEXT_AREA_NAME);LoadSavedBinding(previousAreaHotkey,PREVIOUS_AREA_NAME);for(size_t i=0;i<canvasHotkeys.size();++i)LoadSavedBinding(canvasHotkeys[i],CANVAS_HOTKEY_NAMES[i]);LoadSavedBinding(focusMediaHotkey,FOCUS_MEDIA_NAME);LoadSavedBinding(volumeConsoleHotkey,VOLUME_CONSOLE_NAME);LoadSavedBinding(openAccessibleObsHotkey,OPEN_ACCESSIBLE_OBS_NAME);LoadSavedBinding(audibleMeterHotkey,AUDIBLE_METER_NAME);for(size_t i=0;i<directAreaHotkeys.size();++i)LoadSavedBinding(directAreaHotkeys[i],DIRECT_AREA_NAMES[i]);
+    LoadSavedBinding(nextAreaHotkey,NEXT_AREA_NAME);LoadSavedBinding(previousAreaHotkey,PREVIOUS_AREA_NAME);for(size_t i=0;i<canvasHotkeys.size();++i)LoadSavedBinding(canvasHotkeys[i],CANVAS_HOTKEY_NAMES[i]);LoadSavedBinding(focusMediaHotkey,FOCUS_MEDIA_NAME);LoadSavedBinding(volumeConsoleHotkey,VOLUME_CONSOLE_NAME);LoadSavedBinding(openAccessibleObsHotkey,OPEN_ACCESSIBLE_OBS_NAME);LoadSavedBinding(audibleMeterHotkey,AUDIBLE_METER_NAME);for(size_t i=0;i<directAreaHotkeys.size();++i)LoadSavedBinding(directAreaHotkeys[i],DIRECT_AREA_NAMES[i]);for(size_t i=0;i<numberedSceneHotkeys.size();++i)LoadSavedBinding(numberedSceneHotkeys[i],NUMBERED_SCENE_NAMES[i]);
 }
 
 struct HotkeyCollector{std::vector<Hotkey> values;};
@@ -244,7 +261,7 @@ static bool CollectBinding(void *parameter,size_t,obs_hotkey_binding *binding){a
 
 struct DefaultShortcut{hotkey_id id;const char *name,*key;uint32_t modifiers;int virtualKey{};};
 static std::vector<DefaultShortcut> AccessibilityDefaults(){
-    std::vector<DefaultShortcut> defaults={{nextAreaHotkey,NEXT_AREA_NAME,"OBS_KEY_F6",0},{previousAreaHotkey,PREVIOUS_AREA_NAME,"OBS_KEY_F6",OBS_MOD_SHIFT},{canvasHotkeys[0],CANVAS_HOTKEY_NAMES[0],"OBS_KEY_F3",0},{canvasHotkeys[1],CANVAS_HOTKEY_NAMES[1],"OBS_KEY_F3",OBS_MOD_SHIFT},{canvasHotkeys[2],CANVAS_HOTKEY_NAMES[2],"OBS_KEY_F3",OBS_MOD_ALT},{canvasHotkeys[3],CANVAS_HOTKEY_NAMES[3],"OBS_KEY_F3",OBS_MOD_CONTROL},{canvasHotkeys[4],CANVAS_HOTKEY_NAMES[4],"OBS_KEY_F4",0},{focusMediaHotkey,FOCUS_MEDIA_NAME,"OBS_KEY_M",OBS_MOD_CONTROL},{volumeConsoleHotkey,VOLUME_CONSOLE_NAME,"OBS_KEY_QUOTELEFT",OBS_MOD_CONTROL,VK_OEM_3},{statusInformationHotkey,"accessible_obs_studio.status_information","OBS_KEY_F2",OBS_MOD_ALT},{pauseRecordingHotkey,"accessible_obs_studio.pause_resume_recording","OBS_KEY_F7",OBS_MOD_ALT},{audibleMeterHotkey,AUDIBLE_METER_NAME,"OBS_KEY_I",OBS_MOD_CONTROL}};static constexpr std::array<const char*,6> directKeys={"OBS_KEY_0","OBS_KEY_1","OBS_KEY_2","OBS_KEY_3","OBS_KEY_4","OBS_KEY_5"};for(size_t i=0;i<directAreaHotkeys.size();++i)defaults.push_back({directAreaHotkeys[i],DIRECT_AREA_NAMES[i],directKeys[i],OBS_MOD_CONTROL});static constexpr std::array<std::pair<const char*,const char*>,6> obsDefaults={{{"OBSBasic.StartStreaming","OBS_KEY_F5"},{"OBSBasic.StopStreaming","OBS_KEY_F5"},{"OBSBasic.StartRecording","OBS_KEY_F7"},{"OBSBasic.StopRecording","OBS_KEY_F7"},{"OBSBasic.StartVirtualCam","OBS_KEY_F8"},{"OBSBasic.StopVirtualCam","OBS_KEY_F8"}}};for(const auto &[name,key]:obsDefaults)defaults.push_back({static_cast<hotkey_id>(-1),name,key,0});return defaults;
+    std::vector<DefaultShortcut> defaults={{nextAreaHotkey,NEXT_AREA_NAME,"OBS_KEY_F6",0},{previousAreaHotkey,PREVIOUS_AREA_NAME,"OBS_KEY_F6",OBS_MOD_SHIFT},{canvasHotkeys[0],CANVAS_HOTKEY_NAMES[0],"OBS_KEY_F3",0},{canvasHotkeys[1],CANVAS_HOTKEY_NAMES[1],"OBS_KEY_F3",OBS_MOD_SHIFT},{canvasHotkeys[2],CANVAS_HOTKEY_NAMES[2],"OBS_KEY_F3",OBS_MOD_ALT},{canvasHotkeys[3],CANVAS_HOTKEY_NAMES[3],"OBS_KEY_F3",OBS_MOD_CONTROL},{canvasHotkeys[4],CANVAS_HOTKEY_NAMES[4],"OBS_KEY_F4",0},{focusMediaHotkey,FOCUS_MEDIA_NAME,"OBS_KEY_M",OBS_MOD_CONTROL},{volumeConsoleHotkey,VOLUME_CONSOLE_NAME,"OBS_KEY_QUOTELEFT",OBS_MOD_CONTROL,VK_OEM_3},{statusInformationHotkey,"accessible_obs_studio.status_information","OBS_KEY_F2",OBS_MOD_ALT},{pauseRecordingHotkey,"accessible_obs_studio.pause_resume_recording","OBS_KEY_F7",OBS_MOD_ALT},{audibleMeterHotkey,AUDIBLE_METER_NAME,"OBS_KEY_I",OBS_MOD_CONTROL}};static constexpr std::array<const char*,6> directKeys={"OBS_KEY_0","OBS_KEY_1","OBS_KEY_2","OBS_KEY_3","OBS_KEY_4","OBS_KEY_5"};for(size_t i=0;i<directAreaHotkeys.size();++i)defaults.push_back({directAreaHotkeys[i],DIRECT_AREA_NAMES[i],directKeys[i],OBS_MOD_CONTROL});static constexpr std::array<const char*,10> sceneKeys={"OBS_KEY_1","OBS_KEY_2","OBS_KEY_3","OBS_KEY_4","OBS_KEY_5","OBS_KEY_6","OBS_KEY_7","OBS_KEY_8","OBS_KEY_9","OBS_KEY_0"};for(size_t i=0;i<numberedSceneHotkeys.size();++i)defaults.push_back({numberedSceneHotkeys[i],NUMBERED_SCENE_NAMES[i],sceneKeys[i],OBS_MOD_ALT});static constexpr std::array<std::pair<const char*,const char*>,6> obsDefaults={{{"OBSBasic.StartStreaming","OBS_KEY_F5"},{"OBSBasic.StopStreaming","OBS_KEY_F5"},{"OBSBasic.StartRecording","OBS_KEY_F7"},{"OBSBasic.StopRecording","OBS_KEY_F7"},{"OBSBasic.StartVirtualCam","OBS_KEY_F8"},{"OBSBasic.StopVirtualCam","OBS_KEY_F8"}}};for(const auto &[name,key]:obsDefaults)defaults.push_back({static_cast<hotkey_id>(-1),name,key,0});return defaults;
 }
 
 enum class ConflictPolicy{Keep,Replace};

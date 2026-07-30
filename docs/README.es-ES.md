@@ -63,7 +63,9 @@ La clave de API se valida antes de guardarla, se almacena en el Administrador de
 
 Ctrl+I inicia o detiene Audible Meter; los avisos automáticos empiezan activados. I activa o desactiva conjuntamente los avisos automáticos de entrada y salida. H anuncia el nivel actual de la última fuente enfocada en la Consola, J la fuente más fuerte y su nivel actual, K el nivel activo típico de la fuente seleccionada y L la fuente con el nivel activo típico más alto. I, H, J, K y L nunca se interceptan al escribir.
 
-Los tonos automáticos son avisos, no mediciones. Para una medición audible directa, abra la Consola de volumen accesible. El tono grave indica una entrada antes del control, como la ganancia del micrófono, sostenida en rojo. El tono medio indica que la fuente enfocada está en la zona amarilla de salida. El tono agudo indica una fuente enfocada en rojo o un aviso automático de salida. El silencio indica verde, ausencia de señal o de fuente enfocada. I controla ambos avisos automáticos, no los tonos amarillo y rojo de la Consola. No se guardan historial ni informes.
+Alt+1 a Alt+9 cambian a las nueve primeras escenas en el orden mostrado; Alt+0 cambia a la décima. Las escenas posteriores a las diez primeras no tienen un atajo numérico predeterminado.
+
+Los tonos automáticos son avisos, no mediciones. Los avisos de salida evalúan el nivel posterior al control de OBS. Un aviso anterior al control detecta una pérdida de calidad ya presente y abre una vez por sesión un diálogo que nombra la fuente. Sí es el valor predeterminado y continúa la comprobación; No o Escape detiene esa comprobación para la fuente sin cambios y guarda la elección. El tono grave indica una señal antes del control sostenida en rojo. El tono medio indica que la fuente enfocada está en la zona amarilla de salida. El tono agudo indica una fuente enfocada en rojo o un aviso automático de salida. El silencio indica verde, ausencia de señal o de fuente enfocada. I controla ambos avisos automáticos, no los tonos amarillo y rojo de la Consola. No se guardan historial ni informes.
 
 ## Privacidad y licencia
 

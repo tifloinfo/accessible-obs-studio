@@ -52,6 +52,7 @@ To uninstall, open Windows Installed Apps and remove Accessible OBS Studio. OBS 
 - Alt+F7: pause or resume recording.
 - F8: start or stop the Virtual Camera.
 - Ctrl+0 through Ctrl+5: focus Video Preview, Scenes, Sources, Audio Mixer, Scene Transitions, or Controls.
+- Alt+1 through Alt+9: switch to scenes 1 through 9 in the displayed Scenes order. Alt+0 switches to scene 10. Scenes after the first ten have no numbered default shortcut.
 - Ctrl+Grave: open the Accessible Volume Console. Grave is the physical key immediately below Escape; its printed character depends on the keyboard layout.
 - Ctrl+I: start or stop Audible Meter.
 
@@ -85,11 +86,11 @@ Ctrl+M focuses the Media Controls only when they are visible. While focus is wit
 
 Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh 1 second of red exposure has accumulated. The Console never opens automatically.
 
-The automatic warning tones are warnings, not measurements. A warning means that a source has spent enough actual time in OBS's red zone to deserve attention; it does not state a precise level. Automatic warning volume rises within a capped comfortable range when the monitored output is louder; deliberate Console measurement tones remain gentler. For direct audible measurement that agrees with the visible OBS color zones, open the Accessible Volume Console. Focus begins on the loudest active source, and moving among a source's volume, output, and monitoring controls makes that source the audible target.
+The automatic warning tones are warnings, not measurements. A warning means that a source has spent enough actual time in OBS's red zone to deserve attention; it does not state a precise level. Output warnings use OBS's post-fader peak, so lowering a source's OBS volume also lowers the output value being judged. Pre-fader warnings detect signal-quality problems already present before that control, including in media files. The first sustained pre-fader warning for a source in each session opens a warning dialog naming the source. Yes is the default and keeps checking that source; Enter or Space activates it. No or Escape stops pre-fader checking for that unchanged source and saves the choice for future launches. Changing the source name, type, signal path or device identity, or settings causes it to be checked again. Automatic warning volume rises within a capped comfortable range when the monitored output is louder; deliberate Console measurement tones remain gentler. For direct audible measurement that agrees with the visible OBS color zones, open the Accessible Volume Console. Focus begins on the loudest active source, and moving among a source's volume, output, and monitoring controls makes that source the audible target.
 
 The tones mean:
 
-- Lower tone: the incoming, pre-fader signal—such as microphone or device input gain—has remained in red. Lower the gain at the microphone, interface, or device. I disables or enables this automatic tone together with the output warning.
+- Lower tone: the incoming, pre-fader signal has remained in red, so sound quality may already be reduced before the OBS volume control. The accompanying dialog identifies the source and lets you continue adjusting it or permanently stop pre-fader checks for that unchanged source. I disables or enables this automatic tone together with the output warning.
 - Middle tone: the source currently focused in the Accessible Volume Console is in OBS's yellow output zone.
 - Higher tone: either the focused Console source is in OBS's red output zone, or an automatic output warning is active because a source has remained sufficiently in red.
 - Silence: the focused Console source is green, silent, unavailable, or no source control is focused.
@@ -98,7 +99,7 @@ The I warning toggle affects the two automatic warnings and their announcements.
 
 While Audible Meter is active, H reports the current level of the source most recently focused in the Console; J reports the name and current level of the loudest source; K reports the selected source's typical active level for the session; and L reports the source with the loudest typical active level. I, H, J, K, and L are intercepted only while Audible Meter is active and never while typing in an editable control. If no source has been selected, H and K announce “No Source Selected”.
 
-Audible Meter does not create, change, enable, disable, or remove filters. It continues operating before, during, and after streaming or recording. Session measurements use fixed-size memory; no history or report files are written.
+Audible Meter does not create, change, enable, disable, or remove filters. It continues operating before, during, and after streaming or recording. Session measurements use fixed-size memory; no history or report files are written. Pre-fader opt-outs are settings, stored in `obs-studio\plugin_config\accessible-obs-studio\audible-meter-input-decisions.json`; each record contains the source name, type, signal path or device identifier, and an identity fingerprint derived from the source settings and local-file metadata.
 
 ## Output status
 

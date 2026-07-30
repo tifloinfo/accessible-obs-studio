@@ -65,7 +65,9 @@ Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüss
 
 Strg+I startet oder beendet Audible Meter; automatische Warnungen sind zunächst eingeschaltet. I schaltet die automatischen Eingangs- und Ausgangswarnungen gemeinsam aus oder ein. H meldet den aktuellen Pegel der zuletzt in der Konsole fokussierten Quelle, J die aktuell lauteste Quelle und ihren Pegel, K den typischen aktiven Pegel der ausgewählten Quelle und L die Quelle mit dem höchsten typischen aktiven Pegel. I, H, J, K und L werden in Eingabefeldern nie abgefangen.
 
-Die automatischen Töne sind Warnungen, keine Messungen. Für eine direkte hörbare Messung öffnen Sie die barrierefreie Lautstärkekonsole. Tief bedeutet: Eingangssignal vor dem Regler, etwa Mikrofonverstärkung, anhaltend rot. Mittel bedeutet: fokussierte Quelle im gelben Ausgangsbereich. Hoch bedeutet: fokussierte Quelle rot oder automatische Ausgangswarnung. Stille bedeutet grün, kein Signal oder keine fokussierte Quelle. I steuert beide automatischen Warntöne, nicht die gelben und roten Konsolentöne. Es werden weder Verlauf noch Berichtsdateien gespeichert.
+Alt+1 bis Alt+9 wechseln zu den ersten neun Szenen in der angezeigten Reihenfolge; Alt+0 wechselt zur zehnten Szene. Szenen nach den ersten zehn haben keine nummerierte Standardtastenkombination.
+
+Die automatischen Töne sind Warnungen, keine Messungen. Ausgangswarnungen bewerten den Pegel nach dem OBS-Regler. Eine Warnung vor dem Regler erkennt bereits vorhandene Qualitätseinbußen und öffnet einmal pro Sitzung einen Dialog mit dem Quellennamen. Ja ist Standard und setzt die Prüfung fort; Nein oder Escape beendet diese Prüfung für die unveränderte Quelle und speichert die Auswahl. Tief bedeutet: Signal vor dem Regler anhaltend rot. Mittel bedeutet: fokussierte Quelle im gelben Ausgangsbereich. Hoch bedeutet: fokussierte Quelle rot oder automatische Ausgangswarnung. Stille bedeutet grün, kein Signal oder keine fokussierte Quelle. I steuert beide automatischen Warntöne, nicht die gelben und roten Konsolentöne. Es werden weder Verlauf noch Berichtsdateien gespeichert.
 
 ## Datenschutz und Lizenz
 
