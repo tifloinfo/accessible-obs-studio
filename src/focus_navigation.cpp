@@ -244,7 +244,7 @@ static void ShowSuggestedFixes(const std::vector<std::string> &allowed){
     QListWidgetItem *item=list->currentItem();QString actionId=item?item->data(Qt::UserRole).toString():QString();QAction *action=item?obsMainWindow->findChild<QAction*>(actionId):nullptr;QString result;if(action&&action->isEnabled()){if(actionId==QStringLiteral("actionFitToScreen")){QAbstractItemView *sources=obsMainWindow->findChild<QAbstractItemView*>(QStringLiteral("sources"));pendingFitSource=sources?QPersistentModelIndex(sources->currentIndex()):QPersistentModelIndex();action->trigger();if(!StartFitQualityValidation())FinishFitQualityValidation(false);return;}action->trigger();result=LText(LocalText::Applied).arg(item->text())+QStringLiteral("\n\n")+LText(LocalText::Undo);}else result=item?LText(LocalText::Skipped).arg(item->text()):LText(LocalText::NoActionsApplied);QMessageBox::information(obsMainWindow,QStringLiteral("Accessible OBS Studio"),result);
 }
 
-static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.1.0-audible-meter-test-20260730-3";
+static constexpr const char *ACCESSIBLE_OBS_BUILD_ID="1.1.0-audible-meter-test-20260730-4";
 static constexpr const char *SHORTCUT_DEFAULTS_SCHEMA="3";
 
 static void LoadSavedBinding(hotkey_id id,const char *name){
