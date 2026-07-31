@@ -1,4 +1,4 @@
-LIBRARY "accessible-obs-studio"
+LIBRARY "accessible-studio"
 EXPORTS
     obs_module_free_locale
     obs_module_get_string

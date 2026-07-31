@@ -428,6 +428,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Accessible OBS Studio local dependencies and packaging output
+# Accessible Studio local dependencies and packaging output
 /dependencies/
 /package/

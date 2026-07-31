@@ -58,7 +58,7 @@ for (const [sourcePath, destinationPath, language, skipText] of documents) {
   body = body.replaceAll('src="assets/', 'src="../assets/');
 
   const titleMatch = source.match(/^#\s+(.+)$/m);
-  const title = titleMatch?.[1] ?? "Accessible OBS Studio";
+  const title = titleMatch?.[1] ?? "Accessible Studio";
   const html = `<!doctype html>
 <html lang="${language}">
 <head>

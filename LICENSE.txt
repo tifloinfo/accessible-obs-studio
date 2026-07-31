@@ -1,4 +1,4 @@
-Accessible OBS Studio
+Accessible Studio
 Copyright (C) 2026 Tiflo.Info
 https://tiflo.info
 
@@ -14,7 +14,7 @@ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE. See LICENSE-GPL-2.0.txt for the complete GNU GPL
 version 2 license text.
 
-The names “Accessible OBS Studio” and “Tiflo.Info”, their logos, and other
+The names “Accessible Studio” and “Tiflo.Info”, their logos, and other
 project branding are not licensed as trademarks by the GNU GPL. The GPL
 permits commercial use and redistribution of the covered software; it does
 not grant permission to imply endorsement by Tiflo.Info or to use protected

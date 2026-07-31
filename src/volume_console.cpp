@@ -80,12 +80,19 @@ public:
     bool FocusSource(const QString &uuid){
         auto findIndex=[this,&uuid]{for(size_t index=0;index<sources_.size();++index)if(sources_[index].uuid==uuid)return static_cast<int>(index);return -1;};
         int index=findIndex();if(index<0&&activeOnlyState_){activeOnlyState_=false;UpdateSourceViewButton();RebuildSources(false);index=findIndex();}if(index<0)return false;
-        if(isMinimized())showNormal();else if(!isVisible())show();raise();activateWindow();FocusIndex(index);return true;
+        FocusIndex(index);return true;
     }
 protected:
     bool eventFilter(QObject *watched,QEvent *event) override{
         if(watched==sourceViewButton_&&(event->type()==QEvent::KeyPress||event->type()==QEvent::KeyRelease)){auto *keyEvent=static_cast<QKeyEvent*>(event);if(keyEvent->key()==Qt::Key_Space)return true;if(event->type()==QEvent::KeyPress&&(keyEvent->key()==Qt::Key_Return||keyEvent->key()==Qt::Key_Enter)){ToggleSourceView();return true;}}
         if(event->type()==QEvent::FocusIn){int focusedIndex=EntryIndex(watched);if(focusedIndex>=0)AudibleMeterConsoleFocusSource(sources_[static_cast<size_t>(focusedIndex)].uuid);}
+        if(event->type()==QEvent::ShortcutOverride){
+            auto *keyEvent=static_cast<QKeyEvent*>(event);int index=EntryIndex(watched);if(index<0)return QDialog::eventFilter(watched,event);Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;
+            bool claimed=modifiers==Qt::NoModifier&&(keyEvent->key()==Qt::Key_Left||keyEvent->key()==Qt::Key_Right||keyEvent->key()==Qt::Key_Home||keyEvent->key()==Qt::Key_Escape||keyEvent->key()==Qt::Key_Return||keyEvent->key()==Qt::Key_Enter||DirectIndex(keyEvent->key())>=0);
+            claimed|=watched==sources_[static_cast<size_t>(index)].slider&&modifiers==Qt::NoModifier&&(keyEvent->key()==Qt::Key_Up||keyEvent->key()==Qt::Key_Down);
+            claimed|=keyEvent->key()==Qt::Key_Space&&(modifiers==Qt::NoModifier||modifiers==Qt::ControlModifier||modifiers==Qt::ShiftModifier);
+            if(claimed){event->accept();return true;}
+        }
         if(event->type()!=QEvent::KeyPress)return QDialog::eventFilter(watched,event);auto *keyEvent=static_cast<QKeyEvent*>(event);int index=EntryIndex(watched);if(index<0)return QDialog::eventFilter(watched,event);
         Qt::KeyboardModifiers modifiers=keyEvent->modifiers()&~Qt::KeypadModifier;
         if(keyEvent->key()==Qt::Key_Space){
@@ -95,7 +102,7 @@ protected:
         }
         if(modifiers==Qt::NoModifier){
             if(keyEvent->key()==Qt::Key_Left){FocusIndex(index-1);return true;}if(keyEvent->key()==Qt::Key_Right){FocusIndex(index+1);return true;}
-            if(watched==sources_[static_cast<size_t>(index)].slider&&(keyEvent->key()==Qt::Key_Up||keyEvent->key()==Qt::Key_Down)){VolumeEntry &entry=sources_[static_cast<size_t>(index)];int step=keyEvent->key()==Qt::Key_Up?1:-1;entry.slider->setValue(std::clamp(entry.value+step,-100,entry.maximumValue));return true;}
+            if(watched==sources_[static_cast<size_t>(index)].slider&&(keyEvent->key()==Qt::Key_Up||keyEvent->key()==Qt::Key_Down)){VolumeEntry &entry=sources_[static_cast<size_t>(index)];int step=keyEvent->key()==Qt::Key_Up?1:-1;entry.slider->setValue(std::clamp(entry.slider->value()+step,-100,entry.maximumValue));return true;}
             if(keyEvent->key()==Qt::Key_Home&&watched==sources_[static_cast<size_t>(index)].slider){QSlider *slider=sources_[static_cast<size_t>(index)].slider;if(slider->value()!=0)slider->setValue(0);else Announce(index);return true;}
             if(keyEvent->key()==Qt::Key_Return||keyEvent->key()==Qt::Key_Enter){const VolumeEntry &entry=sources_[static_cast<size_t>(index)];if(watched==entry.outputButton){ToggleOutput(index);return true;}if(watched==entry.monitoringButton){ToggleMonitoring(index);return true;}}
             int direct=DirectIndex(keyEvent->key());if(direct>=0){FocusIndex(direct);return true;}
@@ -178,9 +185,9 @@ static std::string VolumeConsoleCommandLabel(){QByteArray utf8=VText(VOLUME_CONS
 
 static void OpenVolumeConsole(){
     if(!obsMainWindow||shuttingDown)return;
-    if(!MainInterfaceActive())return;QString preferredSource=AudibleMeterPreferredConsoleSource();
+    if(!MainInterfaceActive()||!AudibleMeterRequestConsoleOpen())return;QString preferredSource=AudibleMeterPreferredConsoleSource();
     if(volumeConsoleWindow){if(volumeConsoleWindow->isMinimized())volumeConsoleWindow->showNormal();else if(!volumeConsoleWindow->isVisible())volumeConsoleWindow->show();volumeConsoleWindow->raise();volumeConsoleWindow->activateWindow();if(!preferredSource.isEmpty())volumeConsoleWindow->FocusSource(preferredSource);return;}
-    volumeConsoleReturnFocus=QApplication::focusWidget();auto *dialog=new VolumeConsoleDialog(obsMainWindow,preferredSource);volumeConsoleWindow=dialog;QObject::connect(dialog,&QObject::destroyed,obsMainWindow,[]{volumeConsoleWindow=nullptr;if(shuttingDown){volumeConsoleReturnFocus=nullptr;return;}QPointer<QWidget> returnFocus=volumeConsoleReturnFocus;volumeConsoleReturnFocus=nullptr;if(returnFocus&&returnFocus->isVisible()&&returnFocus->isEnabled()&&QApplication::focusWidget()!=returnFocus){if(QWidget *window=returnFocus->window();window&&QApplication::activeWindow()!=window)window->activateWindow();returnFocus->setFocus(Qt::ShortcutFocusReason);}});dialog->open();dialog->raise();dialog->activateWindow();
+    volumeConsoleReturnFocus=QApplication::focusWidget();auto *dialog=new VolumeConsoleDialog(obsMainWindow,preferredSource);volumeConsoleWindow=dialog;QObject::connect(dialog,&QObject::destroyed,obsMainWindow,[]{volumeConsoleWindow=nullptr;if(shuttingDown){volumeConsoleReturnFocus=nullptr;return;}QPointer<QWidget> returnFocus=volumeConsoleReturnFocus;volumeConsoleReturnFocus=nullptr;if(returnFocus&&returnFocus->isVisible()&&returnFocus->isEnabled()&&QApplication::focusWidget()!=returnFocus){if(QWidget *window=returnFocus->window();window&&QApplication::activeWindow()!=window)window->activateWindow();returnFocus->setFocus(Qt::ShortcutFocusReason);}});dialog->open();dialog->raise();dialog->activateWindow();if(!preferredSource.isEmpty())QTimer::singleShot(0,dialog,[dialog,preferredSource]{dialog->FocusSource(preferredSource);});
 }
 
 static void VolumeConsoleHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){

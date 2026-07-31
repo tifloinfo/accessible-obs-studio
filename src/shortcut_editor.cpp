@@ -31,8 +31,8 @@ static bool SameLogicalCommand(const Hotkey &left,const Hotkey &right){return le
 static EditorSaveResult SaveEditorChanges(QWidget *parent){
     std::vector<size_t> changed;for(size_t index=0;index<hotkeys.size();++index)if(!BindingListsEqual(hotkeys[index].bindings,hotkeys[index].originalBindings))changed.push_back(index);if(changed.empty())return EditorSaveResult::Saved;
     config *cfg=api.profile_config?api.profile_config():nullptr;auto rollback=[&]{bool rollbackConfiguration=false;for(size_t index:changed){Hotkey original=hotkeys[index];original.bindings=hotkeys[index].originalBindings;Persist(original,rollbackConfiguration);}if(rollbackConfiguration&&cfg)api.config_save_safe(cfg,"tmp",nullptr);if(api.frontend_save)api.frontend_save();};
-    bool configurationChanged=false;for(size_t index:changed)if(!Persist(hotkeys[index],configurationChanged)){rollback();QMessageBox::critical(parent,QStringLiteral("Accessible OBS Studio"),LText(LocalText::PrepareSaveFailure));return EditorSaveResult::Failed;}
-    if(configurationChanged&&(!cfg||api.config_save_safe(cfg,"tmp",nullptr)!=0)){rollback();QMessageBox::critical(parent,QStringLiteral("Accessible OBS Studio"),LText(LocalText::SaveFailure));return EditorSaveResult::Failed;}
+    bool configurationChanged=false;for(size_t index:changed)if(!Persist(hotkeys[index],configurationChanged)){rollback();QMessageBox::critical(parent,QStringLiteral("Accessible Studio"),LText(LocalText::PrepareSaveFailure));return EditorSaveResult::Failed;}
+    if(configurationChanged&&(!cfg||api.config_save_safe(cfg,"tmp",nullptr)!=0)){rollback();QMessageBox::critical(parent,QStringLiteral("Accessible Studio"),LText(LocalText::SaveFailure));return EditorSaveResult::Failed;}
     if(api.frontend_save)api.frontend_save();for(size_t index:changed)hotkeys[index].originalBindings=hotkeys[index].bindings;return EditorSaveResult::Saved;
 }
-static void OpenAccessibleObsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&PluginEventTarget())QMetaObject::invokeMethod(PluginEventTarget(),[]{ShowQtHotkeyEditor();},Qt::QueuedConnection);}
+static void OpenAccessibleObsHotkey(void*,hotkey_id,obs_hotkey*,bool pressed){if(pressed&&PluginEventTarget())QMetaObject::invokeMethod(PluginEventTarget(),[]{ShowAccessibleToolsMenu();},Qt::QueuedConnection);}
