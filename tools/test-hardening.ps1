@@ -90,7 +90,7 @@ Assert-True ($volumeConsole -match 'std::max\(\{0,entry.maximumValue,value\}\)')
 Assert-True ($canvas -match '256ull\*1024\*1024') 'Canvas capture memory is not bounded.'
 Assert-True ($plugin -match 'CancelNetworkRequests\(\)') 'Network requests are not cancelled during shutdown.'
 Assert-True ($installer -match 'HasValidMicrosoftSignature') 'Downloaded prerequisites are not signature checked.'
-Assert-True ($installer -match '1\.1\.0-test\.5') 'The installer is not clearly identified as the current test build.'
+Assert-True (($installer -match '#define AppVersion "1\.1\.0"') -and ($installer -match 'OutputBaseFilename=AccessibleStudio-1\.1\.0-Setup') -and ($installer -notmatch '1\.1\.0-test')) 'The installer is not clearly identified as the final 1.1.0 build.'
 Assert-True (($installer -match 'IndependentProjectNotice') -and ($installer -match 'BDA542EA-4E63-4F03-9F5B-B7A8CD8E470B') -and ($installer -match 'RemoveAccessibleObsStudioLegacy\.ps1') -and ($installer -match '6934DC32-5675-4735-B08A-0DED7B2CBD79')) 'The Accessible Studio transition notice, legacy cleanup, or new installer identity is incomplete.'
 
 Write-Host 'Hardening source invariants passed.'

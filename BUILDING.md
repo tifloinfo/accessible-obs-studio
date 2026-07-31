@@ -21,7 +21,7 @@ download.
 
 Run `tools/test-hardening.ps1` before packaging. It checks the shutdown lifetime,
 Audible Meter, real-time volume, canvas-memory, prerequisite-verification, and
-test-build identity invariants that are easy to regress during development.
+build-identity invariants that are easy to regress during development.
 
 After changing any localized Markdown ReadMe, install Node.js dependencies once
 with `npm install`, then run `npm run docs:html`. This regenerates the six

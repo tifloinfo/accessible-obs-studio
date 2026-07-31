@@ -1,5 +1,5 @@
 #define AppName "Accessible Studio"
-#define AppVersion "1.1.0-test.5"
+#define AppVersion "1.1.0"
 #define Publisher "Tiflo.Info"
 #define Website "https://tiflo.info"
 #define ObsWebsite "https://obsproject.com/download"
@@ -21,7 +21,7 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 LicenseFile=..\LICENSE.txt
 OutputDir=..\..\outputs
-OutputBaseFilename=AccessibleStudio-1.1.0-Test-Setup
+OutputBaseFilename=AccessibleStudio-1.1.0-Setup
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
@@ -34,9 +34,9 @@ SetupIconFile=
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayName={#AppName} {#AppVersion}
-VersionInfoVersion=1.1.0.5
+VersionInfoVersion=1.1.0.0
 VersionInfoCompany={#Publisher}
-VersionInfoDescription={#AppName} test installer
+VersionInfoDescription={#AppName} installer
 VersionInfoCopyright=Copyright (C) 2026 {#Publisher}
 
 [Languages]
