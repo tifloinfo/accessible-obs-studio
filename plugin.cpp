@@ -50,6 +50,7 @@
 #include <QPointer>
 #include <QObject>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
@@ -85,6 +86,7 @@
 #include <QScrollBar>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStackedWidget>
 #include <QStringList>
 #include <QStringList>
 #include <QStyledItemDelegate>
@@ -730,6 +732,11 @@ static bool SoundDoctorIsRunning();
 static QString SoundDoctorBusyMessage();
 static void ShutdownSoundDoctor();
 static void HandleSoundDoctorFrontendEvent(int);
+static double SoundDoctorMinimumCompressionSpreadDb();
+static double SoundDoctorMaximumCompressionRatio();
+static bool SoundDoctorLimiterAllActiveSources();
+static double SoundDoctorLimiterThresholdDb();
+static bool SaveSoundDoctorSettings(double,double,bool,double);
 
 #include "src/shortcut_editor.cpp"
 
