@@ -73,6 +73,8 @@ Ein API-Schlüssel wird in der Windows-Anmeldeinformationsverwaltung verschlüss
 
 ## Audible Meter
 
+Ausführliche technische Antworten zu Audible Meter, automatischer Korrektur, den Tönen der Lautstärkekonsole und Sound Doctor finden Sie in den [FAQ zu den Audiofunktionen](Sound-Features-FAQ.de-DE.html).
+
 Strg+I startet oder beendet Audible Meter; automatische Warnungen sind zunächst eingeschaltet. I schaltet die automatischen Eingangs- und Ausgangswarnungen gemeinsam aus oder ein. Während eine Ausgangswarnung ertönt, senkt Umschalt+I alle dafür verantwortlichen Quellen konservativ ab; die Lautstärke wird nie erhöht und eine einzelne Korrektur ist auf 12 dB begrenzt. Strg+Umschalt+I stellt die letzte automatische Korrektur wieder her, sofern der Pegel danach nicht anderweitig geändert wurde. Vorreglerwarnungen werden nicht automatisch korrigiert. H meldet den aktuellen Pegel der zuletzt in der Konsole fokussierten Quelle, J die aktuell lauteste Quelle und ihren Pegel, K den typischen aktiven Pegel der ausgewählten Quelle und L die Quelle mit dem höchsten typischen aktiven Pegel. I, Umschalt+I, Strg+Umschalt+I, H, J, K und L werden in Eingabefeldern nie abgefangen.
 
 Alt+1 bis Alt+9 wechseln zu den ersten neun Szenen in der angezeigten Reihenfolge; Alt+0 wechselt zur zehnten Szene. Szenen nach den ersten zehn haben keine nummerierte Standardtastenkombination.

@@ -71,6 +71,8 @@ La clave de API se valida antes de guardarla, se almacena en el Administrador de
 
 ## Audible Meter
 
+Encontrará respuestas técnicas detalladas sobre Audible Meter, la corrección automática, los tonos de la Consola y Sound Doctor en las [Preguntas frecuentes sobre las funciones de sonido](Sound-Features-FAQ.es-ES.html).
+
 Ctrl+I inicia o detiene Audible Meter; los avisos automáticos empiezan activados. I activa o desactiva conjuntamente los avisos automáticos de entrada y salida. Mientras suena un aviso de salida, Mayús+I reduce de forma conservadora todas las fuentes responsables; nunca aumenta el volumen y limita cada corrección a 12 dB. Ctrl+Mayús+I restaura la corrección automática más reciente si el nivel no se modificó posteriormente por otro medio. Los avisos anteriores al control no se corrigen automáticamente. H anuncia el nivel actual de la última fuente enfocada en la Consola, J la fuente más fuerte y su nivel actual, K el nivel activo típico de la fuente seleccionada y L la fuente con el nivel activo típico más alto. I, Mayús+I, Ctrl+Mayús+I, H, J, K y L nunca se interceptan al escribir.
 
 Alt+1 a Alt+9 cambian a las nueve primeras escenas en el orden mostrado; Alt+0 cambia a la décima. Las escenas posteriores a las diez primeras no tienen un atajo numérico predeterminado.

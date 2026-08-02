@@ -99,6 +99,8 @@ Ctrl+M focuses the Media Controls only when they are visible. While focus is wit
 
 ## Audible Meter
 
+For detailed technical answers about Audible Meter, automatic correction, Accessible Volume Console tones, and Sound Doctor, open the [Sound Features FAQ](docs/Sound-Features-FAQ.en-US.html).
+
 Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh configured period of warning-level exposure has accumulated. The Console never opens automatically.
 
 Activate **Tools > Accessible Studio > Audio Tools > Advanced Sound Settings** to open an OBS-style settings dialog. Use the left-hand category list to switch between **Audible Meter** and **Sound Doctor** pages. The Audible Meter page configures **Output warning level**, **Time before warning**, **Peak safety margin**, **Maximum automatic reduction**, and the **Pre-fader stop list**. The Sound Doctor page configures minimum dynamic variation for compression, maximum compressor ratio, limiter recommendation scope, and recommended limiter ceiling. Apply saves without closing; OK saves and closes; Cancel discards changes made since the most recent Apply.

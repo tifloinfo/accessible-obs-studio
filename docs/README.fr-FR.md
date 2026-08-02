@@ -71,6 +71,8 @@ La clé API est validée avant l’enregistrement, conservée dans le Gestionnai
 
 ## Audible Meter
 
+Pour des réponses techniques détaillées sur Audible Meter, la correction automatique, les tonalités de la console et Sound Doctor, consultez la [FAQ des fonctions audio](Sound-Features-FAQ.fr-FR.html).
+
 Ctrl+I démarre ou arrête Audible Meter ; les avertissements automatiques sont activés au départ. I active ou désactive ensemble les avertissements automatiques d’entrée et de sortie. Pendant un avertissement de sortie, Maj+I réduit prudemment toutes les sources responsables ; le volume n’est jamais augmenté et chaque correction est limitée à 12 dB. Ctrl+Maj+I restaure la correction automatique la plus récente si le niveau n’a pas été modifié ensuite par un autre moyen. Les avertissements avant curseur ne sont pas corrigés automatiquement. H annonce le niveau actuel de la dernière source focalisée dans la console, J la source actuellement la plus forte et son niveau, K le niveau actif typique de la source sélectionnée et L la source au niveau actif typique le plus élevé. I, Maj+I, Ctrl+Maj+I, H, J, K et L ne sont jamais interceptées pendant la saisie.
 
 Alt+1 à Alt+9 passent aux neuf premières scènes dans l’ordre affiché ; Alt+0 passe à la dixième. Les scènes au-delà des dix premières n’ont pas de raccourci numérique par défaut.
