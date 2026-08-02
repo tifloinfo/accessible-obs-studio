@@ -10,6 +10,12 @@ const documents = [
   ["docs/README.fr-FR.md", "docs/README.fr-FR.html", "fr", "Aller au contenu"],
   ["docs/README.ru-RU.md", "docs/README.ru-RU.html", "ru", "Перейти к содержимому"],
   ["docs/README.uk-UA.md", "docs/README.uk-UA.html", "uk", "Перейти до вмісту"],
+  ["docs/Sound-Features-FAQ.en-US.md", "docs/Sound-Features-FAQ.en-US.html", "en", "Skip to content"],
+  ["docs/Sound-Features-FAQ.de-DE.md", "docs/Sound-Features-FAQ.de-DE.html", "de", "Zum Inhalt springen"],
+  ["docs/Sound-Features-FAQ.es-ES.md", "docs/Sound-Features-FAQ.es-ES.html", "es", "Saltar al contenido"],
+  ["docs/Sound-Features-FAQ.fr-FR.md", "docs/Sound-Features-FAQ.fr-FR.html", "fr", "Aller au contenu"],
+  ["docs/Sound-Features-FAQ.ru-RU.md", "docs/Sound-Features-FAQ.ru-RU.html", "ru", "Перейти к содержимому"],
+  ["docs/Sound-Features-FAQ.uk-UA.md", "docs/Sound-Features-FAQ.uk-UA.html", "uk", "Перейти до вмісту"],
 ];
 
 const css = `
@@ -56,6 +62,9 @@ for (const [sourcePath, destinationPath, language, skipText] of documents) {
   const source = fs.readFileSync(sourcePath, "utf8");
   let body = marked.parse(source, { gfm: true });
   body = body.replaceAll('src="assets/', 'src="../assets/');
+  if (sourcePath === "PROJECT_README.md") {
+    body = body.replaceAll('href="docs/', 'href="');
+  }
 
   const titleMatch = source.match(/^#\s+(.+)$/m);
   const title = titleMatch?.[1] ?? "Accessible Studio";

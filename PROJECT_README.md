@@ -1,4 +1,4 @@
-# Accessible Studio 1.1
+# Accessible Studio 1.1.1
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -19,7 +19,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleStudio-1.1.0-Setup.exe`.
+   `AccessibleStudio-1.1.1-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -99,9 +99,11 @@ Ctrl+M focuses the Media Controls only when they are visible. While focus is wit
 
 ## Audible Meter
 
+For detailed technical answers about Audible Meter, automatic correction, Accessible Volume Console tones, and Sound Doctor, open the [Sound Features FAQ](docs/Sound-Features-FAQ.en-US.html).
+
 Press Ctrl+I to start or stop **Audible Meter**. It monitors every active audio source and starts with automatic warnings on. While Audible Meter is active, press I to turn both automatic input and output warnings off or on. Turning warnings back on resets the exposure counters, so no warning can sound until a fresh configured period of warning-level exposure has accumulated. The Console never opens automatically.
 
-Activate **Tools > Accessible Studio > Audio Tools > Advanced Sound Settings** to configure **Output warning level**, **Time before warning**, **Peak safety margin**, and **Maximum automatic reduction**. Defaults are the current behavior: OBS's red boundary (-9 dBFS with Sample Peak or -2 dBTP with True Peak), 1.5 seconds, 3 dB, and 12 dB. A custom output warning remains fixed if the OBS peak-meter type changes. **Restore Defaults** restores all four values. The **Pre-fader stop list** contains sources for which pre-fader checking was declined. Select a source and press Delete or activate **Remove** to make it eligible for checking again; stop-list changes are saved only when OK is activated.
+Activate **Tools > Accessible Studio > Audio Tools > Advanced Sound Settings** to open an OBS-style settings dialog. Use the left-hand category list to switch between **Audible Meter** and **Sound Doctor** pages. The Audible Meter page configures **Output warning level**, **Time before warning**, **Peak safety margin**, **Maximum automatic reduction**, and the **Pre-fader stop list**. The Sound Doctor page configures minimum dynamic variation for compression, maximum compressor ratio, limiter recommendation scope, and recommended limiter ceiling. Apply saves without closing; OK saves and closes; Cancel discards changes made since the most recent Apply.
 
 While an output warning is sounding, press Shift+I to reduce every source responsible for that warning. Audible Meter places the observed output peak by the configured safety margin below the configured warning level, never raises volume, and limits one correction to the configured maximum. It does not alter sources with only a prefader warning because a fader cannot repair distortion that already exists before the fader. Press Ctrl+Shift+I to restore the most recent automatic correction; a source that was subsequently adjusted by another method is left unchanged. Automatic correction is a conservative safety adjustment, not a replacement for balancing speech, gameplay, music, and effects by ear.
 
@@ -136,7 +138,7 @@ While Sound Doctor is monitoring, press Ctrl+Shift+D or choose its menu command 
 
 Sound Doctor observes active audio sources for at least two minutes while you use them normally. It stores only fixed-size measurements in memory; it does not record or save audio. If streaming or recording is active, monitoring may continue beyond two minutes and the recommendations remain hidden until both have stopped. If streaming or recording starts while a report is open, the report is hidden and returns after both have stopped.
 
-The keyboard-accessible WebView2 report explains each recommendation and shows an initially unchecked **Apply this change automatically** checkbox. Sound Doctor considers active duration, typical level, peaks, dynamic range, clipping-like exposure, and existing compressor and limiter filters. It avoids duplicate recommendations when a suitable filter already exists. Recommendations are evidence-based and may therefore omit a source or report that no change is needed.
+The keyboard-accessible WebView2 report explains each recommendation and shows an initially unchecked **Apply this change automatically** checkbox. For likely live inputs, Sound Doctor recommends adaptive 2:1, 2.5:1, or 3:1 compression when measured dynamics exceed the configured threshold, without requiring near-clipping peaks. It recommends preventive final-chain limiting for active likely-live inputs by default; advanced users may extend that recommendation to all active sources. Existing compressors and limiters are never duplicated, and a changed source is left untouched.
 
 Activate **Finish** to apply only the selected changes and close the report. Escape closes it without applying changes. Before applying anything, Sound Doctor verifies that the source and its relevant filters have not changed. Added filters use visible **Sound Doctor – Compressor** or **Sound Doctor – Limiter** names and carry an internal Sound Doctor marker. They are inserted in a deliberate order and can be reversed with OBS's normal Undo command.
 
