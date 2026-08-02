@@ -90,6 +90,7 @@ Assert-True ($plugin -match 'put_DefaultBackgroundColor') 'Canvas WebView can fl
 Assert-True ($volumeConsole -match 'refreshTimer_->setInterval\(500\)') 'The Volume Console has no real-time refresh.'
 Assert-True ($volumeConsole -match 'std::max\(\{0,entry.maximumValue,value\}\)') 'Positive source gain is not preserved during refresh.'
 Assert-True ($canvas -match '256ull\*1024\*1024') 'Canvas capture memory is not bounded.'
+Assert-True (($canvas -match 'visualChecker\?4000:') -and ($canvas -match 'QStringLiteral\("reasoning"\).*QStringLiteral\("effort"\).*QStringLiteral\("low"\)')) 'Visual Checker does not use low reasoning with a 4,000-token output allowance.'
 Assert-True ($plugin -match 'CancelNetworkRequests\(\)') 'Network requests are not cancelled during shutdown.'
 Assert-True ($installer -match 'HasValidMicrosoftSignature') 'Downloaded prerequisites are not signature checked.'
 Assert-True (($installer -match '#define AppVersion "1\.1\.1"') -and ($installer -match 'OutputBaseFilename=AccessibleStudio-1\.1\.1-Setup') -and ($installer -notmatch '1\.1\.1-test')) 'The installer is not clearly identified as the final 1.1.1 build.'
