@@ -177,3 +177,9 @@ static QString LText(LocalText id){
 }
 
 static std::wstring LWide(LocalText id){return LText(id).toStdWString();}
+
+static QString LAccessibleLabel(LocalText id){
+    QString text=LText(id).remove(u'&').trimmed();
+    if(text.endsWith(u':'))text.chop(1);
+    return text.trimmed();
+}
