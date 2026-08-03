@@ -1,6 +1,6 @@
 # FAQ des fonctions audio
 
-Ce document décrit Sound Doctor, Audible Meter et la console de volume accessible d’Accessible Studio 1.1.1.
+Ce document décrit Sound Doctor, Audible Meter et la console de volume accessible d’Accessible Studio 1.1.2.
 
 ## Vue d’ensemble
 

@@ -1,6 +1,6 @@
 # Preguntas frecuentes sobre las funciones de sonido
 
-Este documento explica Sound Doctor, Audible Meter y la Consola de volumen accesible de Accessible Studio 1.1.1.
+Este documento explica Sound Doctor, Audible Meter y la Consola de volumen accesible de Accessible Studio 1.1.2.
 
 ## Descripción general
 
