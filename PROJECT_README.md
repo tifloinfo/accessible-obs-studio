@@ -1,4 +1,4 @@
-# Accessible Studio 1.1.2
+# Accessible Studio 1.1.3
 
 [![Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”](assets/tiflo-info-logo.jpg)](https://tiflo.info)
 
@@ -19,7 +19,7 @@ The installer checks for Microsoft WebView2 and the Visual C++ Runtime. It downl
 ## Installation
 
 1. Install the 64-bit edition of OBS Studio 32.0 or later, then run
-   `AccessibleStudio-1.1.2-Setup.exe`.
+   `AccessibleStudio-1.1.3-Setup.exe`.
 2. If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
    the [official OBS Studio download page](https://obsproject.com/download) and
    exits without installing files or prerequisites. You can also update an
@@ -153,6 +153,8 @@ F7 continues to start or stop recording, including stopping a paused recording. 
 An API key is optional and is never requested for ordinary plugin functions. Open **Tools > Accessible Studio > Video Tools > Manage OpenAI API Keys** when you want to save, replace, or remove a key. The Qt dialog supports standard keyboard navigation. A stored key is never displayed. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account; an existing key is retained if its replacement cannot be validated or saved. **I Have No Key Yet** appears only when no key is stored, while **Remove key** appears only when a key is stored. Removal requires confirmation and reports whether it succeeded. OpenAI features remain blocked without a key, while all other plugin functions continue to work.
 
 All five Canvas Describer keyboard shortcuts capture the rendered OBS canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The WebView2 result window then receives focus; closing it restores the previous OBS control when appropriate and does not steal focus from another application. Every newly received initial or follow-up answer is announced once through an assertive ARIA live region; status messages and older answers are not reannounced. Questions are never echoed into the conversation.
+
+**Copy Latest Result** copies only the newest answer to the Clipboard, without headings, status messages, or earlier conversation turns.
 
 All five modes permit image-related follow-up questions. Image text and follow-up messages are treated as untrusted content. Unrelated questions are refused, and the image conversation ends when the window closes or another direct capture begins.
 

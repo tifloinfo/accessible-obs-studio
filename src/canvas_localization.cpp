@@ -3,7 +3,7 @@
 
 enum class CanvasText {
     BasicDescription,DetailedDescription,ReadText,PeopleBackgrounds,AnalyzeIssues,
-    SuggestedFixes,FixAutomatically,AnalyzeAgain,Recommendation,HighSeverity,MediumSeverity,LowSeverity,
+    SuggestedFixes,FixAutomatically,AnalyzeAgain,CopyLatestResult,ResultCopied,ResultCopyFailed,Recommendation,HighSeverity,MediumSeverity,LowSeverity,
     NoTextFound,NoIssuesFound,NoPeopleFound,
     ConflictTitle,ConflictMessage,ReplaceConflicts,KeepExisting,DoNotAskBuild,
     ConflictSaveFailed,Count
@@ -20,6 +20,9 @@ static QString CText(CanvasText id){
         A{"Suggested Fixes","Vorgeschlagene Korrekturen","Предлагаемые исправления","Запропоновані виправлення","Corrections suggérées","Correcciones sugeridas"},
         A{"Fix Automatically","Automatisch korrigieren","Исправить автоматически","Виправити автоматично","Corriger automatiquement","Corregir automáticamente"},
         A{"Check Again","Erneut prüfen","Проверить снова","Перевірити знову","Vérifier à nouveau","Comprobar de nuevo"},
+        A{"Copy Latest Result","Letztes Ergebnis kopieren","Копировать последний результат","Копіювати останній результат","Copier le dernier résultat","Copiar el último resultado"},
+        A{"The latest result was copied to the Clipboard.","Das letzte Ergebnis wurde in die Zwischenablage kopiert.","Последний результат скопирован в буфер обмена.","Останній результат скопійовано до буфера обміну.","Le dernier résultat a été copié dans le Presse-papiers.","El último resultado se copió al Portapapeles."},
+        A{"The latest result could not be copied to the Clipboard.","Das letzte Ergebnis konnte nicht in die Zwischenablage kopiert werden.","Не удалось скопировать последний результат в буфер обмена.","Не вдалося скопіювати останній результат до буфера обміну.","Le dernier résultat n’a pas pu être copié dans le Presse-papiers.","No se pudo copiar el último resultado al Portapapeles."},
         A{"Recommendation","Empfehlung","Рекомендация","Рекомендація","Recommandation","Recomendación"},
         A{"High severity","Hoher Schweregrad","Высокая важность","Висока важливість","Gravité élevée","Gravedad alta"},
         A{"Medium severity","Mittlerer Schweregrad","Средняя важность","Середня важливість","Gravité moyenne","Gravedad media"},

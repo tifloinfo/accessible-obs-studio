@@ -1,6 +1,6 @@
 # Поширені запитання про звукові функції
 
-Тут описано Sound Doctor, Audible Meter і доступну консоль гучності в Accessible Studio 1.1.2.
+Тут описано Sound Doctor, Audible Meter і доступну консоль гучності в Accessible Studio 1.1.3.
 
 ## Огляд
 

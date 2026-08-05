@@ -1,4 +1,4 @@
-# Accessible Studio 1.1.2
+# Accessible Studio 1.1.3
 
 Accessible Studio est un module d’accessibilité pour OBS Studio 32, 64 bits, sous Windows 10 et 11. Il est destiné aux utilisateurs aveugles du clavier et d’un lecteur d’écran, et a été testé avec JAWS et NVDA. Une clé API OpenAI et Internet ne sont nécessaires que pour les fonctions OpenAI.
 
@@ -6,7 +6,7 @@ Accessible Studio est un module d’accessibilité tiers et indépendant pour OB
 
 ## Installation
 
-Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez `AccessibleStudio-1.1.2-Setup.exe`. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la [page officielle de téléchargement d’OBS](https://obsproject.com/download), puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide > Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la [page du dernier module](https://github.com/tifloinfo/accessible-studio/releases/latest) avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans `C:\ProgramData\obs-studio\plugins\accessible-studio`. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case **Ouvrir le fichier Lisez-moi dans le navigateur web** ouvre la documentation HTML française.
+Installez l’édition 64 bits d’OBS Studio 32.0 ou version ultérieure, puis exécutez `AccessibleStudio-1.1.3-Setup.exe`. Si OBS Studio est absent, endommagé ou antérieur à 32.0, le programme propose d’ouvrir la [page officielle de téléchargement d’OBS](https://obsproject.com/download), puis se ferme sans apporter de modifications. Vous pouvez aussi mettre à jour une ancienne version avec Aide > Rechercher des mises à jour dans OBS Studio. OBS Studio 32.x est pris en charge. Avec OBS Studio 33 ou version ultérieure, le programme avertit d’une incompatibilité possible et propose la [page du dernier module](https://github.com/tifloinfo/accessible-studio/releases/latest) avant d’autoriser un choix explicite d’installation malgré tout. Si OBS Studio est en cours d’exécution, le programme demande de le fermer complètement, puis de choisir Réessayer ; il ne ferme jamais OBS automatiquement. Le module est installé dans `C:\ProgramData\obs-studio\plugins\accessible-studio`. Les composants Microsoft WebView2 et Visual C++ manquants ne sont ajoutés qu’après ces vérifications, sans remplacer les fichiers OBS ou Qt. Sur la page finale, la case **Ouvrir le fichier Lisez-moi dans le navigateur web** ouvre la documentation HTML française.
 
 Si la version publiée Accessible OBS Studio 1.0 est installée, elle est désinstallée automatiquement et seuls ses paramètres propres au module, ses raccourcis clavier, ses données en cache et sa clé API OpenAI enregistrée sont supprimés. Les autres paramètres et contenus d’OBS sont conservés.
 
@@ -58,6 +58,8 @@ Les changements de diffusion, d’enregistrement, de pause, de caméra virtuelle
 ## Description du canevas
 
 Les cinq modes capturent le canevas rendu par OBS. Chaque nouvelle réponse initiale ou complémentaire est annoncée une fois par une région active ARIA assertive ; la question de l’utilisateur n’est jamais répétée. Les cinq modes acceptent des questions complémentaires.
+
+**Copier le dernier résultat** copie uniquement la réponse la plus récente dans le Presse-papiers, sans titres, messages d’état ni échanges précédents.
 
 Dans la description de base, **Description détaillée** est toujours disponible, **Lire le texte** uniquement si du texte a été détecté, **Personnes et arrière-plans** uniquement si des personnes ont été détectées, et **Corrections suggérées** uniquement si un problème peut réellement être corrigé automatiquement. Ces actions réutilisent l’image déjà envoyée.
 

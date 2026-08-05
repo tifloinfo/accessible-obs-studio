@@ -11,7 +11,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType><UseDebugLibraries>false</UseDebugLibraries><PlatformToolset>v143</PlatformToolset><CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>accessible-studio</TargetName><OutDir>$(ProjectDir)build\Release\</OutDir><IntDir>$(ProjectDir)build\obj\</IntDir>
+    <TargetName>accessible-studio</TargetName><OutDir>$(ProjectDir)build\Release\</OutDir><IntDir>$(ProjectDir)build\obj\$(ProjectName)\</IntDir>
     <QtRoot Condition="'$(QtRoot)'==''">$(ProjectDir)dependencies\qt6</QtRoot>
     <WebView2Root Condition="'$(WebView2Root)'==''">$(ProjectDir)dependencies\webview2</WebView2Root>
   </PropertyGroup>

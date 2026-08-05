@@ -1,4 +1,4 @@
-# Accessible Studio 1.1.2
+# Accessible Studio 1.1.3
 
 Accessible Studio es un complemento de accesibilidad para OBS Studio 32 de 64 bits en Windows 10 y 11. Está pensado para usuarios ciegos de teclado y lector de pantalla, y se ha probado con JAWS y NVDA. La clave de API de OpenAI e Internet solo son necesarios para las funciones de OpenAI.
 
@@ -6,7 +6,7 @@ Accessible Studio es un complemento de accesibilidad independiente y de terceros
 
 ## Instalación
 
-Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `AccessibleStudio-1.1.2-Setup.exe`. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la [página oficial de descarga de OBS](https://obsproject.com/download) y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda > Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la [página del complemento más reciente](https://github.com/tifloinfo/accessible-studio/releases/latest) antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en `C:\ProgramData\obs-studio\plugins\accessible-studio`. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla **Abrir el archivo Léame en el navegador web** abre la documentación HTML en español.
+Instale la edición de 64 bits de OBS Studio 32.0 o posterior y ejecute `AccessibleStudio-1.1.3-Setup.exe`. Si OBS Studio no está instalado, está dañado o es anterior a 32.0, el instalador ofrece abrir la [página oficial de descarga de OBS](https://obsproject.com/download) y se cierra sin realizar cambios. También puede actualizar una versión antigua mediante Ayuda > Buscar actualizaciones en OBS Studio. OBS Studio 32.x es compatible. Con OBS Studio 33 o posterior, el instalador advierte de una posible incompatibilidad y ofrece la [página del complemento más reciente](https://github.com/tifloinfo/accessible-studio/releases/latest) antes de permitir una instalación explícita de todos modos. Si OBS Studio está en ejecución, el instalador pide cerrarlo por completo y elegir Reintentar; nunca lo cierra automáticamente. El complemento se instala en `C:\ProgramData\obs-studio\plugins\accessible-studio`. Los componentes de Microsoft WebView2 y Visual C++ que falten se añaden solo después de estas comprobaciones, sin sustituir archivos de OBS ni de Qt. En la página final, la casilla **Abrir el archivo Léame en el navegador web** abre la documentación HTML en español.
 
 Si está instalada la versión publicada Accessible OBS Studio 1.0, se desinstala automáticamente y solo se eliminan sus ajustes específicos, métodos abreviados de teclado, datos en caché y clave de API de OpenAI guardada. Los demás ajustes y contenidos de OBS se conservan.
 
@@ -58,6 +58,8 @@ Los cambios de emisión, grabación, pausa de grabación, cámara virtual y Modo
 ## Descripción del lienzo
 
 Los cinco modos capturan el lienzo renderizado por OBS. Cada nueva respuesta inicial o de seguimiento se anuncia una vez mediante una región activa ARIA asertiva; nunca se repite la pregunta del usuario. Los cinco modos admiten preguntas de seguimiento.
+
+**Copiar el último resultado** copia al Portapapeles únicamente la respuesta más reciente, sin encabezados, mensajes de estado ni turnos anteriores de la conversación.
 
 En la descripción básica, **Descripción detallada** siempre está disponible, **Leer texto** solo si se detectó texto, **Personas y fondos** solo si se detectaron personas y **Correcciones sugeridas** solo si un problema puede corregirse realmente de forma automática. Estas acciones reutilizan la imagen ya enviada.
 

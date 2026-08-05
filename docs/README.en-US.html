@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accessible Studio 1.1.2</title>
+<title>Accessible Studio 1.1.3</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -39,7 +39,7 @@
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <main id="main-content">
-<h1>Accessible Studio 1.1.2</h1>
+<h1>Accessible Studio 1.1.3</h1>
 <p><a href="https://tiflo.info"><img src="../assets/tiflo-info-logo.jpg" alt="Tiflo.Info logo: blue waves above the words Tiflo.info and the Russian phrase “Close your eyes and see”"></a></p>
 <p>Accessible Studio is a Windows accessibility plugin for OBS Studio. It is designed for blind keyboard and screen-reader users and has been developed with both JAWS and NVDA in mind.</p>
 <p>Accessible Studio is an independent, third-party accessibility plugin for OBS Studio. It is not developed by, affiliated with, sponsored by, or endorsed by the OBS Project or its contributors. OBS and OBS Studio are registered trademarks of Wizards of OBS LLC.</p>
@@ -55,7 +55,7 @@ Runtime is missing, and later when an OpenAI feature is used.</li>
 <h2>Installation</h2>
 <ol>
 <li>Install the 64-bit edition of OBS Studio 32.0 or later, then run
-<code>AccessibleStudio-1.1.2-Setup.exe</code>.</li>
+<code>AccessibleStudio-1.1.3-Setup.exe</code>.</li>
 <li>If OBS Studio is absent, damaged, or older than 32.0, Setup offers to open
 the <a href="https://obsproject.com/download">official OBS Studio download page</a> and
 exits without installing files or prerequisites. You can also update an
@@ -146,6 +146,7 @@ the HTML documentation matching the language selected for Setup.</li>
 <h2>Canvas Describer and approved fixes</h2>
 <p>An API key is optional and is never requested for ordinary plugin functions. Open <strong>Tools &gt; Accessible Studio &gt; Video Tools &gt; Manage OpenAI API Keys</strong> when you want to save, replace, or remove a key. The Qt dialog supports standard keyboard navigation. A stored key is never displayed. The key format and OpenAI authentication are checked before Windows Credential Manager encrypts it for the current Windows account; an existing key is retained if its replacement cannot be validated or saved. <strong>I Have No Key Yet</strong> appears only when no key is stored, while <strong>Remove key</strong> appears only when a key is stored. Removal requires confirmation and reports whether it succeeded. OpenAI features remain blocked without a key, while all other plugin functions continue to work.</p>
 <p>All five Canvas Describer keyboard shortcuts capture the rendered OBS canvas without requiring preview focus. A brief click confirms that the request has started. The current control remains focused while capture and upload begin. The WebView2 result window then receives focus; closing it restores the previous OBS control when appropriate and does not steal focus from another application. Every newly received initial or follow-up answer is announced once through an assertive ARIA live region; status messages and older answers are not reannounced. Questions are never echoed into the conversation.</p>
+<p><strong>Copy Latest Result</strong> copies only the newest answer to the Clipboard, without headings, status messages, or earlier conversation turns.</p>
 <p>All five modes permit image-related follow-up questions. Image text and follow-up messages are treated as untrusted content. Unrelated questions are refused, and the image conversation ends when the window closes or another direct capture begins.</p>
 <p>Basic Description is also a starting point. Detailed Description is always offered without resubmitting the image. Read Text appears only when text is detected; People and Backgrounds appears only when people are detected. Suggested Fixes appears only when the plugin has a specific approved OBS transform that can address a detected issue. A successful preset disappears while other relevant presets remain.</p>
 <p>People and Backgrounds makes visible people the primary subject, then describes their immediate backgrounds. Unrelated interface, text, and scene details are omitted unless they directly affect a person&#39;s presentation.</p>

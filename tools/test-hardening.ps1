@@ -10,6 +10,7 @@ $qtInterface = Get-Content -LiteralPath (Join-Path $root 'src\qt_interface.cpp')
 $localizedUi = Get-Content -LiteralPath (Join-Path $root 'src\localized_ui.cpp') -Raw
 $volumeConsole = Get-Content -LiteralPath (Join-Path $root 'src\volume_console.cpp') -Raw
 $canvas = Get-Content -LiteralPath (Join-Path $root 'src\canvas_openai.cpp') -Raw
+$compatibility = Get-Content -LiteralPath (Join-Path $root 'src\compatibility.cpp') -Raw
 $installer = Get-Content -LiteralPath (Join-Path $root 'installer\AccessibleStudio.iss') -Raw
 $allSource = $plugin + $audibleMeter + $soundDoctor + $focusNavigation + $shortcutEditor + $qtInterface + $localizedUi + $volumeConsole + $canvas + $installer
 
@@ -92,10 +93,12 @@ Assert-True ($plugin -match 'put_DefaultBackgroundColor') 'Canvas WebView can fl
 Assert-True ($volumeConsole -match 'refreshTimer_->setInterval\(500\)') 'The Volume Console has no real-time refresh.'
 Assert-True ($volumeConsole -match 'std::max\(\{0,entry.maximumValue,value\}\)') 'Positive source gain is not preserved during refresh.'
 Assert-True ($canvas -match '256ull\*1024\*1024') 'Canvas capture memory is not bounded.'
-Assert-True (($canvas -match 'visualChecker\?4000:') -and ($canvas -match 'QStringLiteral\("reasoning"\).*QStringLiteral\("effort"\).*QStringLiteral\("low"\)')) 'Visual Checker does not use low reasoning with a 4,000-token output allowance.'
+Assert-True (($canvas -notmatch 'visualChecker\?4000:') -and ($canvas -match 'QStringLiteral\("reasoning"\).*QStringLiteral\("effort"\).*QStringLiteral\("none"\)')) 'Visual Checker does not use no reasoning with the standard 1,800-token output allowance.'
+Assert-True (($canvas -match 'copy_latest') -and ($canvas -match 'CopyLatestResult') -and ($plugin -match 'CopyTextToClipboard')) 'Canvas results do not provide the localized Copy Latest Result action.'
+Assert-True ($compatibility -match 'QStringLiteral\("reasoning"\).*QStringLiteral\("effort"\).*QStringLiteral\("low"\)') 'Compatibility analysis does not use low reasoning for its required web research.'
 Assert-True ($plugin -match 'CancelNetworkRequests\(\)') 'Network requests are not cancelled during shutdown.'
 Assert-True ($installer -match 'HasValidMicrosoftSignature') 'Downloaded prerequisites are not signature checked.'
-Assert-True (($installer -match '#define AppVersion "1\.1\.2"') -and ($installer -match 'OutputBaseFilename=AccessibleStudio-1\.1\.2-Setup') -and ($installer -notmatch '1\.1\.2-test')) 'The installer is not clearly identified as the final 1.1.2 build.'
+Assert-True (($installer -match '#define AppVersion "1\.1\.3"') -and ($installer -match 'OutputBaseFilename=AccessibleStudio-1\.1\.3-Setup') -and ($installer -notmatch '1\.1\.3-test')) 'The installer is not clearly identified as the final 1.1.3 build.'
 Assert-True (($installer -match 'IndependentProjectNotice') -and ($installer -match 'BDA542EA-4E63-4F03-9F5B-B7A8CD8E470B') -and ($installer -match 'RemoveAccessibleObsStudioLegacy\.ps1') -and ($installer -match '6934DC32-5675-4735-B08A-0DED7B2CBD79')) 'The Accessible Studio transition notice, legacy cleanup, or new installer identity is incomplete.'
 
 Write-Host 'Hardening source invariants passed.'

@@ -1,6 +1,6 @@
 # FAQ zu den Audiofunktionen
 
-Dieses Dokument erläutert Sound Doctor, Audible Meter und die barrierefreie Lautstärkekonsole in Accessible Studio 1.1.2.
+Dieses Dokument erläutert Sound Doctor, Audible Meter und die barrierefreie Lautstärkekonsole in Accessible Studio 1.1.3.
 
 ## Überblick
 

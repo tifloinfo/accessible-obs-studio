@@ -1,6 +1,6 @@
 # Sound Features FAQ
 
-This document covers Sound Doctor, Audible Meter, and the Accessible Volume Console in Accessible Studio 1.1.2.
+This document covers Sound Doctor, Audible Meter, and the Accessible Volume Console in Accessible Studio 1.1.3.
 
 ## Overview
 
